@@ -1,0 +1,441 @@
+import os, re, unicodedata
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import geopandas as gpd
+import pandas as pd
+import numpy as np
+import cv2
+from io import BytesIO
+from PIL import Image, ImageDraw, ImageFont
+from difflib import SequenceMatcher
+
+plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Microsoft JhengHei', 'Arial Unicode MS']
+plt.rcParams['axes.unicode_minus'] = False
+
+# ==================== 配置 ====================
+SHP_PATH = r"D:\Windows\Documents\村里界歷史圖資_111\村里界歷史圖資_111\VILLAGE_MOI_1111118.shp"
+EXCEL_PATH = r"D:\Windows\Documents\村里界歷史圖資_111\VoteData.xlsx"
+OUT_PNG = os.path.join(os.path.expanduser("~"), "Desktop", "Tainan_Compare.png")
+CITY_NAME = "臺南市"
+
+MPP = 10                      # 米/像素
+MAX_SAFE_PX = 32000
+VILL_LINE_PX = 1              # 村里界线宽
+TOWN_LINE_PX = 4              # 乡镇界线宽（黑）
+DISTRICT_LINE_PX = 6          # 立法委员选区线宽（白）
+ERASE_PAD_PX = 2              # 选区擦除带每侧额外像素，彻底吃掉黑边残留
+GRAY_COLOR = "#CCCCCC"
+
+BUF_RES, BUF_JOIN, BUF_CAP = 1, 2, 2   # 缓冲用直线多边形
+
+color_stops_rate1 = [(45,"#00F2FF"),(50,"#00E6FF"),(55,"#00DAFF"),(60,"#00C0F4"),
+                     (65,"#00A2E8"),(70,"#0080B8"),(75,"#006591"),(80,"#004B6B"),(85,"#003247")]
+color_stops_rate2 = [(45,"#CEFFC2"),(50,"#C0FFB1"),(55,"#A4FF90"),(60,"#78FF4F"),
+                     (65,"#68DE45"),(70,"#54B337"),(75,"#3C8027"),(80,"#2B5C1C"),(85,"#1D3D13")]
+color_stops_rate3 = [(45,"#F0F0F0"),(50,"#E0E0E0"),(55,"#D0D0D0"),
+                     (60,"#C0C0C0"),(65,"#B1B1B1"),(70,"#A1A1A1"),
+                     (75,"#929292"),(80,"#737373"),(85,"#646464")]
+
+BLOCK_W, BLOCK_H = 120, 75
+V_SP, H_SP = 30, 120
+FONT_SIZE, LEG_PAD = 36, 60
+
+WHITE_THRESH, MAX_WHITE_BLOB_PX, RING_ITER = 250, 2000, 2
+
+os.makedirs(os.path.dirname(OUT_PNG), exist_ok=True)
+
+# ==================== 工具 ====================
+VARIANT_MAP = str.maketrans({'濓':'濂', '𥕢':'曹', '𦰡':'那', '檨':'檨'})
+_CJK_KEEP = re.compile(
+    r'[^\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF'
+    r'\U00020000-\U0002A6DF\U0002A700-\U0002B73F'
+    r'\U0002F800-\U0002FA1F]')
+
+def normalize_text(s):
+    if pd.isna(s): return ""
+    s = str(s).strip()
+    s = unicodedata.normalize('NFKC', s)
+    s = ''.join(c for c in s if unicodedata.category(c)[0] != 'M')
+    s = re.sub(r'[\uFE00-\uFE0F\U000E0100-\U000E01EF]', '', s)
+    s = re.sub(r'[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]', '', s)
+    return s.translate(VARIANT_MAP)
+
+def strip_town(s):  return "" if pd.isna(s) else re.sub(r"[鄉鎮市區]$", "", normalize_text(s))
+def strip_vill(s):  return "" if pd.isna(s) else re.sub(r"[村里]$", "", normalize_text(s))
+def clean_cjk(s):   return "" if pd.isna(s) else _CJK_KEEP.sub('', normalize_text(s))
+
+def hex2rgb(hx):
+    h = hx.lstrip("#")
+    return (int(h[0:2],16)/255.0, int(h[2:4],16)/255.0, int(h[4:6],16)/255.0)
+
+def get_color(val, stops):
+    if np.isnan(val): return None
+    for up, hx in stops:
+        if val <= up: return hx
+    return stops[-1][1]
+
+def text_width(font, txt):
+    try: bbox = font.getbbox(txt)
+    except AttributeError: bbox = font.getmask(txt).getbbox()
+    return (bbox[2]-bbox[0]) if bbox else 0
+
+def fill_small_white_blobs(img, protect_mask=None):
+    h, w = img.shape[:2]
+    mask = np.all(img >= WHITE_THRESH, axis=2).astype(np.uint8)
+    num, labels, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
+    res = img.copy(); filled = 0
+    kernel = np.ones((3, 3), np.uint8)
+    for i in range(1, num):
+        x, y, bw, bh, area = stats[i]
+        if area > MAX_WHITE_BLOB_PX: continue
+        if x == 0 or y == 0 or (x+bw) == w or (y+bh) == h: continue
+        cm = (labels == i).astype(np.uint8)
+        if protect_mask is not None and np.any(protect_mask & cm.astype(bool)): continue
+        dil = cv2.dilate(cm, kernel, iterations=RING_ITER)
+        rm = (dil > 0) & (cm == 0)
+        rp = img[rm]
+        if len(rp) == 0: continue
+        nw = rp[~np.all(rp >= WHITE_THRESH, axis=1)]
+        if len(nw) == 0: continue
+        colors, counts = np.unique(nw.reshape(-1, 3), axis=0, return_counts=True)
+        res[cm.astype(bool)] = colors[np.argmax(counts)]
+        filled += 1
+    return res, filled
+
+# ==================== 读 SHP ====================
+gdf_all = gpd.read_file(SHP_PATH, encoding="UTF-8")
+if gdf_all.crs is None: gdf_all.crs = "EPSG:4326"
+gdf_all = gdf_all.to_crs(epsg=3826)
+
+for c in ["COUNTYNAME", "TOWNNAME", "VILLNAME"]:
+    if c not in gdf_all.columns: raise ValueError(f"SHP缺字段：{c}")
+
+gdf_nt = gdf_all[gdf_all["COUNTYNAME"] == CITY_NAME].copy()
+gdf_nt["town_core"] = gdf_nt["TOWNNAME"].apply(strip_town)
+gdf_nt["vill_core"] = gdf_nt["VILLNAME"].apply(strip_vill)
+
+# ==================== 选区映射 ====================
+district_full_town_raw = {
+    "後壁區":1,"白河區":1,"北門區":1,"學甲區":1,"鹽水區":1,
+    "新營區":1,"柳營區":1,"東山區":1,"將軍區":1,"下營區":1,"六甲區":1,
+    "七股區":2,"佳里區":2,"麻豆區":2,"官田區":2,"善化區":2,
+    "大內區":2,"玉井區":2,"楠西區":2,"西港區":2,"安定區":2,
+    "山上區":2,"左鎮區":2,"南化區":2,
+    "安南區":3,"北區":3,
+    "新市區":4,"永康區":4,"新化區":4,
+    "安平區":5,"中西區":5,"南區":5,
+    "仁德區":6,"歸仁區":6,"關廟區":6,"龍崎區":6}
+
+village2district_raw = {
+    ("東區","崇信里"):5,("東區","崇學里"):5,("東區","大學里"):5,
+    ("東區","成大里"):5,("東區","東門里"):5,("東區","圍下里"):5,
+    ("東區","中西里"):5,("東區","東安里"):5,("東區","忠孝里"):5,
+    ("東區","大福里"):5,("東區","大德里"):5,("東區","路東里"):5,
+    ("東區","大同里"):5,("東區","泉南里"):5,("東區","龍山里"):5,
+    ("東區","德光里"):5,
+    ("東區","崇德里"):6,("東區","崇善里"):6,("東區","崇成里"):6,
+    ("東區","崇文里"):6,("東區","東智里"):6,("東區","大智里"):6,
+    ("東區","德高里"):6,("東區","仁和里"):6,("東區","和平里"):6,
+    ("東區","虎尾里"):6,("東區","裕聖里"):6,("東區","復興里"):6,
+    ("東區","自強里"):6,("東區","東聖里"):6,("東區","關聖里"):6,
+    ("東區","南聖里"):6,("東區","文聖里"):6,("東區","後甲里"):6,
+    ("東區","東光里"):6,("東區","東明里"):6,("東區","莊敬里"):6,
+    ("東區","小東里"):6,("東區","新東里"):6,("東區","崇誨里"):6,
+    ("東區","衛國里"):6,("東區","裕農里"):6,("東區","富強里"):6,
+    ("東區","富裕里"):6,("東區","崇明里"):6}
+
+village2district = {(strip_town(t), strip_vill(v)): d
+                    for (t, v), d in village2district_raw.items()}
+district_full_town = {strip_town(t): d for t, d in district_full_town_raw.items()}
+
+print(f"选区规则：全境乡镇 {len(district_full_town)} 个，部分里 {len(village2district)} 个")
+
+# ==================== 读 Excel ====================
+df_vote = pd.read_excel(EXCEL_PATH, header=None)
+n_cols = df_vote.shape[1]
+if n_cols == 5: df_vote[5] = 0
+elif n_cols != 6: raise ValueError(f"Excel列数应为5或6，实际{n_cols}")
+
+df_vote = df_vote.iloc[:, :6]
+df_vote.columns = ["縣市","鄉鎮市區","區里","得票率1","得票率2","得票率3"]
+for c in ["縣市","鄉鎮市區","區里"]:
+    df_vote[c] = df_vote[c].astype(str).str.strip()
+df_vote = df_vote[df_vote["縣市"] == CITY_NAME].copy()
+for c in ["得票率1","得票率2","得票率3"]:
+    df_vote[c] = pd.to_numeric(
+        df_vote[c].astype(str).str.replace('%','').str.replace(',',''),
+        errors="coerce")
+df_vote["town_core"] = df_vote["鄉鎮市區"].apply(strip_town)
+df_vote["vill_core"] = df_vote["區里"].apply(strip_vill)
+
+vote_dict = {(r["town_core"], r["vill_core"]):
+             (r["得票率1"], r["得票率2"], r["得票率3"])
+             for _, r in df_vote.iterrows()}
+
+# ==================== 匹配 ====================
+MIN_SIM = 0.5
+
+def fuzzy_lookup(town, vill, by_key, by_town):
+    if not town or not vill: return None, None, "none"
+    tn, vn = normalize_text(town), normalize_text(vill)
+    if (tn, vn) in by_key:
+        return vill, by_key[(tn, vn)], "exact"
+    vc = clean_cjk(vn)
+    if not vc: return None, None, "none"
+    best_v, best_val, best_r = None, None, -1.0
+    for cand, val in by_town.get(tn, []):
+        cc = clean_cjk(cand)
+        if not cc: continue
+        if cc == vc: return cand, val, f"fuzzy:{cand}(1.00)"
+        r = SequenceMatcher(None, vc, cc).ratio()
+        if r > best_r: best_r, best_v, best_val = r, cand, val
+    if best_val is None or best_r < MIN_SIM: return None, None, "none"
+    return best_v, best_val, f"fuzzy:{best_v}({best_r:.2f})"
+
+vote_by_town = {}
+for (t, v), vals in vote_dict.items():
+    vote_by_town.setdefault(t, []).append((v, vals))
+district_by_town = {}
+for (t, v), d in village2district.items():
+    district_by_town.setdefault(t, []).append((v, d))
+
+def process_row(r):
+    town, vill = r["town_core"], r["vill_core"]
+    mv, vals, mt = fuzzy_lookup(town, vill, vote_dict, vote_by_town)
+    r1, r2, r3 = vals if vals else (np.nan, np.nan, np.nan)
+    lv = mv if mv is not None else vill
+    d = village2district.get((town, lv))
+    if d is None: d = district_full_town.get(town)
+    if d is None:
+        _, dv, _ = fuzzy_lookup(town, lv, village2district, district_by_town)
+        d = dv if dv is not None else np.nan
+    return (r1, r2, r3, mt, d)
+
+results = [process_row(r) for _, r in gdf_nt.iterrows()]
+gdf_nt = pd.concat([gdf_nt,
+    pd.DataFrame(results, columns=["rate1","rate2","rate3","match_type","district"],
+                 index=gdf_nt.index)], axis=1)
+
+# ==================== 选区 ====================
+has_full = gdf_nt[["rate1","rate2","rate3"]].notna().all(axis=1)
+districts_gdf = (gdf_nt[gdf_nt["district"].notna() & has_full]
+                 .dissolve(by="district", aggfunc="first"))
+
+# ==================== 统计 ====================
+rates = gdf_nt[["rate1","rate2","rate3"]]
+exact_cnt = int((gdf_nt["match_type"] == "exact").sum())
+fuzzy_cnt = int(gdf_nt["match_type"].astype(str).str.startswith("fuzzy", na=False).sum())
+none_cnt  = int((gdf_nt["match_type"] == "none").sum())
+cnt_valid = int((~rates.isna().any(axis=1)).sum())
+print("=" * 56)
+print(f"  {CITY_NAME} 匹配报告")
+print("=" * 56)
+print(f"  SHP 村里 {len(gdf_nt)} | Excel {len(df_vote)} | 选区 {len(districts_gdf)}")
+print(f"  精确 {exact_cnt} | 模糊 {fuzzy_cnt} | 无候选 {none_cnt} | 三项齐全 {cnt_valid}")
+print("=" * 56 + "\n")
+
+# ==================== 填色 ====================
+def pick_fill(row):
+    r1, r2, r3 = row["rate1"], row["rate2"], row["rate3"]
+    if np.isnan(r1) and np.isnan(r2) and np.isnan(r3): return GRAY_COLOR
+    if np.isnan(r1) or np.isnan(r2) or np.isnan(r3): return np.nan
+    if r1 >= r2 and r1 >= r3: return get_color(r1, color_stops_rate1)
+    if r2 >= r3: return get_color(r2, color_stops_rate2)
+    return get_color(r3, color_stops_rate3)
+
+gdf_nt["fill_hex"] = gdf_nt.apply(pick_fill, axis=1)
+gdf_plot = gdf_nt[gdf_nt["fill_hex"].notna()].copy()
+if len(gdf_plot) == 0: raise ValueError("无可绘制村里")
+fill_colors = gdf_plot["fill_hex"].astype(str).tolist()
+
+# ==================== 绘图 ====================
+minx, miny, maxx, maxy = gdf_plot.total_bounds
+PAD_FRAC = 0.03
+pad_x = (maxx - minx) * PAD_FRAC
+pad_y = (maxy - miny) * PAD_FRAC
+xlim = (minx - pad_x, maxx + pad_x)
+ylim = (miny - pad_y, maxy + pad_y)
+w_px = int(np.ceil((xlim[1] - xlim[0]) / MPP))
+h_px = int(np.ceil((ylim[1] - ylim[0]) / MPP))
+if w_px > MAX_SAFE_PX or h_px > MAX_SAFE_PX:
+    raise Exception(f"图像超限 {w_px}×{h_px}")
+
+DPI = 100
+PX2PT = 72.0 / DPI     # 像素→point 换算
+
+fig = plt.figure(figsize=(w_px / DPI, h_px / DPI), dpi=DPI)
+ax = fig.add_axes([0, 0, 1, 1])
+ax.set_xlim(*xlim); ax.set_ylim(*ylim)
+ax.set_facecolor("#FFFFFF")
+
+# 宽度（地图米）
+dist_half_m  = DISTRICT_LINE_PX * MPP / 2
+town_half_m  = TOWN_LINE_PX * MPP / 2
+erase_half_m = dist_half_m + ERASE_PAD_PX * MPP
+gray_pad_m   = dist_half_m + MPP
+
+city_geom = gdf_nt.geometry.union_all()
+all_district_bd = districts_gdf.boundary.union_all()
+
+# ★ 选区擦除带：半宽 = 白带半宽 + ERASE_PAD_PX，用来"擦掉"所有黑线
+erase_geom = all_district_bd.buffer(erase_half_m, resolution=BUF_RES,
+                                    join_style=BUF_JOIN, cap_style=BUF_CAP)
+
+# 灰色区
+gray_mask = gdf_plot["fill_hex"] == GRAY_COLOR
+gray_pad = (gdf_plot.loc[gray_mask, "geometry"].union_all().buffer(
+    gray_pad_m, resolution=BUF_RES, join_style=BUF_JOIN, cap_style=BUF_CAP)
+    if gray_mask.any() else None)
+
+# 需要排除的区域：擦除带 ∪ 灰色区
+exclude = erase_geom if gray_pad is None else erase_geom.union(gray_pad)
+
+# ① 村里填色（无边）
+gdf_plot.plot(ax=ax, facecolor=fill_colors, edgecolor='none',
+              linewidth=0, antialiased=False, legend=False)
+
+# ② 村里黑线（独立几何 → 做差集 → 完全不侵入白带）
+village_lines = gdf_plot.boundary.union_all().difference(exclude)
+if not village_lines.is_empty:
+    gpd.GeoSeries([village_lines]).plot(
+        ax=ax, edgecolor='black', facecolor='none',
+        linewidth=VILL_LINE_PX * PX2PT, antialiased=False, zorder=5)
+
+# ③ 乡镇黑线（4px，同样做差集）
+town_lines = gdf_nt.dissolve(by="town_core").boundary.union_all().difference(exclude)
+if not town_lines.is_empty:
+    town_band = town_lines.buffer(town_half_m, resolution=BUF_RES,
+                                  join_style=BUF_JOIN, cap_style=BUF_CAP
+                                  ).intersection(city_geom)
+    if not town_band.is_empty:
+        gpd.GeoSeries([town_band]).plot(
+            ax=ax, facecolor='black', edgecolor='none',
+            linewidth=0, antialiased=False, zorder=9)
+
+# ④ 选区白带（6px）
+white_lines = all_district_bd if gray_pad is None else all_district_bd.difference(gray_pad)
+white_band = None
+if not white_lines.is_empty:
+    wb = white_lines.buffer(dist_half_m, resolution=BUF_RES,
+                            join_style=BUF_JOIN, cap_style=BUF_CAP
+                            ).intersection(city_geom)
+    if not wb.is_empty:
+        white_band = wb
+        gpd.GeoSeries([wb]).plot(
+            ax=ax, facecolor='white', edgecolor='none',
+            linewidth=0, antialiased=False, zorder=10)
+
+# ⑤ 市外轮廓（6px 黑带）
+outer = city_geom.boundary.buffer(dist_half_m, resolution=BUF_RES,
+                                  join_style=BUF_JOIN, cap_style=BUF_CAP)
+if not outer.is_empty:
+    gpd.GeoSeries([outer]).plot(
+        ax=ax, facecolor='black', edgecolor='none',
+        linewidth=0, antialiased=False, zorder=11)
+
+ax.axis("off")
+
+buf = BytesIO()
+plt.savefig(buf, format="png", dpi=DPI, pad_inches=0,
+            bbox_inches=None, facecolor="#FFFFFF")
+plt.close(fig); buf.seek(0)
+img_rgb = cv2.cvtColor(
+    cv2.imdecode(np.frombuffer(buf.getvalue(), np.uint8), cv2.IMREAD_COLOR),
+    cv2.COLOR_BGR2RGB)
+
+# ==================== 保护 mask（白带位置） ====================
+fig_m = plt.figure(figsize=(w_px / DPI, h_px / DPI), dpi=DPI)
+ax_m = fig_m.add_axes([0, 0, 1, 1])
+ax_m.set_xlim(*xlim); ax_m.set_ylim(*ylim)
+ax_m.set_facecolor("#000000")
+if white_band is not None:
+    gpd.GeoSeries([white_band]).plot(
+        ax=ax_m, facecolor='white', edgecolor='none',
+        linewidth=0, antialiased=False)
+ax_m.axis("off")
+buf_m = BytesIO()
+plt.savefig(buf_m, format="png", dpi=DPI, pad_inches=0,
+            bbox_inches=None, facecolor="#000000")
+plt.close(fig_m); buf_m.seek(0)
+mask_rgb = cv2.cvtColor(
+    cv2.imdecode(np.frombuffer(buf_m.getvalue(), np.uint8), cv2.IMREAD_COLOR),
+    cv2.COLOR_BGR2RGB)
+protect_mask = np.all(mask_rgb >= WHITE_THRESH, axis=2)
+
+# ==================== 颜色量化 ====================
+allowed_hex = {"#FFFFFF", "#000000", GRAY_COLOR}
+for s in (color_stops_rate1, color_stops_rate2, color_stops_rate3):
+    allowed_hex.update(hx for _, hx in s)
+allowed_rgb = np.array([hex2rgb(h) for h in allowed_hex]).astype(np.float32) * 255
+
+pixels = img_rgb.reshape(-1, 3).astype(np.float32)
+dist = np.linalg.norm(pixels[:, None, :] - allowed_rgb[None, :, :], axis=2)
+quantized = allowed_rgb[np.argmin(dist, axis=1)].astype(np.uint8).reshape(img_rgb.shape)
+
+quantized, n_filled = fill_small_white_blobs(quantized, protect_mask=protect_mask)
+print(f"   ★ 已填平 {n_filled} 处小白点")
+
+# ==================== 图例 ====================
+pil_img = Image.fromarray(quantized)
+W, H = pil_img.size
+
+label_font = None
+for path in ["C:/Windows/Fonts/msyh.ttc", "C:/Windows/Fonts/simhei.ttf",
+             "C:/Windows/Fonts/mingliu.ttc"]:
+    try:
+        label_font = ImageFont.truetype(path, FONT_SIZE); break
+    except Exception: pass
+if label_font is None: label_font = ImageFont.load_default()
+
+def lbl(u, prev=None): return f"≤{u}%" if prev is None else f"{prev}~{u}%"
+
+stops_list = [color_stops_rate1, color_stops_rate2, color_stops_rate3]
+show_gray = bool((gdf_plot["fill_hex"] == GRAY_COLOR).any())
+
+max_label_w = max(text_width(label_font, lbl(u, s[i-1][0] if i > 0 else None))
+                  for s in stops_list for i, (u, _) in enumerate(s))
+if show_gray:
+    max_label_w = max(max_label_w, text_width(label_font, "无匹配数据"))
+
+col_w = BLOCK_W + 5 + max_label_w
+legend_w = col_w * 3 + H_SP * 2
+max_n = max(len(s) for s in stops_list)
+legend_h = (max_n + (1 if show_gray else 0)) * (BLOCK_H + V_SP) - V_SP
+
+new_W = W + legend_w + 2 * LEG_PAD
+new_H = max(H, legend_h + 2 * LEG_PAD)
+final_img = Image.new("RGB", (new_W, new_H), (255, 255, 255))
+final_img.paste(pil_img, (0, (new_H - H) // 2))
+
+draw = ImageDraw.Draw(final_img)
+leg_x0 = W + LEG_PAD
+leg_y0 = (new_H - legend_h) // 2
+col_pos = [leg_x0 + i * (col_w + H_SP) for i in range(3)]
+
+for ci, stops in enumerate(stops_list):
+    x0 = col_pos[ci]
+    for i, (upper, hx) in enumerate(stops):
+        y = leg_y0 + i * (BLOCK_H + V_SP)
+        draw.rectangle([x0, y, x0 + BLOCK_W, y + BLOCK_H],
+                       fill=hx, outline="#000000", width=1)
+        txt = lbl(upper, stops[i-1][0] if i > 0 else None)
+        try: bbox = label_font.getbbox(txt)
+        except AttributeError: bbox = label_font.getmask(txt).getbbox()
+        ly = y + (BLOCK_H - (bbox[3] - bbox[1])) // 2 if bbox else y
+        draw.text((x0 + BLOCK_W + 5, ly), txt, fill="#000000", font=label_font)
+
+if show_gray:
+    y = leg_y0 + max_n * (BLOCK_H + V_SP)
+    x0 = col_pos[0]
+    draw.rectangle([x0, y, x0 + BLOCK_W, y + BLOCK_H],
+                   fill=GRAY_COLOR, outline="#000000", width=1)
+    try: bbox = label_font.getbbox("无匹配数据")
+    except AttributeError: bbox = label_font.getmask("无匹配数据").getbbox()
+    ly = y + (BLOCK_H - (bbox[3] - bbox[1])) // 2 if bbox else y
+    draw.text((x0 + BLOCK_W + 5, ly), "无匹配数据", fill="#000000", font=label_font)
+
+final_img.save(OUT_PNG)
+print(f"✅ 输出: {OUT_PNG}  ({final_img.width}×{final_img.height}px)")
+print(f"   线宽: 村里{VILL_LINE_PX}px | 乡镇{TOWN_LINE_PX}px黑 | 选区{DISTRICT_LINE_PX}px白 | 外轮廓{DISTRICT_LINE_PX}px黑")
+print(f"   ★ 村界+乡镇界均已从选区擦除带(半宽+{ERASE_PAD_PX}px)扣除，彻底杜绝黑边残留")

@@ -1,0 +1,407 @@
+import os
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import geopandas as gpd
+import pandas as pd
+import numpy as np
+import re
+import cv2
+from io import BytesIO
+from PIL import Image, ImageDraw, ImageFont
+
+# ===================== 字体设置（matplotlib） =====================
+plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Microsoft JhengHei', 'Arial Unicode MS']
+plt.rcParams['axes.unicode_minus'] = False
+
+# ===================== 配置区 =====================
+SHP_PATH = r"D:\Windows\Documents\村里界歷史圖資_111\村里界歷史圖資_111\VILLAGE_MOI_1111118.shp"
+EXCEL_PATH = r"D:\Windows\Documents\村里界歷史圖資_111\VoteData.xlsx"
+
+# 输出到桌面（自动获取当前用户桌面）
+desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+OUT_PNG = os.path.join(desktop, "Taoyuan_Compare.png")
+
+CITY_NAME = "桃園市"
+
+METERS_PER_PIXEL = 10
+MAX_SAFE_PX = 32000
+target_line_px = 1
+
+# ===== 三色阶定义 =====
+color_stops_rate1 = [  # 蓝色系（对应得票率1）
+    (35, "#00FEFF"),
+    (40, "#00F2FF"),
+    (50, "#00E6FF"),
+    (55, "#00DAFF"),
+    (60, "#00C0F4"),
+    (65, "#00A2E8"),
+    (70, "#0080B8"),
+    (75, "#006591"),
+    (80, "#004B6B"),
+    (85, "#003247")
+]# 绿色系（对应得票率2）
+color_stops_rate2 = [
+    (35, "#DCFFD2"),
+    (40, "#CEFFC2"),
+    (45, "#C0FFB1"),
+    (50, "#A4FF90"),
+    (55, "#78FF4F"),
+    (60, "#68DE45"),
+    (65, "#54B337"),
+    (70, "#3C8027"),
+    (75, "#2B5C1C"),
+    (80, "#1D3D13")
+]
+color_stops_rate3 = [
+    (45, "#F0F0F0"),
+    (50, "#E0E0E0"),
+    (55, "#D0D0D0"),
+    (60, "#C0C0C0"),
+    (65, "#B1B1B1"),
+    (70, "#A1A1A1"),
+    (75, "#929292"),
+    (80, "#737373"),
+    (85, "#646464")
+]
+
+# ===== 图例像素参数 =====
+BLOCK_WIDTH = 40
+BLOCK_HEIGHT = 25
+V_SPACING = 10
+H_SPACING = 40
+LABEL_FONT_SIZE = 12
+LEGEND_PADDING = 20
+
+# ===== 选区边界线宽倍数（相对于村里边线） =====
+DISTRICT_LINE_WIDTH_FACTOR = 3
+# ==================================================
+
+os.makedirs(os.path.dirname(OUT_PNG), exist_ok=True)
+
+def strip_town_suffix(s):
+    if pd.isna(s):
+        return ""
+    s = str(s).strip()
+    s = re.sub(r"[鄉鎮市區]$", "", s)
+    return s
+
+def strip_village_suffix(s):
+    if pd.isna(s):
+        return ""
+    s = str(s).strip()
+    s = re.sub(r"[村里]$", "", s)
+    return s
+
+def get_color_by_value(val, stop_list):
+    if np.isnan(val):
+        return None
+    for upper, hx in stop_list:
+        if val <= upper:
+            return hx
+    return stop_list[-1][1]
+
+def hex2rgb(hx):
+    h = hx.lstrip("#")
+    return (int(h[0:2],16)/255.0, int(h[2:4],16)/255.0, int(h[4:6],16)/255.0)
+
+# ---------- 主程序 ----------
+gdf_all = gpd.read_file(SHP_PATH, encoding="UTF-8")
+if gdf_all.crs is None:
+    gdf_all.crs = "EPSG:4326"
+gdf_all = gdf_all.to_crs(epsg=3826)
+
+need_cols_shp = ["COUNTYNAME", "TOWNNAME", "VILLNAME"]
+miss_cols = [c for c in need_cols_shp if c not in gdf_all.columns]
+if miss_cols:
+    raise ValueError(f"SHP缺失必要字段：{miss_cols}")
+
+gdf_nt = gdf_all[gdf_all["COUNTYNAME"] == CITY_NAME].copy()
+print(f"SHP {CITY_NAME} 村里要素总数：{len(gdf_nt)}")
+gdf_nt["town_core"] = gdf_nt["TOWNNAME"].apply(strip_town_suffix)
+gdf_nt["vill_core"] = gdf_nt["VILLNAME"].apply(strip_village_suffix)
+
+# ========== 定义选区规则（与SHP核心名称匹配） ==========
+district_1_towns = ['蘆竹', '龜山']
+district_1_villages_taoyuan = ['汴洲', '春日', '會稽', '檜樂', '大有', '寶山', '寶民',
+                               '大興', '大業', '忠義', '福元', '三元', '青溪', '三民', '萬壽']
+
+district_2_towns = ['大園', '觀音', '新屋', '楊梅']
+
+district_5_towns = ['平鎮', '龍潭']
+
+district_6_towns = ['八德', '大溪', '復興']
+district_6_villages_zhongli = ['龍安', '仁愛', '仁德', '仁和', '仁祥', '華勛',
+                               '中堅', '興仁', '中正', '中山', '篤行', '自強']
+
+def assign_district(row):
+    town = row['town_core']
+    vill = row['vill_core']
+    if town in district_1_towns:
+        return 1
+    if town in district_2_towns:
+        return 2
+    if town == '中壢':
+        return 6 if vill in district_6_villages_zhongli else 3
+    if town == '桃園':
+        return 1 if vill in district_1_villages_taoyuan else 4
+    if town in district_5_towns:
+        return 5
+    if town in district_6_towns:
+        return 6
+    return np.nan
+
+gdf_nt['district'] = gdf_nt.apply(assign_district, axis=1)
+
+unassigned = gdf_nt[gdf_nt['district'].isna()]
+if len(unassigned) > 0:
+    print(f"⚠️ 有 {len(unassigned)} 个村里未分配到选区，可能影响边界完整性")
+    print(unassigned[['TOWNNAME', 'VILLNAME', 'town_core', 'vill_core']].head())
+
+# 按选区合并多边形（用于绘制边界）
+districts_gdf = gdf_nt[gdf_nt['district'].notna()].dissolve(by='district', aggfunc='first')
+print(f"✅ 已生成 {len(districts_gdf)} 个选区边界多边形")
+
+# ========== 读取 Excel（自适应 5 或 6 列） ==========
+df_vote = pd.read_excel(EXCEL_PATH, header=None)
+n_cols = df_vote.shape[1]
+if n_cols == 5:
+    df_vote[5] = 0
+    print("检测到Excel有5列，自动补得票率3为0")
+elif n_cols == 6:
+    pass
+else:
+    raise ValueError(f"Excel列数应为5或6，实际为{n_cols}")
+
+df_vote = df_vote.iloc[:, :6]
+df_vote.columns = ["縣市", "鄉鎮市區", "區里", "得票率1", "得票率2", "得票率3"]
+
+for col in ["縣市", "鄉鎮市區", "區里"]:
+    df_vote[col] = df_vote[col].astype(str).str.strip()
+
+df_vote = df_vote[df_vote["縣市"] == CITY_NAME].copy()
+
+for col in ["得票率1", "得票率2", "得票率3"]:
+    df_vote[col] = df_vote[col].astype(str).str.replace('%', '').str.replace(',', '')
+    df_vote[col] = pd.to_numeric(df_vote[col], errors="coerce")
+
+df_vote["town_core"] = df_vote["鄉鎮市區"].apply(strip_town_suffix)
+df_vote["vill_core"] = df_vote["區里"].apply(strip_village_suffix)
+
+print(f"Excel {CITY_NAME} 有效投票记录（原始行数）: {len(df_vote)}")
+
+vote_dict = {}
+for _, row in df_vote.iterrows():
+    k = (row["town_core"], row["vill_core"])
+    vote_dict[k] = (row["得票率1"], row["得票率2"], row["得票率3"])
+
+def get_three_rates(shp_row):
+    key = (shp_row["town_core"], shp_row["vill_core"])
+    if key in vote_dict:
+        return pd.Series(vote_dict[key])
+    else:
+        return pd.Series((np.nan, np.nan, np.nan))
+
+gdf_nt[["rate1", "rate2", "rate3"]] = gdf_nt.apply(get_three_rates, axis=1)
+
+# ========== 详细缺失数据报告 ==========
+print("\n========== 缺失数据详细报告 ==========")
+
+no_match_shp = gdf_nt[gdf_nt["rate1"].isna() & gdf_nt["rate2"].isna() & gdf_nt["rate3"].isna()]
+print(f"① SHP中有但Excel无匹配记录的村里数：{len(no_match_shp)}")
+if len(no_match_shp) > 0:
+    print("  显示前30条（SHP原始名称 vs 核心名称）：")
+    print(no_match_shp[["TOWNNAME", "VILLNAME", "town_core", "vill_core"]].head(30).to_string(index=False))
+
+partial_missing = gdf_nt[
+    (gdf_nt["rate1"].isna() | gdf_nt["rate2"].isna() | gdf_nt["rate3"].isna()) &
+    ~(gdf_nt["rate1"].isna() & gdf_nt["rate2"].isna() & gdf_nt["rate3"].isna())
+]
+print(f"\n② 匹配成功但有得票率缺失（部分NaN）的村里数：{len(partial_missing)}")
+if len(partial_missing) > 0:
+    print("  显示前30条（原始名称、核心名称及缺失值）：")
+    print(partial_missing[["TOWNNAME", "VILLNAME", "town_core", "vill_core", "rate1", "rate2", "rate3"]].head(30).to_string(index=False))
+
+excel_keys = set(vote_dict.keys())
+shp_keys = set(zip(gdf_nt["town_core"], gdf_nt["vill_core"]))
+excel_not_in_shp = excel_keys - shp_keys
+print(f"\n③ Excel中有记录但SHP中无对应村里的数量：{len(excel_not_in_shp)}")
+if len(excel_not_in_shp) > 0:
+    print("  显示前30条（Excel原始名称 vs 核心名称）：")
+    excel_missing = df_vote[df_vote.apply(lambda r: (r["town_core"], r["vill_core"]) in excel_not_in_shp, axis=1)]
+    print(excel_missing[["鄉鎮市區", "區里", "town_core", "vill_core", "得票率1", "得票率2", "得票率3"]].head(30).to_string(index=False))
+
+cnt_valid = (~gdf_nt["rate1"].isna() & ~gdf_nt["rate2"].isna() & ~gdf_nt["rate3"].isna()).sum()
+cnt_partial = len(partial_missing)
+cnt_no_match = len(no_match_shp)
+print(f"\n汇总：")
+print(f"  三项齐全可绘制的村里：{cnt_valid}")
+print(f"  部分缺失（至少一项NaN）：{cnt_partial}")
+print(f"  完全无匹配：{cnt_no_match}")
+print("====================================\n")
+
+# 填色逻辑
+def pick_fill_color(row):
+    r1, r2, r3 = row["rate1"], row["rate2"], row["rate3"]
+    if np.isnan(r1) or np.isnan(r2) or np.isnan(r3):
+        return np.nan
+    if r1 >= r2 and r1 >= r3:
+        return get_color_by_value(r1, color_stops_rate1)
+    elif r2 >= r1 and r2 >= r3:
+        return get_color_by_value(r2, color_stops_rate2)
+    else:
+        return get_color_by_value(r3, color_stops_rate3)
+
+gdf_nt["fill_hex"] = gdf_nt.apply(pick_fill_color, axis=1)
+
+gdf_plot = gdf_nt[~gdf_nt["fill_hex"].isna()].copy()
+print(f"实际绘制 {len(gdf_plot)} 个村里（仅三项齐全）")
+if len(gdf_plot) == 0:
+    raise ValueError("没有可绘制的村里，请检查数据匹配！")
+
+fill_colors = gdf_plot["fill_hex"].tolist()
+minx, miny, maxx, maxy = gdf_plot.total_bounds
+geo_w, geo_h = maxx - minx, maxy - miny
+w_px = int(np.ceil(geo_w / METERS_PER_PIXEL))
+h_px = int(np.ceil(geo_h / METERS_PER_PIXEL))
+if w_px > MAX_SAFE_PX or h_px > MAX_SAFE_PX:
+    raise Exception(f"图像尺寸超限 {w_px}×{h_px}，调大METERS_PER_PIXEL")
+
+DPI = 100
+fig_w = w_px / DPI
+fig_h = h_px / DPI
+linewidth_val = target_line_px * (DPI / 72.0)
+
+fig = plt.figure(figsize=(fig_w, fig_h), dpi=DPI)
+ax = fig.add_axes([0, 0, 1, 1])
+ax.set_xlim(minx, maxx)
+ax.set_ylim(miny, maxy)
+ax.set_facecolor("#FFFFFF")
+
+# 绘制填充色的村里（黑色边界，antialiased=False）
+gdf_plot.plot(ax=ax, facecolor=fill_colors, edgecolor="#000000",
+              linewidth=linewidth_val, antialiased=False, legend=False)
+
+# ===== 绘制选区边界（白色粗线，包含外轮廓） =====
+district_linewidth = linewidth_val * DISTRICT_LINE_WIDTH_FACTOR
+districts_gdf.boundary.plot(ax=ax, edgecolor='white', linewidth=district_linewidth,
+                            facecolor='none', zorder=10, antialiased=False)
+
+# ===== 绘制桃园市外轮廓黑色线（覆盖白色，保持外边界黑色） =====
+outer_boundary = gdf_nt.geometry.union_all().boundary
+
+outer_gdf = gpd.GeoSeries([outer_boundary])
+outer_gdf.plot(ax=ax, edgecolor='black', linewidth=district_linewidth,
+               facecolor='none', zorder=11, antialiased=False)
+
+ax.axis("off")
+
+buf = BytesIO()
+plt.savefig(buf, format="png", dpi=DPI, pad_inches=0, bbox_inches=None, facecolor="#FFFFFF")
+plt.close(fig)
+buf.seek(0)
+
+img_bgr = cv2.imdecode(np.frombuffer(buf.getvalue(), np.uint8), cv2.IMREAD_COLOR)
+img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+allowed_hex = set()
+allowed_hex.add("#FFFFFF")
+allowed_hex.add("#000000")
+for _, hx in color_stops_rate1:
+    allowed_hex.add(hx)
+for _, hx in color_stops_rate2:
+    allowed_hex.add(hx)
+for _, hx in color_stops_rate3:
+    allowed_hex.add(hx)
+
+allowed_rgb = np.array([hex2rgb(hx) for hx in allowed_hex])
+allowed_rgb_255 = (allowed_rgb * 255).astype(np.uint8)
+pixels = img_rgb.reshape(-1, 3).astype(np.float32)
+distances = np.linalg.norm(pixels[:, None, :] - allowed_rgb_255[None, :, :], axis=2)
+nearest_idx = np.argmin(distances, axis=1)
+quantized = allowed_rgb_255[nearest_idx].reshape(img_rgb.shape)
+
+# ========== PIL图例（三列） ==========
+pil_img = Image.fromarray(quantized)
+W, H = pil_img.size
+
+font_paths = [
+    "C:/Windows/Fonts/msyh.ttc",
+    "C:/Windows/Fonts/simhei.ttf",
+    "C:/Windows/Fonts/mingliu.ttc",
+]
+label_font = None
+for path in font_paths:
+    try:
+        label_font = ImageFont.truetype(path, LABEL_FONT_SIZE)
+        break
+    except:
+        continue
+if label_font is None:
+    label_font = ImageFont.load_default()
+
+def get_label_text(upper, prev_upper=None):
+    if prev_upper is None:
+        return f"≤{upper}%"
+    else:
+        return f"{prev_upper}~{upper}%"
+
+stops_list = [color_stops_rate1, color_stops_rate2, color_stops_rate3]
+
+max_label_w = 0
+for stops in stops_list:
+    for i, (upper, _) in enumerate(stops):
+        prev = stops[i-1][0] if i > 0 else None
+        label = get_label_text(upper, prev)
+        try:
+            bbox = label_font.getbbox(label)
+        except AttributeError:
+            bbox = label_font.getmask(label).getbbox()
+        if bbox:
+            w = bbox[2] - bbox[0]
+            max_label_w = max(max_label_w, w)
+
+col_width = BLOCK_WIDTH + 5 + max_label_w
+total_legend_width = col_width * 3 + H_SPACING * 2
+max_n = max(len(stops) for stops in stops_list)
+legend_height = max_n * (BLOCK_HEIGHT + V_SPACING) - V_SPACING
+
+new_W = W + total_legend_width + LEGEND_PADDING * 2
+new_H = max(H, legend_height + LEGEND_PADDING * 2)
+
+new_img = Image.new('RGB', (new_W, new_H), (255, 255, 255))
+y_offset = (new_H - H) // 2
+new_img.paste(pil_img, (LEGEND_PADDING, y_offset))
+
+legend_x = W + LEGEND_PADDING
+legend_y = (new_H - legend_height) // 2
+
+col_positions = [legend_x + i * (col_width + H_SPACING) for i in range(3)]
+draw = ImageDraw.Draw(new_img)
+
+for col_idx, stops in enumerate(stops_list):
+    x_start = col_positions[col_idx]
+    for i, (upper, color_hex) in enumerate(stops):
+        y = legend_y + i * (BLOCK_HEIGHT + V_SPACING)
+        draw.rectangle([x_start, y, x_start + BLOCK_WIDTH, y + BLOCK_HEIGHT],
+                       fill=color_hex, outline="#000000", width=1)
+        prev = stops[i-1][0] if i > 0 else None
+        label = get_label_text(upper, prev)
+        label_x = x_start + BLOCK_WIDTH + 5
+        try:
+            bbox = label_font.getbbox(label)
+        except AttributeError:
+            bbox = label_font.getmask(label).getbbox()
+        if bbox:
+            label_h = bbox[3] - bbox[1]
+            label_y = y + (BLOCK_HEIGHT - label_h) // 2
+        else:
+            label_y = y
+        draw.text((label_x, label_y), label, fill="#000000", font=label_font)
+
+new_img.save(OUT_PNG)
+print(f"✅完成输出：{OUT_PNG}  新尺寸 {new_W}×{new_H} px")
+print(f"👉边线1像素，颜色量化，图例位于右侧空白区域")
+print(f"👉色块尺寸：宽{BLOCK_WIDTH}px 高{BLOCK_HEIGHT}px，列间距{H_SPACING}px，行间距{V_SPACING}px")
+print(f"👉填充规则：取三个得票率中的最大值对应的色阶进行着色")
+print(f"👉选区边界：白色粗线（内部），外轮廓黑色（覆盖白色）")

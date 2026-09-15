@@ -1,0 +1,248 @@
+import os
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import geopandas as gpd
+import pandas as pd
+import numpy as np
+from matplotlib.colors import LinearSegmentedColormap
+import re
+import cv2
+from io import BytesIO
+
+# ===================== 配置区 =====================
+SHP_PATH = r"D:\Windows\Documents\村里界歷史圖資_111\村里界歷史圖資_111\VILLAGE_MOI_1111118.shp"
+EXCEL_PATH = r"D:\Windows\Documents\村里界歷史圖資_111\VoteData.xlsx"
+OUT_PNG = r"C:\Users\Windows\Desktop\NewTaipei_Compare.png"
+
+METERS_PER_PIXEL = 10   # 1像素对应10米
+MAX_SAFE_PX = 32000
+target_line_px = 1      # 目标线宽：1像素
+threshold_val = 40      # 二值化阈值（保留）
+
+# ===== 新色阶：得票率1（黄绿色系） =====
+color_stops_rate1 = [
+    (30, "#C0FFB1"),   # 25-30
+    (35, "#A4FF90"),   # 30-35
+    (40, "#78FF4F"),   # 35-40
+    (45, "#68DE45"),   # 40-45
+    (50, "#54B337"),   # 45-50
+    (55, "#3C8027"),   # 50-55
+    (60, "#2B5C1C"),   # 55-60
+    (65, "#1D3D13"),   # 60-65
+]
+
+# ===== 新色阶：得票率2（蓝绿色系） =====
+color_stops_rate2 = [
+    (30, "#00E6FF"),   # 25-30
+    (35, "#00DAFF"),   # 30-35
+    (40, "#00C0F4"),   # 35-40
+    (45, "#00A2E8"),   # 40-45
+    (50, "#0080B8"),   # 45-50
+    (55, "#006591"),   # 50-55
+    (60, "#004B6B"),   # 55-60
+    (65, "#003247"),   # 60-65
+]
+
+vmin_global = 0
+vmax_global = 100
+# ==================================================
+
+os.makedirs(os.path.dirname(OUT_PNG), exist_ok=True)
+
+def strip_town_suffix(s):
+    """去掉鄉鎮市區结尾，处理板橋市/板橋區改制差异"""
+    if pd.isna(s):
+        return ""
+    s = str(s).strip()
+    s = re.sub(r"[鄉鎮市區]$", "", s)
+    return s
+
+def strip_village_suffix(s):
+    """村里剥离结尾：里、村，处理村里改制村改里"""
+    if pd.isna(s):
+        return ""
+    s = str(s).strip()
+    s = re.sub(r"[村里]$", "", s)
+    return s
+
+# 根据数值取对应色阶的hex颜色
+def get_color_by_value(val, stop_list):
+    if np.isnan(val):
+        return None
+    for upper, hx in stop_list:
+        if val <= upper:
+            return hx
+    return stop_list[-1][1]   # 超过最大值使用最后一个颜色
+
+def hex2rgb(hx):
+    h = hx.lstrip("#")
+    return (int(h[0:2],16)/255.0, int(h[2:4],16)/255.0, int(h[4:6],16)/255.0)
+
+# 1.读取shp
+gdf_all = gpd.read_file(SHP_PATH, encoding="UTF-8")
+if gdf_all.crs is None:
+    gdf_all.crs = "EPSG:4326"
+gdf_all = gdf_all.to_crs(epsg=3826)
+
+need_cols_shp = ["COUNTYNAME", "TOWNNAME", "VILLNAME"]
+miss_cols = [c for c in need_cols_shp if c not in gdf_all.columns]
+if miss_cols:
+    raise ValueError(f"SHP缺失必要字段：{miss_cols}")
+
+# ========== 只保留新北市范围 ==========
+gdf_nt = gdf_all[gdf_all["COUNTYNAME"].isin(["新北市","臺北縣"])].copy()
+print(f"SHP 新北(臺北縣+新北市)村里要素总数：{len(gdf_nt)}")
+
+gdf_nt["town_core"] = gdf_nt["TOWNNAME"].apply(strip_town_suffix)
+gdf_nt["vill_core"] = gdf_nt["VILLNAME"].apply(strip_village_suffix)
+
+# 2.读取Excel
+df_vote = pd.read_excel(EXCEL_PATH)
+
+# 假设列名为：縣市, 鄉鎮市區, 村里, 得票率1, 得票率2, (可能还有得票率3)
+# 我们读取前几列，并动态检测是否有“得票率3”
+expected_cols = ["縣市", "鄉鎮市區", "村里", "得票率1", "得票率2"]
+# 如果实际列名不同，请自行调整。这里取前5列，再检查是否有第6列
+df_vote.columns = expected_cols + (["得票率3"] if df_vote.shape[1] >= 6 else [])
+
+# 清洗空格
+for col in ["縣市", "鄉鎮市區", "村里"]:
+    df_vote[col] = df_vote[col].astype(str).str.strip()
+
+df_vote = df_vote[df_vote["縣市"] == "新北市"].copy()
+
+df_vote["得票率1"] = pd.to_numeric(df_vote["得票率1"], errors="coerce")
+df_vote["得票率2"] = pd.to_numeric(df_vote["得票率2"], errors="coerce")
+if "得票率3" in df_vote.columns:
+    df_vote["得票率3"] = pd.to_numeric(df_vote["得票率3"], errors="coerce")
+else:
+    df_vote["得票率3"] = np.nan   # 统一添加空列便于后续处理
+
+df_vote["town_core"] = df_vote["鄉鎮市區"].apply(strip_town_suffix)
+df_vote["vill_core"] = df_vote["村里"].apply(strip_village_suffix)
+
+# 构建字典：key=(乡镇核心, 村里核心) -> (rate1, rate2, rate3)
+vote_dict = {}
+for _, row in df_vote.iterrows():
+    k = (row["town_core"], row["vill_core"])
+    vote_dict[k] = (row["得票率1"], row["得票率2"], row["得票率3"])
+
+print(f"Excel新北有效投票记录（含率3如果有）: {len(df_vote)}")
+
+# 赋值三个率
+def get_three_rates(shp_row):
+    t_core = shp_row["town_core"]
+    v_core = shp_row["vill_core"]
+    key = (t_core, v_core)
+    if key in vote_dict:
+        return pd.Series(vote_dict[key])
+    else:
+        return pd.Series((np.nan, np.nan, np.nan))
+
+gdf_nt[["rate1", "rate2", "rate3"]] = gdf_nt.apply(get_three_rates, axis=1)
+
+# --------------------------
+# 填色逻辑：rate1 >= rate2 用 rate1 色阶，否则用 rate2 色阶
+# 任一为空则填白色（#FFFFFF）
+# --------------------------
+def pick_fill_color(row):
+    r1 = row["rate1"]
+    r2 = row["rate2"]
+    if np.isnan(r1) or np.isnan(r2):
+        return np.nan
+    if r1 >= r2:
+        return get_color_by_value(r1, color_stops_rate1)
+    else:
+        return get_color_by_value(r2, color_stops_rate2)
+
+gdf_nt["fill_hex"] = gdf_nt.apply(pick_fill_color, axis=1)
+
+# 统计
+cnt_both_valid = (~gdf_nt["rate1"].isna() & ~gdf_nt["rate2"].isna()).sum()
+cnt_no_data = (gdf_nt["rate1"].isna() | gdf_nt["rate2"].isna()).sum()
+print(f"新北范围内两得票率全部齐全可对比村里：{cnt_both_valid}")
+print(f"新北范围内无完整数据(缺得票率/名称对不上)村里：{cnt_no_data}")
+
+# ========== 检查是否有得票率3领先的情况 ==========
+if "得票率3" in df_vote.columns and not df_vote["得票率3"].isna().all():
+    # 找出rate3 > rate1 且 rate3 > rate2 的行
+    mask3 = (gdf_nt["rate3"] > gdf_nt["rate1"]) & (gdf_nt["rate3"] > gdf_nt["rate2"])
+    rate3_win = gdf_nt[mask3][["COUNTYNAME","TOWNNAME","town_core","VILLNAME","vill_core","rate1","rate2","rate3"]]
+    if len(rate3_win) > 0:
+        print("\n===== 发现得票率3领先的村里（未参与填色）=====")
+        print(rate3_win.to_string(index=False))
+        print(f"共计 {len(rate3_win)} 个村里，得票率3最高，但地图仍按 rate1 vs rate2 填色。")
+    else:
+        print("未发现得票率3领先的村里。")
+else:
+    print("Excel 中未提供得票率3列，跳过检查。")
+
+# ========== 绘图 ==========
+fill_colors = gdf_nt["fill_hex"].fillna("#FFFFFF").tolist()
+
+minx, miny, maxx, maxy = gdf_nt.total_bounds
+geo_w = maxx - minx
+geo_h = maxy - miny
+w_px = int(np.ceil(geo_w / METERS_PER_PIXEL))
+h_px = int(np.ceil(geo_h / METERS_PER_PIXEL))
+
+if w_px > MAX_SAFE_PX or h_px > MAX_SAFE_PX:
+    raise Exception(f"图像尺寸超限 {w_px} × {h_px}，调大METERS_PER_PIXEL降低分辨率")
+
+DPI = 100
+fig_w = w_px / DPI
+fig_h = h_px / DPI
+linewidth_val = target_line_px * (DPI / 72.0)
+
+fig = plt.figure(figsize=(fig_w, fig_h), dpi=DPI)
+ax = fig.add_axes([0,0,1,1])
+ax.set_xlim(minx, maxx)
+ax.set_ylim(miny, maxy)
+ax.set_facecolor("#FFFFFF")
+
+gdf_nt.plot(
+    ax=ax,
+    facecolor=fill_colors,
+    edgecolor="#000000",
+    linewidth=linewidth_val,
+    antialiased=False,
+    legend=False
+)
+ax.axis("off")
+
+# 保存并后处理（颜色量化）
+buf = BytesIO()
+plt.savefig(buf, format="png", dpi=DPI, pad_inches=0, bbox_inches=None, facecolor="#FFFFFF")
+plt.close(fig)
+buf.seek(0)
+
+img_bgr = cv2.imdecode(np.frombuffer(buf.getvalue(), np.uint8), cv2.IMREAD_COLOR)
+img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+allowed_hex = set()
+allowed_hex.add("#FFFFFF")
+allowed_hex.add("#000000")
+for _, hx in color_stops_rate1:
+    allowed_hex.add(hx)
+for _, hx in color_stops_rate2:
+    allowed_hex.add(hx)
+
+allowed_rgb = np.array([hex2rgb(hx) for hx in allowed_hex])
+allowed_rgb_255 = (allowed_rgb * 255).astype(np.uint8)
+pixels = img_rgb.reshape(-1, 3).astype(np.float32)
+distances = np.linalg.norm(pixels[:, None, :] - allowed_rgb_255[None, :, :], axis=2)
+nearest_idx = np.argmin(distances, axis=1)
+quantized = allowed_rgb_255[nearest_idx].reshape(img_rgb.shape)
+quantized_bgr = cv2.cvtColor(quantized, cv2.COLOR_RGB2BGR)
+cv2.imwrite(OUT_PNG, quantized_bgr)
+
+print(f"✅完成输出：{OUT_PNG}  尺寸 {w_px} × {h_px} px")
+print(f"👉边线严格1像素；已进行颜色量化，填充纯色无锯齿")
+
+# 打印未匹配样本（用于调试）
+no_match = gdf_nt[gdf_nt["fill_hex"].isna()][
+    ["COUNTYNAME","TOWNNAME","town_core","VILLNAME","vill_core"]
+].drop_duplicates()
+print("\n新北范围内未匹配样本(最多30笔):")
+print(no_match.head(30).to_string(index=False))

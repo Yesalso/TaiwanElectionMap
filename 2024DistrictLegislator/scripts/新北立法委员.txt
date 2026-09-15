@@ -1,0 +1,1496 @@
+import os
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import geopandas as gpd
+import pandas as pd
+import numpy as np
+import re
+import cv2
+from io import BytesIO
+from PIL import Image, ImageDraw, ImageFont
+from difflib import SequenceMatcher
+
+# ===================== 字体设置 =====================
+plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Microsoft JhengHei', 'Arial Unicode MS']
+plt.rcParams['axes.unicode_minus'] = False
+
+# ===================== 配置区 =====================
+SHP_PATH = r"D:\Windows\Documents\村里界歷史圖資_111\村里界歷史圖資_111\VILLAGE_MOI_1111118.shp"
+EXCEL_PATH = r"D:\Windows\Documents\村里界歷史圖資_111\VoteData.xlsx"
+OUT_PNG = os.path.join(os.path.expanduser("~"), "Desktop", "NewTaipei_Compare.png")
+CITY_NAME = "新北市"
+
+METERS_PER_PIXEL, MAX_SAFE_PX, target_line_px = 10, 32000, 1
+GRAY_COLOR = "#CCCCCC"
+
+color_stops_rate1 = [(45,"#00F2FF"),(50,"#00E6FF"),(55,"#00DAFF"),(60,"#00C0F4"),
+                     (65,"#00A2E8"),(70,"#0080B8"),(75,"#006591"),(80,"#004B6B"),(85,"#003247")]
+color_stops_rate2 = [(45,"#CEFFC2"),(50,"#C0FFB1"),(55,"#A4FF90"),(60,"#78FF4F"),
+                     (65,"#68DE45"),(70,"#54B337"),(75,"#3C8027"),(80,"#2B5C1C"),(85,"#1D3D13")]
+color_stops_rate3 = [(45,"#00EBD1"),(50,"#00D9CA"),(55,"#00BFB2"),
+                     (60,"#00A89C"),(65,"#008080"),(70,"#006666"),(75,"#004C4C")]
+
+BLOCK_WIDTH, BLOCK_HEIGHT = 120, 75        # 图例色块尺寸
+V_SPACING, H_SPACING = 30, 120             # 图例行/列间距
+LABEL_FONT_SIZE, LEGEND_PADDING = 36, 60   # 字体大小、扩展画布时的外间距
+LEGEND_INNER_GAP = 150                     # ★ 图例放入地图内时与线条的最小间距
+DISTRICT_LINE_WIDTH_FACTOR = 3
+
+os.makedirs(os.path.dirname(OUT_PNG), exist_ok=True)
+
+# ===================== 内嵌新北 1-12 選舉區 村里對照 =====================
+DISTRICT_MAP_TEXT = """
+1,石門區,德茂里
+1,石門區,富基里
+1,石門區,老梅里
+1,石門區,山溪里
+1,石門區,石門里
+1,石門區,尖鹿里
+1,石門區,乾華里
+1,石門區,茂林里
+1,石門區,草里里
+1,三芝區,八賢里
+1,三芝區,埔頭里
+1,三芝區,古庄里
+1,三芝區,新庄里
+1,三芝區,埔坪里
+1,三芝區,茂長里
+1,三芝區,橫山里
+1,三芝區,錫板里
+1,三芝區,後厝里
+1,三芝區,福德里
+1,三芝區,圓山里
+1,三芝區,店子里
+1,三芝區,興華里
+1,淡水區,中和里
+1,淡水區,屯山里
+1,淡水區,賢孝里
+1,淡水區,興仁里
+1,淡水區,蕃薯里
+1,淡水區,忠山里
+1,淡水區,義山里
+1,淡水區,水源里
+1,淡水區,忠寮里
+1,淡水區,樹興里
+1,淡水區,坪頂里
+1,淡水區,福德里
+1,淡水區,竹圍里
+1,淡水區,民權里
+1,淡水區,民生里
+1,淡水區,八勢里
+1,淡水區,竿蓁里
+1,淡水區,崁頂里
+1,淡水區,埤島里
+1,淡水區,水碓里
+1,淡水區,北新里
+1,淡水區,正德里
+1,淡水區,新興里
+1,淡水區,新義里
+1,淡水區,新春里
+1,淡水區,新民里
+1,淡水區,北投里
+1,淡水區,鄧公里
+1,淡水區,幸福里
+1,淡水區,學府里
+1,淡水區,中興里
+1,淡水區,長庚里
+1,淡水區,清文里
+1,淡水區,草東里
+1,淡水區,協元里
+1,淡水區,永吉里
+1,淡水區,民安里
+1,淡水區,新生里
+1,淡水區,文化里
+1,淡水區,油車里
+1,淡水區,沙崙里
+1,淡水區,大庄里
+1,八里區,龍源里
+1,八里區,米倉里
+1,八里區,大崁里
+1,八里區,埤頭里
+1,八里區,頂罟里
+1,八里區,舊城里
+1,八里區,訊塘里
+1,八里區,荖阡里
+1,八里區,長坑里
+1,八里區,下罟里
+1,林口區,東林里
+1,林口區,林口里
+1,林口區,西林里
+1,林口區,菁湖里
+1,林口區,中湖里
+1,林口區,湖北里
+1,林口區,湖南里
+1,林口區,南勢里
+1,林口區,仁愛里
+1,林口區,麗林里
+1,林口區,東勢里
+1,林口區,麗園里
+1,林口區,頂福里
+1,林口區,下福里
+1,林口區,嘉寶里
+1,林口區,瑞平里
+1,林口區,太平里
+1,泰山區,大科里
+1,泰山區,黎明里
+1,泰山區,山腳里
+1,泰山區,福泰里
+1,泰山區,福興里
+1,泰山區,楓樹里
+1,泰山區,同榮里
+1,泰山區,同興里
+1,泰山區,全興里
+1,泰山區,義學里
+1,泰山區,義仁里
+1,泰山區,明志里
+1,泰山區,泰友里
+1,泰山區,新明里
+1,泰山區,貴子里
+1,泰山區,貴賢里
+1,泰山區,貴和里
+2,五股區,興珍里
+2,五股區,更寮里
+2,五股區,觀音里
+2,五股區,集福里
+2,五股區,集賢里
+2,五股區,成德里
+2,五股區,成州里
+2,五股區,成功里
+2,五股區,成泰里
+2,五股區,五龍里
+2,五股區,五福里
+2,五股區,六福里
+2,五股區,民義里
+2,五股區,五股里
+2,五股區,德音里
+2,五股區,福德里
+2,五股區,水碓里
+2,五股區,德泰里
+2,五股區,貿商里
+2,五股區,陸一里
+2,蘆洲區,光華里
+2,蘆洲區,光明里
+2,蘆洲區,中路里
+2,蘆洲區,永安里
+2,蘆洲區,九芎里
+2,蘆洲區,延平里
+2,蘆洲區,中華里
+2,蘆洲區,中原里
+2,蘆洲區,長安里
+2,蘆洲區,忠義里
+2,蘆洲區,正義里
+2,蘆洲區,南港里
+2,蘆洲區,永樂里
+2,蘆洲區,成功里
+2,蘆洲區,永康里
+2,蘆洲區,永德里
+2,蘆洲區,樓厝里
+2,蘆洲區,信義里
+2,蘆洲區,玉清里
+2,蘆洲區,復興里
+2,蘆洲區,福安里
+2,蘆洲區,鷺江里
+2,蘆洲區,恆德里
+2,蘆洲區,溪墘里
+2,蘆洲區,仁復里
+2,蘆洲區,仁德里
+2,蘆洲區,仁義里
+2,蘆洲區,得勝里
+2,蘆洲區,得仁里
+2,蘆洲區,保和里
+2,蘆洲區,樹德里
+2,蘆洲區,民和里
+2,蘆洲區,水河里
+2,蘆洲區,水湳里
+2,蘆洲區,仁愛里
+2,蘆洲區,忠孝里
+2,蘆洲區,保佑里
+2,蘆洲區,保新里
+2,三重區,富貴里
+2,三重區,碧華里
+2,三重區,仁華里
+2,三重區,永清里
+2,三重區,永順里
+2,三重區,富福里
+2,三重區,慈化里
+2,三重區,慈惠里
+2,三重區,慈愛里
+2,三重區,永福里
+2,三重區,慈生里
+2,三重區,慈福里
+2,三重區,慈祐里
+2,三重區,富華里
+2,三重區,五華里
+2,三重區,五福里
+3,三重區,大有里
+3,三重區,博愛里
+3,三重區,二重里
+3,三重區,頂崁里
+3,三重區,谷王里
+3,三重區,五谷里
+3,三重區,中興里
+3,三重區,德厚里
+3,三重區,成功里
+3,三重區,福祉里
+3,三重區,福德里
+3,三重區,福民里
+3,三重區,過田里
+3,三重區,錦田里
+3,三重區,重明里
+3,三重區,光田里
+3,三重區,光陽里
+3,三重區,田心里
+3,三重區,福田里
+3,三重區,田中里
+3,三重區,田安里
+3,三重區,三民里
+3,三重區,光明里
+3,三重區,光正里
+3,三重區,同安里
+3,三重區,同慶里
+3,三重區,菜寮里
+3,三重區,永春里
+3,三重區,中正里
+3,三重區,吉利里
+3,三重區,大同里
+3,三重區,中民里
+3,三重區,平和里
+3,三重區,大安里
+3,三重區,仁德里
+3,三重區,忠孝里
+3,三重區,仁義里
+3,三重區,光榮里
+3,三重區,光輝里
+3,三重區,福星里
+3,三重區,福利里
+3,三重區,清和里
+3,三重區,永興里
+3,三重區,中山里
+3,三重區,大園里
+3,三重區,國隆里
+3,三重區,重陽里
+3,三重區,民生里
+3,三重區,重新里
+3,三重區,正德里
+3,三重區,正義里
+3,三重區,正安里
+3,三重區,自強里
+3,三重區,文化里
+3,三重區,中央里
+3,三重區,雙園里
+3,三重區,錦通里
+3,三重區,錦安里
+3,三重區,長安里
+3,三重區,光華里
+3,三重區,長生里
+3,三重區,開元里
+3,三重區,大德里
+3,三重區,長元里
+3,三重區,長江里
+3,三重區,長泰里
+3,三重區,長福里
+3,三重區,介壽里
+3,三重區,萬壽里
+3,三重區,錦江里
+3,三重區,龍濱里
+3,三重區,龍門里
+3,三重區,秀江里
+3,三重區,奕壽里
+3,三重區,三安里
+3,三重區,福安里
+3,三重區,信安里
+3,三重區,安慶里
+3,三重區,幸福里
+3,三重區,六合里
+3,三重區,六福里
+3,三重區,順德里
+3,三重區,承德里
+3,三重區,瑞德里
+3,三重區,崇德里
+3,三重區,厚德里
+3,三重區,維德里
+3,三重區,尚德里
+3,三重區,培德里
+3,三重區,立德里
+3,三重區,永德里
+3,三重區,永煇里
+3,三重區,永發里
+3,三重區,永盛里
+3,三重區,永吉里
+3,三重區,永安里
+3,三重區,永豐里
+3,三重區,溪美里
+3,三重區,福隆里
+3,三重區,五常里
+3,三重區,仁忠里
+3,三重區,福樂里
+3,三重區,五順里
+4,新莊區,海山里
+4,新莊區,全安里
+4,新莊區,全泰里
+4,新莊區,忠孝里
+4,新莊區,文衡里
+4,新莊區,文聖里
+4,新莊區,興漢里
+4,新莊區,榮和里
+4,新莊區,文德里
+4,新莊區,文明里
+4,新莊區,化成里
+4,新莊區,頭前里
+4,新莊區,福基里
+4,新莊區,福興里
+4,新莊區,昌平里
+4,新莊區,和平里
+4,新莊區,幸福里
+4,新莊區,昌隆里
+4,新莊區,信義里
+4,新莊區,昌信里
+4,新莊區,昌明里
+4,新莊區,仁義里
+4,新莊區,仁愛里
+4,新莊區,自信里
+4,新莊區,自立里
+4,新莊區,自強里
+4,新莊區,思源里
+4,新莊區,思賢里
+4,新莊區,中華里
+4,新莊區,中美里
+4,新莊區,恆安里
+4,新莊區,立人里
+4,新莊區,立德里
+4,新莊區,中和里
+4,新莊區,中泰里
+4,新莊區,中宏里
+4,新莊區,中全里
+4,新莊區,立志里
+4,新莊區,立廷里
+4,新莊區,立基里
+4,新莊區,中誠里
+4,新莊區,中港里
+4,新莊區,中信里
+4,新莊區,中平里
+4,新莊區,中原里
+4,新莊區,中隆里
+4,新莊區,立功里
+4,新莊區,立泰里
+4,新莊區,立言里
+4,新莊區,豐年里
+4,新莊區,國泰里
+4,新莊區,泰豐里
+4,新莊區,瓊林里
+4,新莊區,福營里
+4,新莊區,營盤里
+4,新莊區,丹鳳里
+4,新莊區,合鳳里
+4,新莊區,祥鳳里
+4,新莊區,雙鳳里
+4,新莊區,龍福里
+4,新莊區,龍鳳里
+4,新莊區,裕民里
+4,新莊區,龍安里
+4,新莊區,富國里
+4,新莊區,富民里
+4,新莊區,後德里
+4,新莊區,萬安里
+4,新莊區,建福里
+4,新莊區,後港里
+4,新莊區,四維里
+4,新莊區,南港里
+4,新莊區,建安里
+4,新莊區,民全里
+4,新莊區,八德里
+4,新莊區,成德里
+5,新莊區,民安里
+5,新莊區,民有里
+5,新莊區,民本里
+5,新莊區,光明里
+5,新莊區,光正里
+5,新莊區,光榮里
+5,新莊區,光和里
+5,新莊區,光華里
+5,新莊區,西盛里
+5,樹林區,三興里
+5,樹林區,三福里
+5,樹林區,三多里
+5,樹林區,三龍里
+5,樹林區,獇寮里
+5,樹林區,光興里
+5,樹林區,金寮里
+5,樹林區,潭底里
+5,樹林區,文林里
+5,樹林區,保安里
+5,樹林區,圳安里
+5,樹林區,圳福里
+5,樹林區,圳民里
+5,樹林區,圳生里
+5,樹林區,樹德里
+5,樹林區,樹福里
+5,樹林區,樹西里
+5,樹林區,樹興里
+5,樹林區,樹人里
+5,樹林區,育英里
+5,樹林區,樹南里
+5,樹林區,坡內里
+5,樹林區,樹東里
+5,樹林區,樹北里
+5,樹林區,彭福里
+5,樹林區,和平里
+5,樹林區,彭興里
+5,樹林區,彭厝里
+5,樹林區,大同里
+5,樹林區,中華里
+5,樹林區,太順里
+5,樹林區,東昇里
+5,樹林區,東陽里
+5,樹林區,東山里
+5,樹林區,山佳里
+5,樹林區,中山里
+5,樹林區,樂山里
+5,樹林區,柑園里
+5,樹林區,西園里
+5,樹林區,南園里
+5,樹林區,東園里
+5,樹林區,北園里
+5,鶯歌區,建德里
+5,鶯歌區,東鶯里
+5,鶯歌區,北鶯里
+5,鶯歌區,西鶯里
+5,鶯歌區,中鶯里
+5,鶯歌區,南鶯里
+5,鶯歌區,建國里
+5,鶯歌區,二甲里
+5,鶯歌區,二橋里
+5,鶯歌區,尖山里
+5,鶯歌區,南靖里
+5,鶯歌區,同慶里
+5,鶯歌區,永昌里
+5,鶯歌區,永吉里
+5,鶯歌區,鳳祥里
+5,鶯歌區,鳳鳴里
+5,鶯歌區,鳳福里
+5,鶯歌區,大湖里
+5,鶯歌區,中湖里
+5,鶯歌區,東湖里
+6,板橋區,留侯里
+6,板橋區,流芳里
+6,板橋區,赤松里
+6,板橋區,黃石里
+6,板橋區,挹秀里
+6,板橋區,湳興里
+6,板橋區,新興里
+6,板橋區,社後里
+6,板橋區,香社里
+6,板橋區,香雅里
+6,板橋區,中正里
+6,板橋區,自強里
+6,板橋區,自立里
+6,板橋區,光華里
+6,板橋區,光榮里
+6,板橋區,國光里
+6,板橋區,港尾里
+6,板橋區,新生里
+6,板橋區,金華里
+6,板橋區,港德里
+6,板橋區,民權里
+6,板橋區,民安里
+6,板橋區,建國里
+6,板橋區,漢生里
+6,板橋區,公舘里
+6,板橋區,新民里
+6,板橋區,幸福里
+6,板橋區,文德里
+6,板橋區,忠誠里
+6,板橋區,陽明里
+6,板橋區,百壽里
+6,板橋區,介壽里
+6,板橋區,新埔里
+6,板橋區,華江里
+6,板橋區,江翠里
+6,板橋區,純翠里
+6,板橋區,溪頭里
+6,板橋區,聯翠里
+6,板橋區,文化里
+6,板橋區,宏翠里
+6,板橋區,仁翠里
+6,板橋區,新翠里
+6,板橋區,朝陽里
+6,板橋區,吉翠里
+6,板橋區,德翠里
+6,板橋區,新海里
+6,板橋區,滿翠里
+6,板橋區,明翠里
+6,板橋區,松翠里
+6,板橋區,柏翠里
+6,板橋區,龍翠里
+6,板橋區,松柏里
+6,板橋區,華翠里
+6,板橋區,莒光里
+6,板橋區,忠翠里
+6,板橋區,嵐翠里
+6,板橋區,文聖里
+6,板橋區,文翠里
+6,板橋區,青翠里
+6,板橋區,懷翠里
+6,板橋區,福翠里
+6,板橋區,港嘴里
+6,板橋區,埤墘里
+6,板橋區,莊敬里
+6,板橋區,永安里
+7,板橋區,振興里
+7,板橋區,振義里
+7,板橋區,光復里
+7,板橋區,埔墘里
+7,板橋區,富貴里
+7,板橋區,長壽里
+7,板橋區,福壽里
+7,板橋區,居仁里
+7,板橋區,海山里
+7,板橋區,九如里
+7,板橋區,正泰里
+7,板橋區,玉光里
+7,板橋區,光仁里
+7,板橋區,雙玉里
+7,板橋區,廣新里
+7,板橋區,深丘里
+7,板橋區,香丘里
+7,板橋區,西安里
+7,板橋區,東丘里
+7,板橋區,民生里
+7,板橋區,長安里
+7,板橋區,東安里
+7,板橋區,福丘里
+7,板橋區,福祿里
+7,板橋區,民族里
+7,板橋區,國泰里
+7,板橋區,後埔里
+7,板橋區,福德里
+7,板橋區,景星里
+7,板橋區,福星里
+7,板橋區,鄉雲里
+7,板橋區,廣德里
+7,板橋區,大豐里
+7,板橋區,重慶里
+7,板橋區,仁愛里
+7,板橋區,和平里
+7,板橋區,廣福里
+7,板橋區,五權里
+7,板橋區,華興里
+7,板橋區,華貴里
+7,板橋區,華福里
+7,板橋區,華德里
+7,板橋區,華東里
+7,板橋區,信義里
+7,板橋區,浮洲里
+7,板橋區,華中里
+7,板橋區,僑中里
+7,板橋區,大觀里
+7,板橋區,歡園里
+7,板橋區,中山里
+7,板橋區,復興里
+7,板橋區,大安里
+7,板橋區,福安里
+7,板橋區,聚安里
+7,板橋區,龍安里
+7,板橋區,崑崙里
+7,板橋區,成和里
+7,板橋區,溪洲里
+7,板橋區,溪福里
+7,板橋區,溪北里
+7,板橋區,堂春里
+8,中和區,中原里
+8,中和區,連和里
+8,中和區,連城里
+8,中和區,力行里
+8,中和區,正行里
+8,中和區,德行里
+8,中和區,枋寮里
+8,中和區,漳和里
+8,中和區,廟美里
+8,中和區,福真里
+8,中和區,福善里
+8,中和區,福美里
+8,中和區,福祥里
+8,中和區,瓦磘里
+8,中和區,福和里
+8,中和區,佳和里
+8,中和區,新南里
+8,中和區,南山里
+8,中和區,平河里
+8,中和區,信和里
+8,中和區,仁和里
+8,中和區,中正里
+8,中和區,建和里
+8,中和區,中山里
+8,中和區,碧河里
+8,中和區,正南里
+8,中和區,頂南里
+8,中和區,華新里
+8,中和區,東南里
+8,中和區,華南里
+8,中和區,忠孝里
+8,中和區,崇南里
+8,中和區,興南里
+8,中和區,景南里
+8,中和區,景本里
+8,中和區,橫路里
+8,中和區,內南里
+8,中和區,壽南里
+8,中和區,福南里
+8,中和區,外南里
+8,中和區,中興里
+8,中和區,吉興里
+8,中和區,復興里
+8,中和區,和興里
+8,中和區,景平里
+8,中和區,景新里
+8,中和區,景福里
+8,中和區,景安里
+8,中和區,景文里
+8,中和區,錦和里
+8,中和區,錦昌里
+8,中和區,灰磘里
+8,中和區,積穗里
+8,中和區,民享里
+8,中和區,員山里
+8,中和區,嘉穗里
+8,中和區,文元里
+8,中和區,嘉新里
+8,中和區,民安里
+8,中和區,安穗里
+8,中和區,瑞穗里
+8,中和區,明穗里
+8,中和區,清穗里
+8,中和區,自強里
+8,中和區,德穗里
+8,中和區,民生里
+8,中和區,國光里
+8,中和區,壽德里
+8,中和區,明德里
+8,中和區,錦中里
+8,中和區,錦盛里
+8,中和區,民有里
+8,中和區,員富里
+8,中和區,嘉慶里
+8,中和區,冠穗里
+8,中和區,國華里
+9,中和區,宜安里
+9,中和區,安樂里
+9,中和區,安和里
+9,中和區,安順里
+9,中和區,安平里
+9,中和區,中安里
+9,中和區,泰安里
+9,中和區,秀山里
+9,中和區,秀成里
+9,中和區,秀義里
+9,中和區,秀福里
+9,中和區,秀景里
+9,中和區,秀明里
+9,中和區,秀峰里
+9,中和區,秀士里
+9,中和區,秀水里
+9,中和區,秀仁里
+9,永和區,光復里
+9,永和區,網溪里
+9,永和區,復興里
+9,永和區,竹林里
+9,永和區,桂林里
+9,永和區,上林里
+9,永和區,福林里
+9,永和區,勵行里
+9,永和區,中興里
+9,永和區,永興里
+9,永和區,正興里
+9,永和區,豫溪里
+9,永和區,光明里
+9,永和區,福和里
+9,永和區,得和里
+9,永和區,永貞里
+9,永和區,永福里
+9,永和區,河濱里
+9,永和區,秀和里
+9,永和區,永元里
+9,永和區,民權里
+9,永和區,民族里
+9,永和區,秀朗里
+9,永和區,秀成里
+9,永和區,秀林里
+9,永和區,秀得里
+9,永和區,秀元里
+9,永和區,民生里
+9,永和區,民本里
+9,永和區,民富里
+9,永和區,民樂里
+9,永和區,民治里
+9,永和區,智光里
+9,永和區,潭安里
+9,永和區,潭墘里
+9,永和區,店街里
+9,永和區,大新里
+9,永和區,永安里
+9,永和區,永樂里
+9,永和區,水源里
+9,永和區,協和里
+9,永和區,雙和里
+9,永和區,安和里
+9,永和區,前溪里
+9,永和區,和平里
+9,永和區,保平里
+9,永和區,中溪里
+9,永和區,保安里
+9,永和區,保順里
+9,永和區,下溪里
+9,永和區,大同里
+9,永和區,新生里
+9,永和區,永成里
+9,永和區,忠義里
+9,永和區,仁愛里
+9,永和區,文化里
+9,永和區,信義里
+9,永和區,後溪里
+9,永和區,上溪里
+9,永和區,頂溪里
+9,永和區,河堤里
+9,永和區,新廍里
+10,土城區,祖田里
+10,土城區,頂新里
+10,土城區,頂福里
+10,土城區,頂埔里
+10,土城區,沛陂里
+10,土城區,永寧里
+10,土城區,大安里
+10,土城區,員仁里
+10,土城區,埤塘里
+10,土城區,土城里
+10,土城區,長風里
+10,土城區,員信里
+10,土城區,員林里
+10,土城區,員福里
+10,土城區,日和里
+10,土城區,日新里
+10,土城區,裕生里
+10,土城區,貨饒里
+10,土城區,瑞興里
+10,土城區,復興里
+10,土城區,廣福里
+10,土城區,學成里
+10,土城區,埤林里
+10,土城區,廣興里
+10,土城區,樂利里
+10,土城區,學府里
+10,土城區,明德里
+10,土城區,學士里
+10,土城區,柑林里
+10,土城區,中正里
+10,土城區,青雲里
+10,土城區,清和里
+10,土城區,清化里
+10,土城區,清溪里
+10,土城區,青山里
+10,土城區,清水里
+10,土城區,永豐里
+10,土城區,永富里
+10,土城區,廷寮里
+10,土城區,金城里
+10,土城區,峯廷里
+10,土城區,延吉里
+10,土城區,延壽里
+10,土城區,延祿里
+10,土城區,平和里
+10,土城區,安和里
+10,土城區,延和里
+10,三峽區,三峽里
+10,三峽區,秀川里
+10,三峽區,八張里
+10,三峽區,中埔里
+10,三峽區,弘道里
+10,三峽區,永舘里
+10,三峽區,鳶山里
+10,三峽區,龍埔里
+10,三峽區,龍恩里
+10,三峽區,龍學里
+10,三峽區,礁溪里
+10,三峽區,安溪里
+10,三峽區,介壽里
+10,三峽區,中正里
+10,三峽區,大埔里
+10,三峽區,嘉添里
+10,三峽區,添福里
+10,三峽區,金圳里
+10,三峽區,五寮里
+10,三峽區,插角里
+10,三峽區,有木里
+10,三峽區,二鬮里
+10,三峽區,溪南里
+10,三峽區,溪北里
+10,三峽區,溪東里
+10,三峽區,成福里
+10,三峽區,竹崙里
+10,三峽區,安坑里
+11,新店區,新店里
+11,新店區,張南里
+11,新店區,國校里
+11,新店區,文中里
+11,新店區,廣明里
+11,新店區,文明里
+11,新店區,中興里
+11,新店區,新生里
+11,新店區,新德里
+11,新店區,張北里
+11,新店區,五峯里
+11,新店區,長春里
+11,新店區,新安里
+11,新店區,忠誠里
+11,新店區,中正里
+11,新店區,中華里
+11,新店區,仁愛里
+11,新店區,建國里
+11,新店區,百忍里
+11,新店區,百和里
+11,新店區,福德里
+11,新店區,百福里
+11,新店區,福民里
+11,新店區,中山里
+11,新店區,和平里
+11,新店區,中央里
+11,新店區,國豐里
+11,新店區,明德里
+11,新店區,大豐里
+11,新店區,大同里
+11,新店區,江陵里
+11,新店區,復興里
+11,新店區,寶興里
+11,新店區,寶福里
+11,新店區,寶安里
+11,新店區,信義里
+11,新店區,忠孝里
+11,新店區,大鵬里
+11,新店區,太平里
+11,新店區,美城里
+11,新店區,頂城里
+11,新店區,下城里
+11,新店區,柴埕里
+11,新店區,安和里
+11,新店區,永安里
+11,新店區,新和里
+11,新店區,永平里
+11,新店區,公崙里
+11,新店區,安昌里
+11,新店區,德安里
+11,新店區,達觀里
+11,新店區,明城里
+11,新店區,小城里
+11,新店區,雙城里
+11,新店區,香坡里
+11,新店區,日興里
+11,新店區,玫瑰里
+11,新店區,吉祥里
+11,新店區,塗潭里
+11,新店區,華城里
+11,新店區,青潭里
+11,新店區,美潭里
+11,新店區,員潭里
+11,新店區,雙坑里
+11,新店區,粗坑里
+11,新店區,屈尺里
+11,新店區,龜山里
+11,新店區,廣興里
+11,新店區,直潭里
+11,深坑區,萬順里
+11,深坑區,萬福里
+11,深坑區,土庫里
+11,深坑區,深坑里
+11,深坑區,埔新里
+11,深坑區,昇高里
+11,深坑區,賴仲里
+11,深坑區,阿柔里
+11,石碇區,石碇里
+11,石碇區,潭邊里
+11,石碇區,烏塗里
+11,石碇區,彭山里
+11,石碇區,豐田里
+11,石碇區,隆盛里
+11,石碇區,豐林里
+11,石碇區,中民里
+11,石碇區,永定里
+11,石碇區,光明里
+11,石碇區,永安里
+11,石碇區,格頭里
+11,坪林區,坪林里
+11,坪林區,水德里
+11,坪林區,大林里
+11,坪林區,石𥕢里
+11,坪林區,粗窟里
+11,坪林區,上德里
+11,坪林區,漁光里
+11,烏來區,忠治里
+11,烏來區,烏來里
+11,烏來區,孝義里
+11,烏來區,信賢里
+11,烏來區,福山里
+12,金山區,和平里
+12,金山區,大同里
+12,金山區,豐漁里
+12,金山區,磺港里
+12,金山區,金美里
+12,金山區,五湖里
+12,金山區,美田里
+12,金山區,重和里
+12,金山區,兩湖里
+12,金山區,六股里
+12,金山區,三界里
+12,金山區,萬壽里
+12,金山區,清泉里
+12,金山區,西湖里
+12,金山區,永興里
+12,萬里區,萬里里
+12,萬里區,北基里
+12,萬里區,龜吼里
+12,萬里區,野柳里
+12,萬里區,大鵬里
+12,萬里區,磺潭里
+12,萬里區,雙興里
+12,萬里區,溪底里
+12,萬里區,崁脚里
+12,萬里區,中幅里
+12,汐止區,仁德里
+12,汐止區,義民里
+12,汐止區,禮門里
+12,汐止區,智慧里
+12,汐止區,大同里
+12,汐止區,信望里
+12,汐止區,新昌里
+12,汐止區,福安里
+12,汐止區,秀峰里
+12,汐止區,秀山里
+12,汐止區,復興里
+12,汐止區,自強里
+12,汐止區,文化里
+12,汐止區,白雲里
+12,汐止區,茄苳里
+12,汐止區,崇德里
+12,汐止區,城中里
+12,汐止區,橋東里
+12,汐止區,建成里
+12,汐止區,長安里
+12,汐止區,保安里
+12,汐止區,東山里
+12,汐止區,保長里
+12,汐止區,保新里
+12,汐止區,鄉長里
+12,汐止區,江北里
+12,汐止區,拱北里
+12,汐止區,烘內里
+12,汐止區,八連里
+12,汐止區,長青里
+12,汐止區,北峰里
+12,汐止區,金龍里
+12,汐止區,樟樹里
+12,汐止區,忠孝里
+12,汐止區,厚德里
+12,汐止區,山光里
+12,汐止區,中興里
+12,汐止區,福德里
+12,汐止區,興福里
+12,汐止區,康福里
+12,汐止區,湖光里
+12,汐止區,湖蓮里
+12,汐止區,湖興里
+12,汐止區,北山里
+12,汐止區,忠山里
+12,汐止區,環河里
+12,汐止區,橫科里
+12,汐止區,福山里
+12,汐止區,宜興里
+12,汐止區,東勢里
+12,平溪區,薯榔里
+12,平溪區,菁桐里
+12,平溪區,白石里
+12,平溪區,石底里
+12,平溪區,平溪里
+12,平溪區,嶺腳里
+12,平溪區,東勢里
+12,平溪區,十分里
+12,平溪區,望古里
+12,平溪區,南山里
+12,平溪區,新寮里
+12,平溪區,平湖里
+12,瑞芳區,龍潭里
+12,瑞芳區,龍興里
+12,瑞芳區,龍鎮里
+12,瑞芳區,龍安里
+12,瑞芳區,龍川里
+12,瑞芳區,龍山里
+12,瑞芳區,爪峯里
+12,瑞芳區,新峰里
+12,瑞芳區,東和里
+12,瑞芳區,柑坪里
+12,瑞芳區,弓橋里
+12,瑞芳區,猴硐里
+12,瑞芳區,光復里
+12,瑞芳區,碩仁里
+12,瑞芳區,吉慶里
+12,瑞芳區,吉安里
+12,瑞芳區,上天里
+12,瑞芳區,傑魚里
+12,瑞芳區,基山里
+12,瑞芳區,永慶里
+12,瑞芳區,崇文里
+12,瑞芳區,福住里
+12,瑞芳區,頌德里
+12,瑞芳區,瓜山里
+12,瑞芳區,銅山里
+12,瑞芳區,新山里
+12,瑞芳區,石山里
+12,瑞芳區,濓洞里
+12,瑞芳區,濓新里
+12,瑞芳區,南雅里
+12,瑞芳區,鼻頭里
+12,瑞芳區,海濱里
+12,瑞芳區,瑞濱里
+12,瑞芳區,深澳里
+12,雙溪區,雙溪里
+12,雙溪區,新基里
+12,雙溪區,三港里
+12,雙溪區,牡丹里
+12,雙溪區,三貂里
+12,雙溪區,平林里
+12,雙溪區,上林里
+12,雙溪區,外柑里
+12,雙溪區,長源里
+12,雙溪區,共和里
+12,雙溪區,魚行里
+12,雙溪區,泰平里
+12,貢寮區,貢寮里
+12,貢寮區,龍崗里
+12,貢寮區,吉林里
+12,貢寮區,雙玉里
+12,貢寮區,福連里
+12,貢寮區,福隆里
+12,貢寮區,龍門里
+12,貢寮區,真理里
+12,貢寮區,仁里里
+12,貢寮區,美豐里
+12,貢寮區,和美里
+"""
+
+# ===================== 工具函数 =====================
+import unicodedata
+
+VARIANT_CHAR_MAP = str.maketrans({
+    '濓': '濂',
+    '𥕢': '曹',
+})
+
+def normalize_text(s):
+    if pd.isna(s):
+        return ""
+    s = str(s).strip()
+    s = unicodedata.normalize('NFKC', s)
+    s = ''.join(c for c in s if unicodedata.category(c)[0] != 'M')
+    s = re.sub(r'[\uFE00-\uFE0F\U000E0100-\U000E01EF]', '', s)
+    s = re.sub(r'[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]', '', s)
+    s = s.translate(VARIANT_CHAR_MAP)
+    return s
+
+def strip_town_suffix(s):
+    return "" if pd.isna(s) else re.sub(r"[鄉鎮市區]$", "", normalize_text(s))
+
+def strip_village_suffix(s):
+    return "" if pd.isna(s) else re.sub(r"[村里]$", "", normalize_text(s))
+
+def get_color_by_value(val, stops):
+    if np.isnan(val):
+        return None
+    for upper, hx in stops:
+        if val <= upper:
+            return hx
+    return stops[-1][1]
+
+def hex2rgb(hx):
+    h = hx.lstrip("#")
+    return (int(h[0:2],16)/255.0, int(h[2:4],16)/255.0, int(h[4:6],16)/255.0)
+
+def text_width(font, txt):
+    try:
+        bbox = font.getbbox(txt)
+    except AttributeError:
+        bbox = font.getmask(txt).getbbox()
+    return (bbox[2]-bbox[0]) if bbox else 0
+
+# ===================== 读取 SHP =====================
+gdf_all = gpd.read_file(SHP_PATH, encoding="UTF-8")
+if gdf_all.crs is None:
+    gdf_all.crs = "EPSG:4326"
+gdf_all = gdf_all.to_crs(epsg=3826)
+
+for c in ["COUNTYNAME", "TOWNNAME", "VILLNAME"]:
+    if c not in gdf_all.columns:
+        raise ValueError(f"SHP缺失必要字段：{c}")
+
+gdf_nt = gdf_all[gdf_all["COUNTYNAME"] == CITY_NAME].copy()
+gdf_nt["town_core"] = gdf_nt["TOWNNAME"].apply(strip_town_suffix)
+gdf_nt["vill_core"] = gdf_nt["VILLNAME"].apply(strip_village_suffix)
+
+# ===================== 建立村里->选区映射 =====================
+village2district = {}
+for line in DISTRICT_MAP_TEXT.strip().splitlines():
+    line = line.strip()
+    if not line:
+        continue
+    parts = [p.strip() for p in line.split(",")]
+    if len(parts) != 3:
+        continue
+    d_str, town, vill = parts
+    try:
+        d = int(d_str)
+    except ValueError:
+        continue
+    village2district[(strip_town_suffix(town), strip_village_suffix(vill))] = d
+
+print(f"已加载选区规则：{len(village2district)} 个村里")
+
+# ===================== 读取 Excel =====================
+df_vote = pd.read_excel(EXCEL_PATH, header=None)
+n_cols = df_vote.shape[1]
+if n_cols == 5:
+    df_vote[5] = 0
+elif n_cols != 6:
+    raise ValueError(f"Excel列数应为5或6，实际为{n_cols}")
+
+df_vote = df_vote.iloc[:, :6]
+df_vote.columns = ["縣市","鄉鎮市區","區里","得票率1","得票率2","得票率3"]
+
+for col in ["縣市","鄉鎮市區","區里"]:
+    df_vote[col] = df_vote[col].astype(str).str.strip()
+
+df_vote = df_vote[df_vote["縣市"] == CITY_NAME].copy()
+
+for col in ["得票率1","得票率2","得票率3"]:
+    df_vote[col] = pd.to_numeric(
+        df_vote[col].astype(str).str.replace('%','').str.replace(',',''),
+        errors="coerce"
+    )
+
+df_vote["town_core"] = df_vote["鄉鎮市區"].apply(strip_town_suffix)
+df_vote["vill_core"] = df_vote["區里"].apply(strip_village_suffix)
+
+vote_dict = {
+    (r["town_core"], r["vill_core"]): (r["得票率1"], r["得票率2"], r["得票率3"])
+    for _, r in df_vote.iterrows()
+}
+
+# ===================== 精确 + 同乡镇最相似模糊匹配 =====================
+MIN_SIMILARITY = 0.5
+
+def fuzzy_lookup(town, vill, by_key, by_town):
+    if not town or not vill:
+        return None, None, "none"
+    key = (town, vill)
+    if key in by_key:
+        return vill, by_key[key], "exact"
+    best_v, best_val, best_ratio = None, None, -1.0
+    for cand_v, val in by_town.get(town, []):
+        ratio = SequenceMatcher(None, vill, cand_v).ratio()
+        if ratio > best_ratio:
+            best_ratio, best_v, best_val = ratio, cand_v, val
+    if best_val is None or best_ratio < MIN_SIMILARITY:
+        return None, None, "none"
+    return best_v, best_val, f"fuzzy:{best_v}({best_ratio:.2f})"
+
+vote_by_town = {}
+for (t, v), vals in vote_dict.items():
+    vote_by_town.setdefault(t, []).append((v, vals))
+
+district_by_town = {}
+for (t, v), d in village2district.items():
+    district_by_town.setdefault(t, []).append((v, d))
+
+def process_row(r):
+    town, vill = r["town_core"], r["vill_core"]
+
+    matched_vill, vals, excel_mt = fuzzy_lookup(town, vill, vote_dict, vote_by_town)
+    if vals is None:
+        r1 = r2 = r3 = np.nan
+    else:
+        r1, r2, r3 = vals
+
+    lookup_vill = matched_vill if matched_vill is not None else vill
+    d = village2district.get((town, lookup_vill), None)
+    if d is None:
+        _, d_val, _ = fuzzy_lookup(town, lookup_vill, village2district, district_by_town)
+        d = d_val if d_val is not None else np.nan
+
+    return pd.Series([r1, r2, r3, excel_mt, d])
+
+gdf_nt[["rate1", "rate2", "rate3", "match_type", "district"]] = gdf_nt.apply(
+    process_row, axis=1
+)
+
+# ===================== 选区边界（仅用有完整数据的村里）=====================
+has_full_data = gdf_nt[["rate1", "rate2", "rate3"]].notna().all(axis=1)
+
+districts_gdf = (
+    gdf_nt[gdf_nt["district"].notna() & has_full_data]
+    .dissolve(by="district", aggfunc="first")
+)
+
+# ===================== 缺失/匹配统计 =====================
+rates = gdf_nt[["rate1", "rate2", "rate3"]]
+
+exact_cnt = int((gdf_nt["match_type"] == "exact").sum())
+fuzzy_mask = gdf_nt["match_type"].str.startswith("fuzzy", na=False)
+fuzzy_cnt = int(fuzzy_mask.sum())
+none_cnt = int((gdf_nt["match_type"] == "none").sum())
+
+fuzzy_matched = gdf_nt[fuzzy_mask].copy()
+no_candidate = gdf_nt[gdf_nt["match_type"] == "none"].copy()
+partial_missing = gdf_nt[rates.isna().any(axis=1) & ~rates.isna().all(axis=1)]
+excel_not_in_shp = set(vote_dict.keys()) - set(zip(gdf_nt["town_core"], gdf_nt["vill_core"]))
+cnt_valid = int((~rates.isna().any(axis=1)).sum())
+
+# ===================== 终端报告 =====================
+print("=" * 62)
+print(f"  数据匹配报告 — {CITY_NAME}")
+print("=" * 62)
+print(f"  SHP 村里要素     : {len(gdf_nt)}")
+print(f"  Excel 有效记录   : {len(df_vote)}")
+print(f"  生成选区数       : {len(districts_gdf)}")
+print(f"  精确匹配         : {exact_cnt}")
+print(f"  模糊匹配(已填色) : {fuzzy_cnt}")
+print(f"  无候选(灰色填充) : {none_cnt}")
+print(f"  三项齐全         : {cnt_valid}")
+print(f"  部分缺失(不绘制) : {len(partial_missing)}")
+print(f"  Excel有/SHP无    : {len(excel_not_in_shp)}")
+print("-" * 62)
+
+if fuzzy_cnt > 0:
+    print("\n【模糊匹配已采用 · 前30】SHP vs Excel 同乡镇下最相似候选")
+    rows = []
+    for _, row in fuzzy_matched.head(30).iterrows():
+        rows.append({
+            "SHP鄉鎮": row["TOWNNAME"],
+            "SHP村里": row["VILLNAME"],
+            "采用Excel": row["match_type"],
+            "立委选区": row["district"] if not pd.isna(row["district"]) else "-"
+        })
+    print(pd.DataFrame(rows).to_string(index=False))
+
+if none_cnt > 0:
+    print("\n【无候选 · 前30】SHP 有 / Excel 无 / 相似度<50%")
+    print(no_candidate[["TOWNNAME", "VILLNAME"]].head(30).to_string(index=False))
+
+if len(partial_missing) > 0:
+    print("\n【部分NaN明细 · 前30】")
+    print(partial_missing[["TOWNNAME","VILLNAME","rate1","rate2","rate3"]]
+          .head(30).to_string(index=False))
+
+if len(excel_not_in_shp) > 0:
+    print("\n【Excel有SHP无明细 · 前30】")
+    em = df_vote[df_vote.apply(
+        lambda r: (r["town_core"], r["vill_core"]) in excel_not_in_shp, axis=1
+    )]
+    print(em[["鄉鎮市區","區里","得票率1","得票率2","得票率3"]]
+          .head(30).to_string(index=False))
+
+print("=" * 62 + "\n")
+
+# ===================== 填色 =====================
+def pick_fill_color(row):
+    r1, r2, r3 = row["rate1"], row["rate2"], row["rate3"]
+    if np.isnan(r1) and np.isnan(r2) and np.isnan(r3):
+        return GRAY_COLOR
+    if np.isnan(r1) or np.isnan(r2) or np.isnan(r3):
+        return np.nan
+    if r1 >= r2 and r1 >= r3:
+        return get_color_by_value(r1, color_stops_rate1)
+    elif r2 >= r3:
+        return get_color_by_value(r2, color_stops_rate2)
+    else:
+        return get_color_by_value(r3, color_stops_rate3)
+
+gdf_nt["fill_hex"] = gdf_nt.apply(pick_fill_color, axis=1)
+gdf_plot = gdf_nt[~gdf_nt["fill_hex"].isna()].copy()
+
+if len(gdf_plot) == 0:
+    raise ValueError("没有可绘制的村里，请检查数据匹配！")
+
+# ===================== 绘图 =====================
+fill_colors = gdf_plot["fill_hex"].tolist()
+minx, miny, maxx, maxy = gdf_plot.total_bounds
+
+# 地图四周留白
+MAP_PAD_FRAC = 0.03
+pad_x = (maxx - minx) * MAP_PAD_FRAC
+pad_y = (maxy - miny) * MAP_PAD_FRAC
+xlim = (minx - pad_x, maxx + pad_x)
+ylim = (miny - pad_y, maxy + pad_y)
+
+w_px = int(np.ceil((xlim[1] - xlim[0]) / METERS_PER_PIXEL))
+h_px = int(np.ceil((ylim[1] - ylim[0]) / METERS_PER_PIXEL))
+
+if w_px > MAX_SAFE_PX or h_px > MAX_SAFE_PX:
+    raise Exception(f"图像尺寸超限 {w_px}×{h_px}，调大METERS_PER_PIXEL")
+
+DPI = 100
+linewidth_val = target_line_px * (DPI / 72.0)
+
+fig = plt.figure(figsize=(w_px / DPI, h_px / DPI), dpi=DPI)
+ax = fig.add_axes([0, 0, 1, 1])
+ax.set_xlim(*xlim)
+ax.set_ylim(*ylim)
+ax.set_facecolor("#FFFFFF")
+
+# 1) 底层：所有村里填色 + 黑色村里界线
+gdf_plot.plot(
+    ax=ax, facecolor=fill_colors, edgecolor="#000000",
+    linewidth=linewidth_val, antialiased=False, legend=False
+)
+
+district_linewidth = linewidth_val * DISTRICT_LINE_WIDTH_FACTOR
+
+# 白带半宽换算
+px_per_pt   = DPI / 72.0
+width_px    = district_linewidth * px_per_pt
+width_m     = width_px * METERS_PER_PIXEL
+half_w_m    = width_m / 2.0
+gray_pad_m  = half_w_m + 1.0       # 灰区扩边量（米）
+
+# 白色选区界线只画在“有数据 ↔ 有数据”之间
+gray_geom = gdf_plot.loc[gdf_plot["fill_hex"] == GRAY_COLOR, "geometry"].union_all()
+all_district_boundaries = districts_gdf.boundary.union_all()
+
+if gray_geom is not None and not gray_geom.is_empty:
+    gray_pad = gray_geom.buffer(gray_pad_m)
+    white_lines = all_district_boundaries.difference(gray_pad)
+else:
+    gray_pad = None
+    white_lines = all_district_boundaries
+
+if not white_lines.is_empty:
+    white_band = white_lines.buffer(half_w_m)
+    if gray_pad is not None:
+        white_band = white_band.difference(gray_pad)
+    if not white_band.is_empty:
+        gpd.GeoSeries([white_band]).plot(
+            ax=ax, facecolor='white', edgecolor='white',
+            linewidth=0, zorder=10, antialiased=False
+        )
+
+# 2) 城市外轮廓（黑色粗线）
+gpd.GeoSeries([gdf_nt.geometry.union_all().boundary]).plot(
+    ax=ax, edgecolor='black', linewidth=district_linewidth,
+    facecolor='none', zorder=11, antialiased=False
+)
+
+ax.axis("off")
+
+buf = BytesIO()
+plt.savefig(buf, format="png", dpi=DPI, pad_inches=0, bbox_inches=None, facecolor="#FFFFFF")
+plt.close(fig)
+buf.seek(0)
+
+img_bgr = cv2.imdecode(np.frombuffer(buf.getvalue(), np.uint8), cv2.IMREAD_COLOR)
+img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+# ===================== 颜色量化 =====================
+allowed_hex = {"#FFFFFF", "#000000", GRAY_COLOR}
+for stops in (color_stops_rate1, color_stops_rate2, color_stops_rate3):
+    allowed_hex.update(hx for _, hx in stops)
+
+allowed_rgb_255 = np.array([hex2rgb(hx) for hx in allowed_hex]).astype(np.float32) * 255
+
+pixels = img_rgb.reshape(-1, 3).astype(np.float32)
+distances = np.linalg.norm(pixels[:, None, :] - allowed_rgb_255[None, :, :], axis=2)
+quantized = allowed_rgb_255[np.argmin(distances, axis=1)].astype(np.uint8).reshape(img_rgb.shape)
+
+# ===================== 图例内容尺寸 =====================
+pil_img = Image.fromarray(quantized)
+W, H = pil_img.size
+
+label_font = None
+for path in ["C:/Windows/Fonts/msyh.ttc",
+             "C:/Windows/Fonts/simhei.ttf",
+             "C:/Windows/Fonts/mingliu.ttc"]:
+    try:
+        label_font = ImageFont.truetype(path, LABEL_FONT_SIZE)
+        break
+    except Exception:
+        continue
+if label_font is None:
+    label_font = ImageFont.load_default()
+
+def get_label_text(upper, prev=None):
+    return f"≤{upper}%" if prev is None else f"{prev}~{upper}%"
+
+stops_list = [color_stops_rate1, color_stops_rate2, color_stops_rate3]
+
+max_label_w = max(
+    text_width(label_font, get_label_text(u, stops[i-1][0] if i > 0 else None))
+    for stops in stops_list for i, (u, _) in enumerate(stops)
+)
+max_label_w = max(max_label_w, text_width(label_font, "无匹配数据"))
+
+col_width      = BLOCK_WIDTH + 5 + max_label_w
+total_legend_w = col_width * 3 + H_SPACING * 2
+max_n          = max(len(s) for s in stops_list)
+legend_h_inner = (max_n + 1) * (BLOCK_HEIGHT + V_SPACING) - V_SPACING
+
+legend_content_w = total_legend_w
+legend_content_h = legend_h_inner
+
+# ===================== 图例绘制函数 =====================
+def draw_legend_on(draw_obj, x0, y0, font):
+    col_positions = [x0 + i * (col_width + H_SPACING) for i in range(3)]
+    for col_idx, stops in enumerate(stops_list):
+        x_start = col_positions[col_idx]
+        for i, (upper, color_hex) in enumerate(stops):
+            y = y0 + i * (BLOCK_HEIGHT + V_SPACING)
+            draw_obj.rectangle(
+                [x_start, y, x_start + BLOCK_WIDTH, y + BLOCK_HEIGHT],
+                fill=color_hex, outline="#000000", width=1)
+            prev = stops[i - 1][0] if i > 0 else None
+            label = get_label_text(upper, prev)
+            label_x = x_start + BLOCK_WIDTH + 5
+            try:
+                bbox = font.getbbox(label)
+            except AttributeError:
+                bbox = font.getmask(label).getbbox()
+            label_y = y + (BLOCK_HEIGHT - (bbox[3] - bbox[1])) // 2 if bbox else y
+            draw_obj.text((label_x, label_y), label, fill="#000000", font=font)
+
+    # 无匹配数据：只在第一列下方画一次
+    y = y0 + max_n * (BLOCK_HEIGHT + V_SPACING)
+    x_start = col_positions[0]
+    draw_obj.rectangle(
+        [x_start, y, x_start + BLOCK_WIDTH, y + BLOCK_HEIGHT],
+        fill=GRAY_COLOR, outline="#000000", width=1)
+    try:
+        bbox = font.getbbox("无匹配数据")
+    except AttributeError:
+        bbox = font.getmask("无匹配数据").getbbox()
+    label_y = y + (BLOCK_HEIGHT - (bbox[3] - bbox[1])) // 2 if bbox else y
+    draw_obj.text((x_start + BLOCK_WIDTH + 5, label_y),
+                  "无匹配数据", fill="#000000", font=font)
+
+# ===================== 图例：一律放到右侧扩展区 =====================
+need_w = legend_content_w + 2 * LEGEND_PADDING
+new_W  = W + need_w
+new_H  = max(H, legend_content_h + 2 * LEGEND_PADDING)
+
+final_img = Image.new("RGB", (new_W, new_H), (255, 255, 255))
+final_img.paste(pil_img, (0, (new_H - H) // 2))
+
+legend_x = W + LEGEND_PADDING
+legend_y = (new_H - legend_content_h) // 2
+draw = ImageDraw.Draw(final_img)
+draw_legend_on(draw, legend_x, legend_y, label_font)
+
+# ===================== 保存 =====================
+final_img.save(OUT_PNG)
+print(f"✅ 输出: {OUT_PNG}  ({final_img.width}×{final_img.height}px)")
+print(f"   地图四边留白 ≈ {MAP_PAD_FRAC*100:.1f}%")
+print(f"   图例放置在画布右侧扩展区，与地图间距 {LEGEND_PADDING}px")
+print(f"   边线: 村里1px | 选区白线×{DISTRICT_LINE_WIDTH_FACTOR} | 外轮廓黑线")
+print(f"   着色: 三率取大值对应色阶 | 无候选→{GRAY_COLOR}")

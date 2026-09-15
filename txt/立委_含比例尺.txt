@@ -1,0 +1,271 @@
+import os
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import geopandas as gpd
+import pandas as pd
+import numpy as np
+import re
+import cv2
+from io import BytesIO
+from PIL import Image, ImageDraw, ImageFont
+
+# ===================== 字体设置（matplotlib） =====================
+plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Microsoft JhengHei', 'Arial Unicode MS']
+plt.rcParams['axes.unicode_minus'] = False
+
+# ===================== 配置区 =====================
+SHP_PATH = r"D:\Windows\Documents\村里界歷史圖資_111\村里界歷史圖資_111\VILLAGE_MOI_1111118.shp"
+EXCEL_PATH = r"D:\Windows\Documents\村里界歷史圖資_111\VoteData.xlsx"
+OUT_PNG = r"C:\Users\Windows\Desktop\Hsinchu_Compare.png"
+
+METERS_PER_PIXEL = 10
+MAX_SAFE_PX = 32000
+target_line_px = 1
+
+# ===== 色阶定义 =====
+color_stops_rate1 = [  # 蓝色系（得票率1）
+    (40, "#00FFFF"), (45, "#00F2FF"), (50, "#00E6FF"),
+    (55, "#00DAFF"), (60, "#00C0F4"), (65, "#00A2E8"),
+    (70, "#004B6B"), (100, "#003247")
+]
+
+color_stops_rate2 = [  # 绿色系（得票率2）
+    (40, "#E2FFE0"), (45, "#D2FFC9"), (50, "#C0FFB1"),
+    (55, "#A4FF90"), (60, "#78FF4F"), (65, "#68DE45"),
+    (70, "#54B337"), (75, "#3C8027"), (80, "#2B5C1C"),
+    (100, "#1D3D13")
+]
+
+# ===== 图例像素参数 =====
+BLOCK_WIDTH = 40        # 色块宽度（像素）
+BLOCK_HEIGHT = 25       # 色块高度（像素）
+V_SPACING = 10          # 同列垂直间距（像素）
+H_SPACING = 40          # 两列水平间距（像素）
+LABEL_FONT_SIZE = 12    # 标签字体大小（pt）
+LEGEND_PADDING = 20     # 图例距图像边缘的边距（像素）
+# ==================================================
+
+os.makedirs(os.path.dirname(OUT_PNG), exist_ok=True)
+
+def strip_town_suffix(s):
+    if pd.isna(s):
+        return ""
+    s = str(s).strip()
+    s = re.sub(r"[鄉鎮市區]$", "", s)
+    return s
+
+def strip_village_suffix(s):
+    if pd.isna(s):
+        return ""
+    s = str(s).strip()
+    s = re.sub(r"[村里]$", "", s)
+    return s
+
+def get_color_by_value(val, stop_list):
+    if np.isnan(val):
+        return None
+    for upper, hx in stop_list:
+        if val <= upper:
+            return hx
+    return stop_list[-1][1]
+
+def hex2rgb(hx):
+    h = hx.lstrip("#")
+    return (int(h[0:2],16)/255.0, int(h[2:4],16)/255.0, int(h[4:6],16)/255.0)
+
+# ---------- 主程序 ----------
+gdf_all = gpd.read_file(SHP_PATH, encoding="UTF-8")
+if gdf_all.crs is None:
+    gdf_all.crs = "EPSG:4326"
+gdf_all = gdf_all.to_crs(epsg=3826)
+
+need_cols_shp = ["COUNTYNAME", "TOWNNAME", "VILLNAME"]
+miss_cols = [c for c in need_cols_shp if c not in gdf_all.columns]
+if miss_cols:
+    raise ValueError(f"SHP缺失必要字段：{miss_cols}")
+
+gdf_nt = gdf_all[gdf_all["COUNTYNAME"] == "新竹縣"].copy()
+print(f"SHP 新竹縣村里要素总数：{len(gdf_nt)}")
+gdf_nt["town_core"] = gdf_nt["TOWNNAME"].apply(strip_town_suffix)
+gdf_nt["vill_core"] = gdf_nt["VILLNAME"].apply(strip_village_suffix)
+
+df_vote = pd.read_excel(EXCEL_PATH)
+expected_cols = ["縣市", "鄉鎮市區", "區里", "得票率1", "得票率2"]
+df_vote.columns = expected_cols
+for col in ["縣市", "鄉鎮市區", "區里"]:
+    df_vote[col] = df_vote[col].astype(str).str.strip()
+df_vote = df_vote[df_vote["縣市"] == "新竹縣"].copy()
+df_vote["得票率1"] = pd.to_numeric(df_vote["得票率1"], errors="coerce")
+df_vote["得票率2"] = pd.to_numeric(df_vote["得票率2"], errors="coerce")
+df_vote["town_core"] = df_vote["鄉鎮市區"].apply(strip_town_suffix)
+df_vote["vill_core"] = df_vote["區里"].apply(strip_village_suffix)
+
+vote_dict = {}
+for _, row in df_vote.iterrows():
+    k = (row["town_core"], row["vill_core"])
+    vote_dict[k] = (row["得票率1"], row["得票率2"])
+print(f"Excel新竹縣有效投票记录: {len(df_vote)}")
+
+def get_two_rates(shp_row):
+    key = (shp_row["town_core"], shp_row["vill_core"])
+    if key in vote_dict:
+        return pd.Series(vote_dict[key])
+    else:
+        return pd.Series((np.nan, np.nan))
+gdf_nt[["rate1", "rate2"]] = gdf_nt.apply(get_two_rates, axis=1)
+
+def pick_fill_color(row):
+    r1, r2 = row["rate1"], row["rate2"]
+    if np.isnan(r1) or np.isnan(r2):
+        return np.nan
+    if r1 >= r2:
+        return get_color_by_value(r1, color_stops_rate1)
+    else:
+        return get_color_by_value(r2, color_stops_rate2)
+gdf_nt["fill_hex"] = gdf_nt.apply(pick_fill_color, axis=1)
+
+cnt_valid = (~gdf_nt["rate1"].isna() & ~gdf_nt["rate2"].isna()).sum()
+cnt_no_data = (gdf_nt["rate1"].isna() | gdf_nt["rate2"].isna()).sum()
+print(f"新竹縣内可对比村里：{cnt_valid}，无数据：{cnt_no_data}")
+
+gdf_plot = gdf_nt[~gdf_nt["fill_hex"].isna()].copy()
+print(f"实际绘制 {len(gdf_plot)} 个村里")
+if len(gdf_plot) == 0:
+    raise ValueError("没有可绘制的村里，请检查数据匹配！")
+
+fill_colors = gdf_plot["fill_hex"].tolist()
+minx, miny, maxx, maxy = gdf_plot.total_bounds
+geo_w, geo_h = maxx - minx, maxy - miny
+w_px = int(np.ceil(geo_w / METERS_PER_PIXEL))
+h_px = int(np.ceil(geo_h / METERS_PER_PIXEL))
+if w_px > MAX_SAFE_PX or h_px > MAX_SAFE_PX:
+    raise Exception(f"图像尺寸超限 {w_px}×{h_px}，调大METERS_PER_PIXEL")
+
+DPI = 100
+fig_w = w_px / DPI
+fig_h = h_px / DPI
+linewidth_val = target_line_px * (DPI / 72.0)
+
+fig = plt.figure(figsize=(fig_w, fig_h), dpi=DPI)
+ax = fig.add_axes([0, 0, 1, 1])
+ax.set_xlim(minx, maxx)
+ax.set_ylim(miny, maxy)
+ax.set_facecolor("#FFFFFF")
+
+gdf_plot.plot(ax=ax, facecolor=fill_colors, edgecolor="#000000",
+              linewidth=linewidth_val, antialiased=False, legend=False)
+ax.axis("off")
+
+buf = BytesIO()
+plt.savefig(buf, format="png", dpi=DPI, pad_inches=0, bbox_inches=None, facecolor="#FFFFFF")
+plt.close(fig)
+buf.seek(0)
+
+img_bgr = cv2.imdecode(np.frombuffer(buf.getvalue(), np.uint8), cv2.IMREAD_COLOR)
+img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+allowed_hex = set()
+allowed_hex.add("#FFFFFF")
+allowed_hex.add("#000000")
+for _, hx in color_stops_rate1:
+    allowed_hex.add(hx)
+for _, hx in color_stops_rate2:
+    allowed_hex.add(hx)
+
+allowed_rgb = np.array([hex2rgb(hx) for hx in allowed_hex])
+allowed_rgb_255 = (allowed_rgb * 255).astype(np.uint8)
+pixels = img_rgb.reshape(-1, 3).astype(np.float32)
+distances = np.linalg.norm(pixels[:, None, :] - allowed_rgb_255[None, :, :], axis=2)
+nearest_idx = np.argmin(distances, axis=1)
+quantized = allowed_rgb_255[nearest_idx].reshape(img_rgb.shape)
+
+# ========== 使用PIL在右侧添加垂直图例 ==========
+pil_img = Image.fromarray(quantized)
+W, H = pil_img.size
+
+# 加载字体
+font_paths = [
+    "C:/Windows/Fonts/msyh.ttc",
+    "C:/Windows/Fonts/simhei.ttf",
+    "C:/Windows/Fonts/mingliu.ttc",
+]
+label_font = None
+for path in font_paths:
+    try:
+        label_font = ImageFont.truetype(path, LABEL_FONT_SIZE)
+        break
+    except:
+        continue
+if label_font is None:
+    label_font = ImageFont.load_default()
+
+# 生成标签文本的函数
+def get_label_text(upper, prev_upper=None):
+    if prev_upper is None:
+        return f"≤{upper}%"
+    else:
+        return f"{prev_upper}~{upper}%"
+
+# 计算每列所需宽度（色块宽度 + 标签宽度）
+stops_list = [color_stops_rate1, color_stops_rate2]
+max_label_w = 0
+for stops in stops_list:
+    for i, (upper, _) in enumerate(stops):
+        prev = stops[i-1][0] if i > 0 else None
+        label = get_label_text(upper, prev)
+        bbox = label_font.getbbox(label) if hasattr(label_font, 'getbbox') else label_font.getmask(label).getbbox()
+        if bbox:
+            w = bbox[2] - bbox[0]
+            max_label_w = max(max_label_w, w)
+
+col_width = BLOCK_WIDTH + 5 + max_label_w   # 色块+间距+标签
+total_legend_width = col_width * 2 + H_SPACING
+
+# 垂直高度（取较长列）
+n1, n2 = len(color_stops_rate1), len(color_stops_rate2)
+max_n = max(n1, n2)
+legend_height = max_n * (BLOCK_HEIGHT + V_SPACING) - V_SPACING
+
+# 新图像尺寸：在原图右侧扩展空白
+new_W = W + total_legend_width + LEGEND_PADDING * 2
+new_H = max(H, legend_height + LEGEND_PADDING * 2)
+
+# 创建新图像，白色背景
+new_img = Image.new('RGB', (new_W, new_H), (255, 255, 255))
+# 粘贴原图（垂直居中）
+y_offset = (new_H - H) // 2
+new_img.paste(pil_img, (LEGEND_PADDING, y_offset))
+
+# 图例起始位置（垂直居中）
+legend_x = W + LEGEND_PADDING
+legend_y = (new_H - legend_height) // 2
+
+# 绘制两列
+col_positions = [legend_x, legend_x + col_width + H_SPACING]
+draw = ImageDraw.Draw(new_img)
+
+for col_idx, stops in enumerate(stops_list):
+    x_start = col_positions[col_idx]
+    for i, (upper, color_hex) in enumerate(stops):
+        y = legend_y + i * (BLOCK_HEIGHT + V_SPACING)
+        # 绘制色块
+        draw.rectangle([x_start, y, x_start + BLOCK_WIDTH, y + BLOCK_HEIGHT],
+                       fill=color_hex, outline="#000000", width=1)
+        # 标签
+        prev = stops[i-1][0] if i > 0 else None
+        label = get_label_text(upper, prev)
+        label_x = x_start + BLOCK_WIDTH + 5
+        bbox = label_font.getbbox(label) if hasattr(label_font, 'getbbox') else label_font.getmask(label).getbbox()
+        if bbox:
+            label_h = bbox[3] - bbox[1]
+            label_y = y + (BLOCK_HEIGHT - label_h) // 2
+        else:
+            label_y = y
+        draw.text((label_x, label_y), label, fill="#000000", font=label_font)
+
+# 保存
+new_img.save(OUT_PNG)
+print(f"✅完成输出：{OUT_PNG}  新尺寸 {new_W}×{new_H} px")
+print(f"👉边线1像素，颜色量化，图例位于右侧空白区域")
+print(f"👉色块尺寸：宽{BLOCK_WIDTH}px 高{BLOCK_HEIGHT}px，列间距{H_SPACING}px，行间距{V_SPACING}px")

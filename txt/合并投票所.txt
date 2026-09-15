@@ -1,0 +1,61 @@
+import pandas as pd
+import os
+import shutil
+
+def summarize_and_overwrite(file_path):
+    """
+    读取 Excel，按“市、区、里”分组，对从第4列起所有数值列求和，
+    并将原文件内容替换为汇总结果（只保留每个里一行）。
+    """
+    # 1. 备份原文件（防止误操作）
+    backup_path = file_path.replace('.xlsx', '_backup.xlsx')
+    if not os.path.exists(backup_path):
+        shutil.copy2(file_path, backup_path)
+        print(f"已备份原文件至：{backup_path}")
+
+    # 2. 读取原数据（无表头，全部读为字符串）
+    df = pd.read_excel(file_path, header=None, dtype=str)
+
+    # 3. 筛选“里”级别行（第三列包含“里”）
+    df_detail = df[df[2].str.contains('里', na=False)].copy()
+
+    # 4. 确定需要求和的列：从第4列（索引3）到最后一列
+    #    并尝试将每一列转换为数值（去除逗号），若整列无法转换则跳过
+    valid_cols = []  # 用于存储最终参与求和的列索引
+    for col_idx in range(3, df.shape[1]):
+        try:
+            # 去除逗号，转为浮点数
+            series = df_detail[col_idx].astype(str).str.replace(',', '').astype(float)
+            # 如果全部为NaN，则跳过该列（可能是非数值列）
+            if series.isna().all():
+                continue
+            df_detail[col_idx] = series  # 替换为数值类型
+            valid_cols.append(col_idx)
+        except (ValueError, TypeError):
+            # 转换失败则跳过该列
+            continue
+
+    if not valid_cols:
+        raise ValueError("未找到可求和的数值列，请检查数据格式。")
+
+    # 5. 按市(0)、区(1)、里(2) 分组，对 valid_cols 中的列求和
+    grouped = df_detail.groupby([0, 1, 2], as_index=False)[valid_cols].sum()
+
+    # 6. 构造输出表格
+    #    前3列保留为“市”、“区”、“里”，求和列动态命名
+    new_cols = ['市', '區', '里']
+    for i, col in enumerate(valid_cols, start=1):
+        new_cols.append(f'數值{i}')   # 可自定义列名，如“汇总列{i}”
+    result = grouped.copy()
+    result.columns = new_cols
+
+    # 7. 覆盖原文件（只保留结果，无索引）
+    with pd.ExcelWriter(file_path, engine='openpyxl', mode='w') as writer:
+        result.to_excel(writer, index=False, sheet_name='Sheet1')
+
+    print(f"原文件已更新，汇总结果已写入：{file_path}")
+    print(f"共对 {len(valid_cols)} 列进行了求和，列名为：{new_cols[3:]}")
+
+if __name__ == '__main__':
+    file_path = r"C:\Users\Windows\Desktop\工作簿1.xlsx"
+    summarize_and_overwrite(file_path)

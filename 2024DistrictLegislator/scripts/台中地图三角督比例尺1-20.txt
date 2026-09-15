@@ -1,0 +1,297 @@
+import os
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import geopandas as gpd
+import pandas as pd
+import numpy as np
+import re
+import cv2
+from io import BytesIO
+from PIL import Image, ImageDraw, ImageFont
+from difflib import SequenceMatcher
+
+# ===================== 字体设置 =====================
+plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Microsoft JhengHei', 'Arial Unicode MS']
+plt.rcParams['axes.unicode_minus'] = False
+
+# ===================== 配置区 =====================
+SHP_PATH = r"D:\Windows\Documents\村里界歷史圖資_111\村里界歷史圖資_111\VILLAGE_MOI_1111118.shp"
+EXCEL_PATH = r"D:\Windows\Documents\村里界歷史圖資_111\VoteData.xlsx"
+OUT_PNG = os.path.join(os.path.expanduser("~"), "Desktop", "Taichung_Compare.png")
+CITY_NAME = "臺中市"
+METERS_PER_PIXEL, MAX_SAFE_PX, target_line_px = 10, 32000, 1
+GRAY_COLOR = "#CCCCCC"
+
+color_stops_rate1 = [(45,"#00F2FF"),(50,"#00E6FF"),(55,"#00DAFF"),(60,"#00C0F4"),
+                     (65,"#00A2E8"),(70,"#0080B8"),(75,"#006591"),(80,"#004B6B"),(85,"#003247")]
+color_stops_rate2 = [(45,"#CEFFC2"),(50,"#C0FFB1"),(55,"#A4FF90"),(60,"#78FF4F"),
+                     (65,"#68DE45"),(70,"#54B337"),(75,"#3C8027"),(80,"#2B5C1C"),(85,"#1D3D13")]
+color_stops_rate3 = [(45,"#00FFEE"),(50,"#00EBD1"),(55,"#00D9CA"),(60,"#00BFB2"),
+                     (65,"#00A89C"),(70,"#008080"),(75,"#006666"),(80,"#004C4C")]
+
+BLOCK_WIDTH, BLOCK_HEIGHT = 40, 25
+V_SPACING, H_SPACING = 10, 40
+LABEL_FONT_SIZE, LEGEND_PADDING = 12, 20
+DISTRICT_LINE_WIDTH_FACTOR = 3
+
+os.makedirs(os.path.dirname(OUT_PNG), exist_ok=True)
+
+# ===================== 工具函数 =====================
+def strip_town_suffix(s):
+    return "" if pd.isna(s) else re.sub(r"[鄉鎮市區]$", "", str(s).strip())
+
+def strip_village_suffix(s):
+    return "" if pd.isna(s) else re.sub(r"[村里]$", "", str(s).strip())
+
+def get_color_by_value(val, stops):
+    if np.isnan(val): return None
+    for upper, hx in stops:
+        if val <= upper: return hx
+    return stops[-1][1]
+
+def hex2rgb(hx):
+    h = hx.lstrip("#")
+    return (int(h[0:2],16)/255.0, int(h[2:4],16)/255.0, int(h[4:6],16)/255.0)
+
+def text_width(font, txt):
+    try:
+        bbox = font.getbbox(txt)
+    except AttributeError:
+        bbox = font.getmask(txt).getbbox()
+    return (bbox[2]-bbox[0]) if bbox else 0
+
+# ===================== 读取 SHP =====================
+gdf_all = gpd.read_file(SHP_PATH, encoding="UTF-8")
+if gdf_all.crs is None: gdf_all.crs = "EPSG:4326"
+gdf_all = gdf_all.to_crs(epsg=3826)
+
+for c in ["COUNTYNAME", "TOWNNAME", "VILLNAME"]:
+    if c not in gdf_all.columns:
+        raise ValueError(f"SHP缺失必要字段：{c}")
+
+gdf_nt = gdf_all[gdf_all["COUNTYNAME"] == CITY_NAME].copy()
+gdf_nt["town_core"] = gdf_nt["TOWNNAME"].apply(strip_town_suffix)
+gdf_nt["vill_core"] = gdf_nt["VILLNAME"].apply(strip_village_suffix)
+
+# ===================== 选区规则 =====================
+district_towns = {
+    1: ['大甲','大安','外埔','清水','梧棲'],
+    2: ['沙鹿','龍井','大肚','烏日','霧峰'],
+    3: ['后里','神岡','大雅','潭子'],
+    4: ['西屯','南屯'],
+    5: ['北屯','北'],
+    6: ['東','南','中','西'],
+    7: ['太平','大里'],
+    8: ['豐原','石岡','東勢','新社','和平'],
+}
+town2district = {t: d for d, ts in district_towns.items() for t in ts}
+gdf_nt['district'] = gdf_nt['town_core'].map(town2district)
+districts_gdf = gdf_nt[gdf_nt['district'].notna()].dissolve(by='district', aggfunc='first')
+
+# ===================== 读取 Excel =====================
+df_vote = pd.read_excel(EXCEL_PATH, header=None)
+n_cols = df_vote.shape[1]
+if n_cols == 5:
+    df_vote[5] = 0
+elif n_cols != 6:
+    raise ValueError(f"Excel列数应为5或6，实际为{n_cols}")
+df_vote = df_vote.iloc[:, :6]
+df_vote.columns = ["縣市","鄉鎮市區","區里","得票率1","得票率2","得票率3"]
+
+for col in ["縣市","鄉鎮市區","區里"]:
+    df_vote[col] = df_vote[col].astype(str).str.strip()
+df_vote = df_vote[df_vote["縣市"] == CITY_NAME].copy()
+
+for col in ["得票率1","得票率2","得票率3"]:
+    df_vote[col] = pd.to_numeric(
+        df_vote[col].astype(str).str.replace('%','').str.replace(',',''),
+        errors="coerce")
+
+df_vote["town_core"] = df_vote["鄉鎮市區"].apply(strip_town_suffix)
+df_vote["vill_core"] = df_vote["區里"].apply(strip_village_suffix)
+
+vote_dict = {(r["town_core"], r["vill_core"]): (r["得票率1"], r["得票率2"], r["得票率3"])
+             for _, r in df_vote.iterrows()}
+
+gdf_nt[["rate1","rate2","rate3"]] = gdf_nt.apply(
+    lambda r: pd.Series(vote_dict.get((r["town_core"], r["vill_core"]), (np.nan,)*3)),
+    axis=1)
+
+# ===================== 缺失数据统计 =====================
+rates = gdf_nt[["rate1","rate2","rate3"]]
+no_match_shp = gdf_nt[rates.isna().all(axis=1)].copy()
+partial_missing = gdf_nt[rates.isna().any(axis=1) & ~rates.isna().all(axis=1)]
+excel_not_in_shp = set(vote_dict.keys()) - set(zip(gdf_nt["town_core"], gdf_nt["vill_core"]))
+cnt_valid = int((~rates.isna().any(axis=1)).sum())
+
+# ===================== 终端报告 =====================
+print("=" * 62)
+print(f"  数据匹配报告 — {CITY_NAME}")
+print("=" * 62)
+print(f"  SHP 村里要素     : {len(gdf_nt)}")
+print(f"  Excel 有效记录   : {len(df_vote)}")
+print(f"  生成选区数       : {len(districts_gdf)}")
+print(f"  三项齐全         : {cnt_valid}")
+print(f"  部分缺失(不绘制) : {len(partial_missing)}")
+print(f"  无匹配(灰色填充) : {len(no_match_shp)}")
+print(f"  Excel有/SHP无    : {len(excel_not_in_shp)}")
+print("-" * 62)
+
+if len(no_match_shp) > 0:
+    print("\n【无匹配明细 · 前30】SHP vs Excel 同乡镇下最相似候选")
+    rows = []
+    for _, row in no_match_shp.head(30).iterrows():
+        shp_vill = row["vill_core"] or ""
+        cands = [k for k in vote_dict if k[0] == row["town_core"]]
+        if cands:
+            best = max(cands, key=lambda k: SequenceMatcher(None, shp_vill, k[1]).ratio())
+            excel_vill_raw = df_vote[(df_vote["town_core"] == best[0]) &
+                                     (df_vote["vill_core"] == best[1])].iloc[0]["區里"]
+        else:
+            excel_vill_raw = "(无记录)"
+        rows.append({"SHP鄉鎮": row["TOWNNAME"], "SHP村里": row["VILLNAME"],
+                     "Excel村里": excel_vill_raw})
+    print(pd.DataFrame(rows).to_string(index=False))
+
+if len(partial_missing) > 0:
+    print("\n【部分NaN明细 · 前30】")
+    print(partial_missing[["TOWNNAME","VILLNAME","rate1","rate2","rate3"]]
+          .head(30).to_string(index=False))
+
+if len(excel_not_in_shp) > 0:
+    print("\n【Excel有SHP无明细 · 前30】")
+    em = df_vote[df_vote.apply(lambda r: (r["town_core"], r["vill_core"]) in excel_not_in_shp, axis=1)]
+    print(em[["鄉鎮市區","區里","得票率1","得票率2","得票率3"]].head(30).to_string(index=False))
+
+print("=" * 62 + "\n")
+
+# ===================== 填色 =====================
+def pick_fill_color(row):
+    r1, r2, r3 = row["rate1"], row["rate2"], row["rate3"]
+    if np.isnan(r1) and np.isnan(r2) and np.isnan(r3):
+        return GRAY_COLOR
+    if np.isnan(r1) or np.isnan(r2) or np.isnan(r3):
+        return np.nan
+    if r1 >= r2 and r1 >= r3:
+        return get_color_by_value(r1, color_stops_rate1)
+    elif r2 >= r3:
+        return get_color_by_value(r2, color_stops_rate2)
+    else:
+        return get_color_by_value(r3, color_stops_rate3)
+
+gdf_nt["fill_hex"] = gdf_nt.apply(pick_fill_color, axis=1)
+gdf_plot = gdf_nt[~gdf_nt["fill_hex"].isna()].copy()
+if len(gdf_plot) == 0:
+    raise ValueError("没有可绘制的村里，请检查数据匹配！")
+
+# ===================== 绘图 =====================
+fill_colors = gdf_plot["fill_hex"].tolist()
+minx, miny, maxx, maxy = gdf_plot.total_bounds
+w_px = int(np.ceil((maxx - minx) / METERS_PER_PIXEL))
+h_px = int(np.ceil((maxy - miny) / METERS_PER_PIXEL))
+if w_px > MAX_SAFE_PX or h_px > MAX_SAFE_PX:
+    raise Exception(f"图像尺寸超限 {w_px}×{h_px}，调大METERS_PER_PIXEL")
+
+DPI = 100
+linewidth_val = target_line_px * (DPI / 72.0)
+
+fig = plt.figure(figsize=(w_px / DPI, h_px / DPI), dpi=DPI)
+ax = fig.add_axes([0, 0, 1, 1])
+ax.set_xlim(minx, maxx); ax.set_ylim(miny, maxy)
+ax.set_facecolor("#FFFFFF")
+
+gdf_plot.plot(ax=ax, facecolor=fill_colors, edgecolor="#000000",
+              linewidth=linewidth_val, antialiased=False, legend=False)
+
+district_linewidth = linewidth_val * DISTRICT_LINE_WIDTH_FACTOR
+districts_gdf.boundary.plot(ax=ax, edgecolor='white', linewidth=district_linewidth,
+                            facecolor='none', zorder=10, antialiased=False)
+gpd.GeoSeries([gdf_nt.geometry.union_all().boundary]).plot(
+    ax=ax, edgecolor='black', linewidth=district_linewidth,
+    facecolor='none', zorder=11, antialiased=False)
+ax.axis("off")
+
+buf = BytesIO()
+plt.savefig(buf, format="png", dpi=DPI, pad_inches=0, bbox_inches=None, facecolor="#FFFFFF")
+plt.close(fig)
+buf.seek(0)
+
+img_bgr = cv2.imdecode(np.frombuffer(buf.getvalue(), np.uint8), cv2.IMREAD_COLOR)
+img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+# ===================== 颜色量化 =====================
+allowed_hex = {"#FFFFFF", "#000000", GRAY_COLOR}
+for stops in (color_stops_rate1, color_stops_rate2, color_stops_rate3):
+    allowed_hex.update(hx for _, hx in stops)
+allowed_rgb_255 = np.array([hex2rgb(hx) for hx in allowed_hex]).astype(np.float32) * 255
+
+pixels = img_rgb.reshape(-1, 3).astype(np.float32)
+distances = np.linalg.norm(pixels[:, None, :] - allowed_rgb_255[None, :, :], axis=2)
+quantized = allowed_rgb_255[np.argmin(distances, axis=1)].astype(np.uint8).reshape(img_rgb.shape)
+
+# ===================== 图例 =====================
+pil_img = Image.fromarray(quantized)
+W, H = pil_img.size
+
+label_font = None
+for path in ["C:/Windows/Fonts/msyh.ttc", "C:/Windows/Fonts/simhei.ttf", "C:/Windows/Fonts/mingliu.ttc"]:
+    try:
+        label_font = ImageFont.truetype(path, LABEL_FONT_SIZE)
+        break
+    except Exception:
+        continue
+if label_font is None:
+    label_font = ImageFont.load_default()
+
+def get_label_text(upper, prev=None):
+    return f"≤{upper}%" if prev is None else f"{prev}~{upper}%"
+
+stops_list = [color_stops_rate1, color_stops_rate2, color_stops_rate3]
+max_label_w = max(
+    text_width(label_font, get_label_text(u, stops[i-1][0] if i > 0 else None))
+    for stops in stops_list for i, (u, _) in enumerate(stops)
+)
+max_label_w = max(max_label_w, text_width(label_font, "无匹配数据"))
+
+col_width = BLOCK_WIDTH + 5 + max_label_w
+total_legend_width = col_width * 3 + H_SPACING * 2
+max_n = max(len(s) for s in stops_list)
+legend_height = (max_n + 1) * (BLOCK_HEIGHT + V_SPACING) - V_SPACING
+
+new_W = W + total_legend_width + LEGEND_PADDING * 2
+new_H = max(H, legend_height + LEGEND_PADDING * 2)
+
+new_img = Image.new('RGB', (new_W, new_H), (255, 255, 255))
+new_img.paste(pil_img, (LEGEND_PADDING, (new_H - H) // 2))
+
+legend_x = W + LEGEND_PADDING
+legend_y = (new_H - legend_height) // 2
+col_positions = [legend_x + i * (col_width + H_SPACING) for i in range(3)]
+draw = ImageDraw.Draw(new_img)
+
+def draw_swatch(x, y, color_hex, label):
+    draw.rectangle([x, y, x + BLOCK_WIDTH, y + BLOCK_HEIGHT],
+                   fill=color_hex, outline="#000000", width=1)
+    try:
+        bbox = label_font.getbbox(label)
+    except AttributeError:
+        bbox = label_font.getmask(label).getbbox()
+    label_y = y + (BLOCK_HEIGHT - (bbox[3] - bbox[1])) // 2 if bbox else y
+    draw.text((x + BLOCK_WIDTH + 5, label_y), label, fill="#000000", font=label_font)
+
+for col_idx, stops in enumerate(stops_list):
+    x_start = col_positions[col_idx]
+    for i, (upper, color_hex) in enumerate(stops):
+        y = legend_y + i * (BLOCK_HEIGHT + V_SPACING)
+        prev = stops[i-1][0] if i > 0 else None
+        draw_swatch(x_start, y, color_hex, get_label_text(upper, prev))
+
+draw_swatch(col_positions[0],
+            legend_y + max_n * (BLOCK_HEIGHT + V_SPACING),
+            GRAY_COLOR, "无匹配数据")
+
+new_img.save(OUT_PNG)
+print(f"✅ 输出: {OUT_PNG}  ({new_W}×{new_H}px)")
+print(f"   边线: 村里1px | 选区白线×{DISTRICT_LINE_WIDTH_FACTOR} | 外轮廓黑线")
+print(f"   着色: 三率取大值对应色阶 | 无匹配→{GRAY_COLOR}")
