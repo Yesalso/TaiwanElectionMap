@@ -8,7 +8,8 @@ import pandas as pd
 import numpy as np
 from PIL import Image
 
-BASE = r"C:\Users\Windows\Desktop\temp\24区域立法委员"
+BASE = r"D:\Windows\TaiwanElection\2024DistrictLegislator\data"
+MAPS = os.path.join(os.path.dirname(BASE), "maps")
 SHP_PATH = r"D:\Windows\Documents\村里界歷史圖資_111\村里界歷史圖資_111\VILLAGE_MOI_1111118.shp"
 CITY = "臺南市"
 
@@ -76,8 +77,8 @@ def color_for(val, stops, gray=GRAY):
 
 MPP = {"A":20,"B":10}
 outs = {
- "A": os.path.join(BASE,"臺南市第十一屆立法委員_得票率地圖_A版.png"),
- "B": os.path.join(BASE,"臺南市第十一屆立法委員_得票率地圖_B版.png")}
+ "A": os.path.join(MAPS,"臺南市第十一屆立法委員_得票率地圖_A版.png"),
+ "B": os.path.join(MAPS,"臺南市第十一屆立法委員_得票率地圖_B版.png")}
 
 for mode, path in outs.items():
     img = Image.open(path).convert("RGB")

@@ -17,6 +17,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(os.path.dirname(BASE_DIR), "data")
 
 CITY = "新北市"
 
@@ -24,10 +25,10 @@ CITY = "新北市"
 PARTY_ORDER = ["中國國民黨", "民主進步黨", "台灣民眾黨"]
 
 SOURCE_FILE = os.path.join(
-    BASE_DIR, "24总统",
+    DATA_DIR,
     "第16任總統副總統選舉候選人在新北市各村(里)得票數一覽表.xlsx",
 )
-OUTPUT_FILE = os.path.join(BASE_DIR, "24总统", "2024新北_得票率.xlsx")
+OUTPUT_FILE = os.path.join(DATA_DIR, "2024新北_得票率.xlsx")
 
 VALID_VOTES_COL = 6   # F = 有效票數A
 

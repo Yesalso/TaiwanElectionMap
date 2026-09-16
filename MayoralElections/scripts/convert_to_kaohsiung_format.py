@@ -222,7 +222,7 @@ def convert_percent(source_file, output_file):
 
 
 def main():
-    base = BASE_DIR
+    base = os.path.join(os.path.dirname(BASE_DIR), "data")
     for y in ("2010", "2014"):
         convert(os.path.join(base, f"{y}新北.xlsx"), os.path.join(base, f"{y}新北_高雄格式.xlsx"))
     for y in ("2010", "2014", "2018"):

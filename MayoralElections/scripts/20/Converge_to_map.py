@@ -36,7 +36,8 @@ plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Microsoft Jheng
 plt.rcParams['axes.unicode_minus'] = False
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-EXCEL_DIR = r"C:\Users\Windows\Desktop\temp"
+EXCEL_DIR = r"D:\Windows\TaiwanElection\MayoralElections\data"
+MAPS_DIR = os.path.join(os.path.dirname(os.path.dirname(BASE_DIR)), "maps")
 
 # ===================== 配置区 =====================
 SHP_CANDIDATE_PATHS = [
@@ -50,7 +51,7 @@ DATASETS = [
         "excel": os.path.join(EXCEL_DIR, "2010新北_得票率.xlsx"),
         "sheet": "各里彙總",
         "city": "新北市",
-        "out": os.path.join(BASE_DIR, "新北市2010年市長選舉_得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "新北市2010年市長選舉_得票率地圖.png"),
         "tag": "2010 新北市長選舉（中國國民黨：朱立倫 / 民主進步黨：蔡英文）",
         "title_lines": ["第一屆新北市市長選舉", "在各村（里）得票領先之候選人得票比例圖"],
         "legend_names": ["朱立倫", "蔡英文"],
@@ -59,7 +60,7 @@ DATASETS = [
         "excel": os.path.join(EXCEL_DIR, "2014新北_得票率.xlsx"),
         "sheet": "各里彙總",
         "city": "新北市",
-        "out": os.path.join(BASE_DIR, "新北市2014年市長選舉_得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "新北市2014年市長選舉_得票率地圖.png"),
         "tag": "2014 新北市長選舉（中國國民黨：朱立倫 / 民主進步黨：游錫堃）",
         "title_lines": ["第二屆新北市市長選舉", "在各村（里）得票領先之候選人得票比例圖"],
         "legend_names": ["朱立倫", "游錫堃"],
@@ -68,7 +69,7 @@ DATASETS = [
         "excel": os.path.join(EXCEL_DIR, "2018新北_得票率.xlsx"),
         "sheet": "各里彙總",
         "city": "新北市",
-        "out": os.path.join(BASE_DIR, "新北市2018年市長選舉_得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "新北市2018年市長選舉_得票率地圖.png"),
         "tag": "2018 新北市長選舉（中國國民黨：侯友宜 / 民主進步黨：蘇貞昌）",
         "title_lines": ["第三屆新北市市長選舉", "在各村（里）得票領先之候選人得票比例圖"],
         "legend_names": ["侯友宜", "蘇貞昌"],
@@ -77,7 +78,7 @@ DATASETS = [
         "excel": os.path.join(EXCEL_DIR, "新北县市首长_2022.xlsx"),
         "sheet": "各里彙總",
         "city": "新北市",
-        "out": os.path.join(BASE_DIR, "新北市2022年市長選舉_得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "新北市2022年市長選舉_得票率地圖.png"),
         "tag": "2022 新北市長選舉（中國國民黨：侯友宜 / 民主進步黨：林佳龍）",
         "title_lines": ["第四屆新北市市長選舉", "在各村（里）得票領先之候選人得票比例圖"],
         "legend_names": ["侯友宜", "林佳龍"],
@@ -87,7 +88,7 @@ DATASETS = [
         "sheet": "Sheet1",
         "header": 1,
         "city": "新北市",
-        "out": os.path.join(BASE_DIR, "臺北縣2005年縣長選舉_得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "臺北縣2005年縣長選舉_得票率地圖.png"),
         "tag": "2005 臺北縣長選舉（中國國民黨：周錫瑋 / 民主進步黨：羅文嘉）",
         "title_lines": ["第十五屆臺北縣縣長選舉", "在各村（里）得票領先之候選人得票比例圖"],
         "legend_names": ["周錫瑋", "羅文嘉"],
@@ -100,7 +101,7 @@ DATASETS = [
         "excel": os.path.join(EXCEL_DIR, "台北县2001_得票率.xlsx"),
         "sheet": "各里彙總",
         "city": "新北市",
-        "out": os.path.join(BASE_DIR, "臺北縣2001年縣長選舉_得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "臺北縣2001年縣長選舉_得票率地圖.png"),
         "tag": "2001 臺北縣長選舉（新黨：王建煊 / 民主進步黨：蘇貞昌）",
         "title_lines": ["第十四屆臺北縣縣長選舉", "在各村（里）得票領先之候選人得票比例圖"],
         "legend_names": ["王建煊", "蘇貞昌"],
@@ -114,6 +115,44 @@ DATASETS = [
              (50, "#A4FF90"), (55, "#78FF4F"), (60, "#68DE45"),
              (65, "#54B337"), (70, "#3C8027"), (75, "#2B5C1C"),
              (80, "#1D3D13"), (85, "#0F210A"), (100, "#071A09")],
+        ],
+    },
+    {
+        "excel": os.path.join(EXCEL_DIR, "1993台北縣_得票率.xlsx"),
+        "sheet": "各里彙總",
+        "city": "新北市",
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "臺北縣1993年縣長選舉_得票率地圖.png"),
+        "tag": "1993 臺北縣長選舉（民主進步黨：尤清 / 中國國民黨：蔡勝邦）",
+        "title_lines": ["第十二屆臺北縣縣長選舉", "在各村（里）得票領先之候選人得票比例圖"],
+        "legend_names": ["尤清", "蔡勝邦"],
+        "color_schemes": [
+            [(35, "#E8FFE0"), (40, "#CEFFC2"), (45, "#C0FFB1"),
+             (50, "#A4FF90"), (55, "#78FF4F"), (60, "#68DE45"),
+             (65, "#54B337"), (70, "#3C8027"), (75, "#2B5C1C"),
+             (80, "#1D3D13"), (85, "#0F210A"), (100, "#071A09")],
+            [(35, "#D9F6FF"), (40, "#A6E9FF"), (45, "#73D9FF"),
+             (50, "#40C8FF"), (55, "#00C0F4"), (60, "#00A2E8"),
+             (65, "#0080B8"), (70, "#006591"), (75, "#004B6B"),
+             (80, "#003247"), (85, "#001F2E"), (100, "#010D29")],
+        ],
+    },
+    {
+        "excel": os.path.join(EXCEL_DIR, "1997台北縣_得票率.xlsx"),
+        "sheet": "各里彙總",
+        "city": "新北市",
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "臺北縣1997年縣長選舉_得票率地圖.png"),
+        "tag": "1997 臺北縣長選舉（民主進步黨：蘇貞昌 / 中國國民黨：謝深山）",
+        "title_lines": ["第十三屆臺北縣縣長選舉", "在各村（里）得票領先之候選人得票比例圖"],
+        "legend_names": ["蘇貞昌", "謝深山"],
+        "color_schemes": [
+            [(35, "#E8FFE0"), (40, "#CEFFC2"), (45, "#C0FFB1"),
+             (50, "#A4FF90"), (55, "#78FF4F"), (60, "#68DE45"),
+             (65, "#54B337"), (70, "#3C8027"), (75, "#2B5C1C"),
+             (80, "#1D3D13"), (85, "#0F210A"), (100, "#071A09")],
+            [(35, "#D9F6FF"), (40, "#A6E9FF"), (45, "#73D9FF"),
+             (50, "#40C8FF"), (55, "#00C0F4"), (60, "#00A2E8"),
+             (65, "#0080B8"), (70, "#006591"), (75, "#004B6B"),
+             (80, "#003247"), (85, "#001F2E"), (100, "#010D29")],
         ],
     },
 ]
@@ -397,22 +436,67 @@ def load_rates(cfg):
     #  ① 得票率專用檔：欄位直接是「<政黨>得票率」
     #  ② 高雄格式全量檔：<候選人>得票數 ＋ 有效票數A，再除以 A×100 得得票率
     #  ③ 指定候選人欄位（cfg["cand_columns"]）：欄名即候選人、值為得票率(%)
+    #  ⑤ 鄉鎮市區層級檔（cfg["full_loc_col"]）：單一欄含完整路徑（如「臺北縣板橋市」），無村里資料
     pct_cols = [c for c in df.columns if c.endswith("得票率")]
     vote_cols = [c for c in df.columns if c.endswith("得票數")]
     given_cands = cfg.get("cand_columns")
+
+    # 字串百分比（如 "51.54%"）→ 數值
+    def _to_pct_numeric(v):
+        if v is None:
+            return np.nan
+        s = str(v).strip()
+        if s.endswith("%"):
+            s = s[:-1]
+        return pd.to_numeric(s, errors="coerce")
+
+    if cfg.get("full_loc_col"):
+        cand_cols = list(cfg.get("cand_columns") or pct_cols or vote_cols)
+        rate_cols = []
+        for c in cand_cols:
+            rate_cols.append(c)
+            df[c] = df[c].apply(_to_pct_numeric)
+        import re as _re
+        def _parse_loc(val):
+            s = _norm_text(val)
+            m = _re.match(r'^(.*?[縣市])(.*?[鄉鎮市區])(.*)$', s)
+            if m:
+                return _norm_text(m.group(1)), _norm_text(m.group(2)), _norm_text(m.group(3))
+            return "", "", ""
+        parsed = df[cfg["full_loc_col"]].apply(_parse_loc)
+        df["縣市"] = parsed.apply(lambda t: t[0])
+        df["鄉鎮市區"] = parsed.apply(lambda t: t[1])
+        df["區里"] = parsed.apply(lambda t: t[2])
+        df["town_core"] = df["鄉鎮市區"].apply(strip_town_suffix)
+        df["vill_core"] = df["區里"].apply(strip_village_suffix)
+        return df, cand_cols, rate_cols
 
     if given_cands:
         cand_cols = list(given_cands)
         rate_cols = []
         for c in cand_cols:
             rate_cols.append(c)
-            df[c] = pd.to_numeric(df[c], errors="coerce")
+            # 支援字串百分比（如 "51.54%"）：先去 % 再轉數值
+            sample = df[c].dropna().head(5).astype(str)
+            if sample.str.contains("%").any():
+                df[c] = pd.to_numeric(
+                    df[c].astype(str).str.replace("%", "", regex=False),
+                    errors="coerce")
+            else:
+                df[c] = pd.to_numeric(df[c], errors="coerce")
     elif pct_cols:
         cand_cols = pct_cols
         rate_cols = []
         for c in cand_cols:
             rate_cols.append(c)
-            df[c] = pd.to_numeric(df[c], errors="coerce")
+            # 支援字串百分比（如 "51.54%"）：先去 % 再轉數值
+            sample = df[c].dropna().head(5).astype(str)
+            if sample.str.contains("%").any():
+                df[c] = pd.to_numeric(
+                    df[c].astype(str).str.replace("%", "", regex=False),
+                    errors="coerce")
+            else:
+                df[c] = pd.to_numeric(df[c], errors="coerce")
     elif vote_cols:
         if "有效票數A" not in df.columns:
             raise ValueError(f"{excel_path} 缺少『有效票數A』欄位")
@@ -570,9 +654,18 @@ def make_map(cfg):
     for _, r in df_vote.iterrows():
         raw_vote_by_town.setdefault(r["town_core"], {})[r["vill_core"]] = r["區里"]
 
+    # 鄉鎮市區層級資料：村里界無對應（Excel 僅到鄉鎮層級），以鄉鎮數值套用全鄉鎮村里
+    town_level_only = bool(df_vote["vill_core"].str.strip().eq("").all())
+    town_level_dict = {
+        t: vals for (t, v), vals in vote_dict.items() if not v
+    }
+
     def process_row(r):
         town, vill = r["town_core"], r["vill_core"]
         matched_vill, vals, excel_mt = fuzzy_lookup(town, vill, vote_dict, vote_by_town)
+        if vals is None and town in town_level_dict:
+            vals = town_level_dict[town]
+            excel_mt = f"town:{town}"
         if vals is None:
             vals = tuple(np.nan for _ in range(n_cand))
             return pd.Series(list(vals) + ["none"])
@@ -637,9 +730,9 @@ def make_map(cfg):
         print(f"  ■ {label}：共 {len(sub)} 個")
         for _, r in sub.head(8).iterrows():
             if key == "variant":
-                print(f"      {r['TOWNNAME']} {r['VILLNAME']}  ↔  {r['match_type'].split(':', 1)[1]}")
+                print(f"      {r['TOWNNAME']} {r['VILLNAME']}  <->  {r['match_type'].split(':', 1)[1]}")
             else:
-                print(f"      {r['TOWNNAME']} {r['VILLNAME']}  ↔  {r['match_type']}")
+                print(f"      {r['TOWNNAME']} {r['VILLNAME']}  <->  {r['match_type']}")
         if len(sub) > 8:
             print(f"      ... 其餘 {len(sub) - 8} 個略")
 

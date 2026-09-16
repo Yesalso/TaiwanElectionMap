@@ -32,7 +32,8 @@ warnings.filterwarnings("ignore", message=r"Glyph .* missing from font")
 plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Microsoft JhengHei', 'Arial Unicode MS']
 plt.rcParams['axes.unicode_minus'] = False
 
-BASE = r"C:\Users\Windows\Desktop\temp\24区域立法委员"
+BASE = r"D:\Windows\TaiwanElection\2024DistrictLegislator\data"
+MAPS = os.path.join(os.path.dirname(BASE), "maps")
 EXCEL_PATH = os.path.join(BASE, "臺南市_得票率.xlsx")
 SHEET_NAME = "各里彙總"
 CITY_NAME = "臺南市"
@@ -377,7 +378,7 @@ def make_map(mode):
     stops_by_party = STOPS_A if mode == "A" else STOPS_B
     MPP = 20 if mode == "A" else 10          # A=20m/px(資料夾10)  B=10m/px(資料夾20)
     MAX_SAFE_PX = 32000
-    OUT_PNG = os.path.join(BASE, f"臺南市第十一屆立法委員_得票率地圖_{mode}版.png")
+    OUT_PNG = os.path.join(MAPS, f"臺南市第十一屆立法委員_得票率地圖_{mode}版.png")
 
     print("=" * 62)
     print(f"  版本 {mode}：{OUT_PNG}")

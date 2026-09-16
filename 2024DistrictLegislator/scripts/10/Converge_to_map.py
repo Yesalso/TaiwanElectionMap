@@ -36,7 +36,8 @@ plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Microsoft Jheng
 plt.rcParams['axes.unicode_minus'] = False
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-EXCEL_DIR = r"C:\Users\Windows\Desktop\temp"
+EXCEL_DIR = r"D:\Windows\TaiwanElection\MayoralElections\data"
+MAPS_DIR = os.path.join(os.path.dirname(os.path.dirname(BASE_DIR)), "maps")
 
 # ===================== 配置区 =====================
 SHP_CANDIDATE_PATHS = [
@@ -50,7 +51,7 @@ DATASETS = [
         "excel": os.path.join(EXCEL_DIR, "2010新北_得票率.xlsx"),
         "sheet": "各里彙總",
         "city": "新北市",
-        "out": os.path.join(BASE_DIR, "新北市2010年市長選舉_得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "新北市2010年市長選舉_得票率地圖.png"),
         "tag": "2010 新北市長選舉（中國國民黨：朱立倫 / 民主進步黨：蔡英文）",
         "title_lines": ["第一屆新北市市長選舉", "在各村（里）得票領先之候選人得票比例圖"],
         "legend_names": ["朱立倫", "蔡英文"],
@@ -59,7 +60,7 @@ DATASETS = [
         "excel": os.path.join(EXCEL_DIR, "2014新北_得票率.xlsx"),
         "sheet": "各里彙總",
         "city": "新北市",
-        "out": os.path.join(BASE_DIR, "新北市2014年市長選舉_得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "新北市2014年市長選舉_得票率地圖.png"),
         "tag": "2014 新北市長選舉（中國國民黨：朱立倫 / 民主進步黨：游錫堃）",
         "title_lines": ["第二屆新北市市長選舉", "在各村（里）得票領先之候選人得票比例圖"],
         "legend_names": ["朱立倫", "游錫堃"],
@@ -68,7 +69,7 @@ DATASETS = [
         "excel": os.path.join(EXCEL_DIR, "2018新北_得票率.xlsx"),
         "sheet": "各里彙總",
         "city": "新北市",
-        "out": os.path.join(BASE_DIR, "新北市2018年市長選舉_得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "新北市2018年市長選舉_得票率地圖.png"),
         "tag": "2018 新北市長選舉（中國國民黨：侯友宜 / 民主進步黨：蘇貞昌）",
         "title_lines": ["第三屆新北市市長選舉", "在各村（里）得票領先之候選人得票比例圖"],
         "legend_names": ["侯友宜", "蘇貞昌"],
@@ -77,7 +78,7 @@ DATASETS = [
         "excel": os.path.join(EXCEL_DIR, "新北县市首长_2022.xlsx"),
         "sheet": "各里彙總",
         "city": "新北市",
-        "out": os.path.join(BASE_DIR, "新北市2022年市長選舉_得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "新北市2022年市長選舉_得票率地圖.png"),
         "tag": "2022 新北市長選舉（中國國民黨：侯友宜 / 民主進步黨：林佳龍）",
         "title_lines": ["第四屆新北市市長選舉", "在各村（里）得票領先之候選人得票比例圖"],
         "legend_names": ["侯友宜", "林佳龍"],
@@ -87,7 +88,7 @@ DATASETS = [
         "sheet": "Sheet1",
         "header": 1,
         "city": "新北市",
-        "out": os.path.join(BASE_DIR, "臺北縣2005年縣長選舉_得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "臺北縣2005年縣長選舉_得票率地圖.png"),
         "tag": "2005 臺北縣長選舉（中國國民黨：周錫瑋 / 民主進步黨：羅文嘉）",
         "title_lines": ["第十五屆臺北縣縣長選舉", "在各村（里）得票領先之候選人得票比例圖"],
         "legend_names": ["周錫瑋", "羅文嘉"],
@@ -100,7 +101,7 @@ DATASETS = [
         "excel": os.path.join(EXCEL_DIR, "台北县2001_得票率.xlsx"),
         "sheet": "各里彙總",
         "city": "新北市",
-        "out": os.path.join(BASE_DIR, "臺北縣2001年縣長選舉_得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "臺北縣2001年縣長選舉_得票率地圖.png"),
         "tag": "2001 臺北縣長選舉（新黨：王建煊 / 民主進步黨：蘇貞昌）",
         "title_lines": ["第十四屆臺北縣縣長選舉", "在各村（里）得票領先之候選人得票比例圖"],
         "legend_names": ["王建煊", "蘇貞昌"],
@@ -117,7 +118,7 @@ DATASETS = [
         "excel": os.path.join(EXCEL_DIR, "台北县2001_得票率.xlsx"),
         "sheet": "各里彙總",
         "city": "新北市",
-        "out": os.path.join(BASE_DIR, "臺北縣2001年縣長選舉_王建煊得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "臺北縣2001年縣長選舉_王建煊得票率地圖.png"),
         "tag": "2001 王建煊單獨",
         "title_lines": ["第十四屆臺北縣縣長選舉", "在各村（里）王建煊得票比例圖"],
         "legend_names": ["王建煊"],
@@ -132,7 +133,7 @@ DATASETS = [
         "excel": os.path.join(EXCEL_DIR, "台北县2001_得票率.xlsx"),
         "sheet": "各里彙總",
         "city": "新北市",
-        "out": os.path.join(BASE_DIR, "臺北縣2001年縣長選舉_蘇貞昌得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "臺北縣2001年縣長選舉_蘇貞昌得票率地圖.png"),
         "tag": "2001 蘇貞昌單獨",
         "title_lines": ["第十四屆臺北縣縣長選舉", "在各村（里）蘇貞昌得票比例圖"],
         "legend_names": ["蘇貞昌"],

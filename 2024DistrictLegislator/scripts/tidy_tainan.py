@@ -7,7 +7,7 @@ import re
 from openpyxl import load_workbook
 from openpyxl.styles import Font
 
-BASE = r"C:\Users\Windows\Desktop\temp\24区域立法委员"
+BASE = r"D:\Windows\TaiwanElection\2024DistrictLegislator\data"
 SRC = os.path.join(BASE, "臺南市.xlsx")
 OUT_ORG = os.path.join(BASE, "臺南市_整理.xlsx")
 OUT_RATE = os.path.join(BASE, "臺南市_得票率.xlsx")

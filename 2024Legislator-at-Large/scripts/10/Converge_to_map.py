@@ -36,7 +36,8 @@ plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Microsoft Jheng
 plt.rcParams['axes.unicode_minus'] = False
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-EXCEL_DIR = r"C:\Users\Windows\Desktop\temp"
+EXCEL_DIR = r"D:\Windows\TaiwanElection\2024Legislator-at-Large\data"
+MAPS_DIR = os.path.join(os.path.dirname(os.path.dirname(BASE_DIR)), "maps")
 
 # ===================== 配置区 =====================
 SHP_CANDIDATE_PATHS = [
@@ -47,10 +48,10 @@ SHP_CANDIDATE_PATHS = [
 # 要生成的地圖（2024 政黨票：第十一屆立法委員全國不分區及僑居國外國民選舉，新北市各村里領先政黨）
 DATASETS = [
     {
-        "excel": os.path.join(EXCEL_DIR, "24政党票", "2024新北_得票率.xlsx"),
+        "excel": os.path.join(EXCEL_DIR, "2024新北_得票率.xlsx"),
         "sheet": "各里彙總",
         "city": "新北市",
-        "out": os.path.join(BASE_DIR, "新北市2024年不分區政黨票_得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "新北市2024年不分區政黨票_得票率地圖.png"),
         "tag": "2024 政黨票（中國國民黨 / 民主進步黨 / 臺灣民衆黨）",
         "title_lines": ["第十一屆全國不分區及僑居國外國民立法委員選舉", "在新北市各村（里）所得票數領先之政黨得票比例圖"],
         "legend_names": ["中國國民黨", "民主進步黨", "臺灣民衆黨"],

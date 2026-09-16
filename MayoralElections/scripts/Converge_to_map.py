@@ -36,6 +36,8 @@ plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Microsoft Jheng
 plt.rcParams['axes.unicode_minus'] = False
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+EXCEL_DIR = r"D:\Windows\TaiwanElection\MayoralElections\data"
+MAPS_DIR = os.path.join(os.path.dirname(BASE_DIR), "maps")
 
 # ===================== 配置区 =====================
 SHP_CANDIDATE_PATHS = [
@@ -46,29 +48,29 @@ SHP_CANDIDATE_PATHS = [
 # 要生成的地圖（兩張新北市長選舉）
 DATASETS = [
     {
-        "excel": os.path.join(BASE_DIR, "2010新北_得票率.xlsx"),
+        "excel": os.path.join(EXCEL_DIR, "2010新北_得票率.xlsx"),
         "sheet": "各里彙總",
         "city": "新北市",
-        "out": os.path.join(BASE_DIR, "新北市2010年市長選舉_得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, "新北市2010年市長選舉_得票率地圖.png"),
         "tag": "2010 新北市長選舉（中國國民黨：朱立倫 / 民主進步黨：蔡英文）",
         "title_lines": ["第一屆新北市市長選舉", "在各村（里）得票領先之候選人得票比例圖"],
         "legend_names": ["朱立倫", "蔡英文"],
     },
     {
-        "excel": os.path.join(BASE_DIR, "2014新北_得票率.xlsx"),
+        "excel": os.path.join(EXCEL_DIR, "2014新北_得票率.xlsx"),
         "sheet": "各里彙總",
         "city": "新北市",
-        "out": os.path.join(BASE_DIR, "新北市2014年市長選舉_得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, "新北市2014年市長選舉_得票率地圖.png"),
         "tag": "2014 新北市長選舉（中國國民黨：朱立倫 / 民主進步黨：游錫堃）",
         "title_lines": ["第二屆新北市市長選舉", "在各村（里）得票領先之候選人得票比例圖"],
         "legend_names": ["朱立倫", "游錫堃"],
     },
     {
-        "excel": os.path.join(BASE_DIR, "2005台北县.xlsx"),
+        "excel": os.path.join(EXCEL_DIR, "2005台北县.xlsx"),
         "sheet": "Sheet1",
         "header": 1,                       # 第 2 列才是欄名（第 1 列為標題列）
         "city": "新北市",                  # 2005 臺北縣即今新北市
-        "out": os.path.join(BASE_DIR, "臺北縣2005年縣長選舉_得票率地圖.png"),
+        "out": os.path.join(MAPS_DIR, "臺北縣2005年縣長選舉_得票率地圖.png"),
         "tag": "2005 臺北縣長選舉（中國國民黨：周錫瑋 / 民主進步黨：羅文嘉）",
         "title_lines": ["第十五屆臺北縣縣長選舉", "在各村（里）得票領先之候選人得票比例圖"],
         "legend_names": ["周錫瑋", "羅文嘉"],
