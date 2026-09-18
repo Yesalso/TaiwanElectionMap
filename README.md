@@ -1,12 +1,12 @@
 # 台湾历届选举得票率地图绘制 / Taiwan Election Vote-Rate Maps
 
-> **中文**：基于政府公开信息平台提供的 **SHP 村里界图资** 与 **中选会（CEC）／政大选举研究中心** 之选举资料，
+> **中文**：基于政府公开信息平台提供的 **SHP 村里界图资** 与 **中选会（CEC）／政大选举研究中心** 的选举资料，
 > 用 Python 将各级选举在乡镇市区、村里的得票率绘制成地图。
 >
 > **English**: This project draws vote-percentage (得票率) choropleth maps for Taiwan elections,
 > using **Ministry of Interior village-boundary SHP data** together with **CEC / NCCU election data**.
 >
-> 本专案由 AI 生成，AI 率百分之百。/ _This project was generated entirely by AI._
+> 本项目由 AI 生成，AI 率百分之百。/ _This project was generated entirely by AI._
 >
 > ⭐ 大部分地图与图表皆为**维基百科上所没有的原创内容**（各村里、乡镇市区级得票率地图与统计图表）。
 > _Most maps and charts herein are **original content not found on Wikipedia** (village/township-level
@@ -38,7 +38,7 @@
 vote-rate tables, then each village or township is filled with a color from the winning candidate's ramp,
 producing **vote-rate choropleth maps** for the whole island or a single county/city.
 
-本专案涵盖的选举 / Elections covered:
+本项目涵盖的选举 / Elections covered:
 
 | 选举类型 Election | 届次／年份 Terms / Years |
 |---|---|
@@ -59,10 +59,10 @@ _Resolution: **village (村里)** and **township (乡镇市区)** level._
 
 **中文**：
 - **边界图资（SHP）**：内政部「村里界历史图资」`VILLAGE_MOI_1111118.shp`（坐标系 TWD97 / EPSG:3826）。
-  此文件位于专案外（默认路径 `D:\Windows\Documents\村里界歷史圖資_111\...`）。
+  此文件位于项目外（默认路径 `D:\Windows\Documents\村里界歷史圖資_111\...`）。
 - **选举资料**：中央选举委员会投票结果页面（经国立政治大学选举研究中心 `vote.nccu.edu.tw` 存档），
   由 `Get_data/` 爬虫下载，或直接放入各选举文件夹的 `Data/`、`data/` 中。
-- `.gitignore` 排除 `*.xlsx / *.xls / *.pdf / *.jpg / *.jpeg`，原始数据文件不入库；PNG 地图则纳入版本控管。
+- `.gitignore` 排除 `*.xlsx / *.xls / *.pdf / *.jpg / *.jpeg`，原始数据文件不入库；PNG 地图则纳入版本管理。
 
 **English**:
 - **Boundary data (SHP)**: Ministry of Interior historical village boundaries, `VILLAGE_MOI_1111118.shp`
@@ -231,7 +231,7 @@ for start in range(0, n_pixels, CHUNK_SIZE):              # 500_000 一区块
 
 ### 5. 地图文字渲染（Print_word 模式）/ Text rendering (Print_word pattern)
 
-所有标题、图例文字都透过「Shard 的 `Print_word.py` 方式」生成透明背景图，保证中文与 `≤ ~ ≥` 符号都能正常显示：
+所有标题、图例文字都通过「Shard 的 `Print_word.py` 方式」生成透明背景图，保证中文与 `≤ ~ ≥` 符号都能正常显示：
 
 ```text
 matplotlib 于 1×1 画布写黑字（CJK：PMingLiU/MingLiU/新細明體/微軟正黑體/SimHei…，符号由 DejaVu Sans 回退）
