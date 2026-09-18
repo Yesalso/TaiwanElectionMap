@@ -6,7 +6,7 @@
 > **English**: This project draws vote-percentage (得票率) choropleth maps for Taiwan elections,
 > using **Ministry of Interior village-boundary SHP data** together with **CEC / NCCU election data**.
 >
-> 本项目由 AI 生成，AI 率百分之百。/ _This project was generated entirely by AI._
+> 本项目由 AI 生成。/ _This project was generated entirely by AI._
 >
 > ⭐ 大部分地图与图表皆为**维基百科上所没有的原创内容**（各村里、乡镇市区级得票率地图与统计图表）。
 > _Most maps and charts herein are **original content not found on Wikipedia** (village/township-level
@@ -94,7 +94,7 @@ Raw results (xls/xlsx, polling-station level)
 得票率地图 PNG / Vote-rate map PNG
 ```
 
-**初学者提示 / Beginner tip**：整个流程其实只有两步——① 把原始开票数字整理成「每个村里的得票率」表格；
+**注意 / Beginner tip**：整个流程其实只有两步——① 把原始开票数字整理成「每个村里的得票率」表格；
 ② 把表格数值转成颜色、涂到地图的每个村里。下面两种制图方式（Ａ／Ｂ）的差别，只在「怎么取得村里边界」。
 _At its core the pipeline has just two steps: (1) turn raw tallies into a per-village vote-rate table, then
 (2) map those rates to colors on each village. The two drawing methods (A/B) differ only in how they obtain
@@ -234,7 +234,7 @@ read the raw polling-station workbook → aggregate to the village level → wri
   / Standard output: three sheets `各里彙總` / `各鄉鎮(市、區)彙總` / `縣市彙總`, matching the fields documented
   in `County/README_立委不分區資料整理與地圖製作.md`, ready for the drawing scripts.
 
-**初学者提示 / Beginner tip**：这里的「得票率」= 某候选人在该村的得票数 ÷ 该村有效票数 × 100%。
+**注意 / Beginner tip**：这里的「得票率」= 某候选人在该村的得票数 ÷ 该村有效票数 × 100%。
 把每个村的领先者涂上颜色，就得到一张「谁在哪里赢、赢多少」的地图。
 _A "vote rate" here means a candidate's votes in a village divided by that village's valid votes (as a %)._
 
@@ -283,7 +283,7 @@ normalize_text(s)
   / Self-check: the script prints `精確匹配 / 異體字匹配 / 模糊匹配 / 無資料` counts and aborts if any orphan key
   (present in the data but missing from the lookup) remains, so mismatches never pass silently.
 
-**初学者提示 / Beginner tip**：例如同一个里，政府资料写「瓦磘里」，图资可能写成「瓦[磘]里」或「瓦窯里」。
+**注意 / Beginner tip**：例如同一个里，政府资料写「瓦磘里」，图资可能写成「瓦[磘]里」或「瓦窯里」。
 规范化先把两边转成同一写法再比对，才能把正确的颜色涂到正确的村里。
 _Example: one village may appear as 瓦磘里, 瓦[磘]里, or 瓦窯里 across sources; normalization maps them to one
 form before matching._
@@ -345,7 +345,7 @@ layer by layer and export the image.
   / Method B (Colorful base map): does not read the SHP; instead it recolors the pre-made `Colorful.png` base
   map in which every township has a unique color (see §4 and §8).
 
-**初学者提示 / Beginner tip**：`EPSG:3826` 是台湾常用的 TWD97 投影坐标系（单位：米）；原始 SHP 多为
+**注意 / Beginner tip**：`EPSG:3826` 是台湾常用的 TWD97 投影坐标系（单位：米）；原始 SHP 多为
 经纬度（`EPSG:4326`）。两者直接混用会让图形扭曲、比例失真，所以先统一投影再画。
 _`EPSG:3826` is Taiwan's TWD97 metric CRS; the raw SHP is usually geographic (`EPSG:4326`). Mixing them
 would distort the shapes, so everything is reprojected first._
@@ -395,7 +395,7 @@ for start in range(0, n_pixels, CHUNK_SIZE):               # 每块 500_000 像�
   tiny white specks (area ≤ 2000 px, not on the image edge, surrounded mostly by non-white) with the local
   majority color, removing antialiasing leftovers without harming the bands.
 
-**初学者提示 / Beginner tip**：「抗锯齿」让线条平滑，但会在边缘混出很多过渡色。量化就是把过渡色强制归回
+**注意 / Beginner tip**：「抗锯齿」让线条平滑，但会在边缘混出很多过渡色。量化就是把过渡色强制归回
 最近的「正统色」，成品更干净、颜色可数，也方便程序自动检查配色是否正确。
 _Quantization snaps antialiased edge colors back to the nearest palette color, keeping the output clean and
 machine-checkable._
@@ -431,7 +431,7 @@ matplotlib 在 1×1 画布上写黑字（CJK：PMingLiU/MingLiU/新細明體/Mic
   / Long-name wrapping: overly long party names (e.g. 無黨團結聯盟) are shrunk and wrapped onto two lines
   (`render_cand_name_img`).
 
-**初学者提示 / Beginner tip**：直接用绘图库写中文字，常遇到缺字、字体不对或贴图没有透明背景等问题。
+**注意 / Beginner tip**：直接用绘图库写中文字，常遇到缺字、字体不对或贴图没有透明背景等问题。
 这里改成「先用 matplotlib 把字画成一张图片，再把图片贴到地图上」，可避开这些坑。
 _Instead of drawing CJK text directly, the text is first rendered to an image, then pasted onto the map._
 
