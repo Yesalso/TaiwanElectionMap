@@ -162,101 +162,165 @@ single county/city:
 
 ## 代码实现 / Implementation Details
 
-> 本节介绍脚本内部的关键实现细节，方便阅读与修改代码。
-> _This section explains the key implementation details inside the scripts._
+> 本节按「数据转换 → 名称配对 → 绘图 → 量化 → 文字 → 图例 → 爬虫 → 辅助工具」的顺序，
+> 介绍脚本内部的关键实现细节，方便阅读与修改代码。
+> _This section walks through the key implementation details inside the scripts._
 
 ### 1. 数据转换（得票率计算）/ Data conversion (vote-rate math)
 
-- **通用转换器**（`convert_2008/2012/2016_to_rates.py`、`convert_2024_to_rates.py`）：
-  用 `pd.read_excel(header=None)` 读取原始投票所级 `xls/xlsx`，不依赖乱码文件名，而是**从档内标题取县市名**
-  （正则如 `選舉(.+?)各政黨`）。政党的列位置随届别浮动，故代码按「政党政名行 + 政党数 n」推算：
-  `有效票数列 = 3 + n`，其后依次为无效票数、投票数。
-- **合并以村里为单位**：2012 起把同一「乡镇×村里」的各投开票所得票数加总，再算
-  `得票率(%) = 得票數 ÷ 有效票數 × 100`，四舍五入保留 2 位小数。
-- **2024 总统转换器**（`convert_2024_president_percent.py`）较特殊：原始档为固定列结构
-  （C=柯文哲、D=赖清德、E=侯友宜、F=有效票数A），用 `openpyxl` 逐列读取，跳过无资料的区域小计列，
-  输出 `各里彙總` 单工作表。
-- 统一输出**3 工作表**格式：`各里彙總`／`各鄉鎮彙總`／`縣市彙總`，供制图脚本直接读取。
-  具体字段见 `County/README_立委不分區資料整理與地圖製作.md`。
+各届原始资料格式不一，转换器（`convert_*.py`）都遵循「读原始开票档 → 以村里为单位汇总 → 输出标准 3 工作表」的流程：
+
+- **读取方式**：一律用 `pd.read_excel(header=None)`（无表头）整块读入，不依赖文件名（政府档案常有乱码名），
+  县市名改从**档内标题列**以正则提取，如 `選舉(.+?)各政黨`（2008/2012/2016）或
+  `選舉各政黨在(.+?)各投開票所`（2024 立委）。
+- **版面自动检测**：2024 立委混用新旧两种版面，程序以「第 1 列第 0 栏是否等于 `縣市`」判断：
+  - 新格式 → 政党自第 4 栏起，乡镇 = 第 1 栏、村里 = 第 2 栏；
+  - 旧格式（A05-6，如云林县）→ 政党自第 3 栏起，乡镇 = 第 0 栏、村里 = 第 1 栏。
+- **政党栏位浮动**：政党数量每届不同（2008 固定 12 党、2016 有 18 党、2024 有 16 党），
+  政党名由「政党名行」（第 2 或第 4 列）逐栏读取到空栏为止；有效票数、无效票数、投票数紧接在政党之后，
+  故其列号按 `有效票数列 = 政党起始栏 + 政党数` 推算，而非写死。
+- **村里汇总**：2012 起同一「乡镇 × 村里」可能对应多个投开票所，先把**得票数加总**再算
+  `得票率(%) = 得票數 ÷ 有效票數 × 100`（避免先算比率再加权的误差）；2008 则多为已汇总的村里列。
+- **行结构解析**：乡镇小计列的村里栏为空 → 更新「现行乡镇」；县市总计列含「总」字 → 作为资料起点；
+  无村里的列一律跳过。
+- **特殊格式**：
+  - `convert_1994_to_rates.py`：原始档为「4 位候选人并排、每块 5 栏（地区/姓名/号次/得票数/得票率）」，
+    得票率是 0–1 小数需 ×100；并做历史行政区映射（见第 8 节）与同 key 多列取平均。
+  - `convert_2024_president_percent.py`：原始档为固定列结构（C=柯文哲、D=赖清德、E=侯友宜、F=有效票数A），
+    用 `openpyxl` 逐格读取，村里栏为空时更新现行乡镇，跳过无有效票的区域小计列，只输出 `各里彙總` 单工作表。
+- **统一输出**：`各里彙總`／`各鄉鎮(市、區)彙總`／`縣市彙總` 3 个工作表，字段与
+  `County/README_立委不分區資料整理與地圖製作.md` 一致，供制图脚本直接读取。
 
 ### 2. 名称规范化与配对 / Name normalization & matching
 
-村里名称在政大资料（表格）与内政部图资（SHP）间常用字不同，所有制图脚本共用同一套规范化函数：
+选举资料（表格）与内政部图资（SHP）对同一村里的用字常不同，所有制图脚本共用同一套规范化函数：
 
 ```text
 normalize_text(s)
   ├─ str.strip()
-  ├─ unicodedata.normalize("NFKC")           # 全角/半角、兼容文件字形统一
-  ├─ 去除 Unicode 组合用记号（部首 M 类）
-  ├─ 去除零宽/不可见字符（\u200B–\u206F、\uFEFF 等）
-  ├─ 去除图资中标注疑难字的方括号 [ ]（如 瓦[磘]里 → 瓦磘里）
-  └─ VARIANT_CHAR_MAP.translate             # 异体字对照（峯→峰、舘→館、磘→窯、獇→羌…）
+  ├─ unicodedata.normalize("NFKC")                 # 全角/半角、兼容字形统一
+  ├─ 去除组合用记号（unicodedata.category 首字母为 M）
+  ├─ 去除变体选择符（\uFE00-\uFE0F、\U000E0100-\U000E01EF）
+  ├─ 去除零宽/控制字符（\u200B-\u200F、\u202A-\u202E、\u2060-\u206F、\uFEFF）
+  ├─ 去除图资标注疑难字的方括号 [ ]（如 瓦[磘]里 → 瓦磘里）
+  └─ VARIANT_CHAR_MAP.translate                    # 异体字对照（峯→峰、舘→館、磘→窯、獇→羌…）
 ```
 
-- **精确配对**：以 `(县市, 乡镇核心名, 村里核心名)` 为 key 做字典 O(1) 查找；
-  `strip_town_suffix` / `strip_village_suffix` 去掉「鄉鎮市區」「村里」后缀。
-- **模糊配对**：同乡镇内用 `difflib.SequenceMatcher` 找相似度最高者，且要求：
-  - 相似度 ≥ `MIN_SIMILARITY`（0.5），
-  - 字符串等长、且只有**一个**字符不同，
-  - 该字符对必须是 `VARIANT_FUZZY_GROUPS` 内允许的异体组（如 {峯,峰}、{磘,窯}）。
-- 脚本会打印 `精確匹配/異體字匹配/模糊匹配/無資料` 统计，用于自检。
+- **去后缀**：`strip_town_suffix` 去 `[鄉鎮市區]$`、`strip_village_suffix` 去 `[村里]$`，取「核心名」比对。
+- **精确配对**：以 `(县市, 乡镇核心名, 村里核心名)` 为 key 建字典，O(1) 查找。
+- **模糊配对**（SHP 有、精确查不到时）：在同一乡镇范围内用 `difflib.SequenceMatcher` 找相似度最高者，
+  且必须同时满足：
+  - 相似度 ≥ `MIN_SIMILARITY`（0.5）；
+  - 字串**等长**且只有**一个**字符不同；
+  - 该差异字符对必须落在允许的异体组 `VARIANT_FUZZY_GROUPS` 内（如 `{峯,峰}`、`{磘,窯}`）。
+- **合并村里拆分**：总统转换器对「复兴村、福沃村」这类以 `、，,` 合并的村里，拆成多笔共用同一组得票率，
+  使连江等多村合并地区也能上色。
+- **政党名统一**：2024 立委把「眾 U+773E」一律换成「衆 U+8846」（台湾民衆党），确保与对照表一致。
+- **自检统计**：脚本会打印 `精確匹配 / 異體字匹配 / 模糊匹配 / 無資料` 数量，并在孤儿 key（资料有、对照表无）
+  非空时中止输出，避免静默漏配。
 
 ### 3. 投影与图层绘制 / Projection & map rendering
 
-- SHP 若缺 CRS 则视为 `EPSG:4326`，统一转 `EPSG:3826`（TWD97／TWD TM2 台湾）。
-- matplotlib 强制 `Agg` 后端（`matplotlib.use("Agg")`，每脚本开头），`DPI=100`；
-  画布大小由 `包围框总长 ÷ 米/像素` 决定（单县市默认 1px≈10m，全台约 12m，长宽上限 32000px）。
-- 图层顺序（`zorder` 由低到高）：
-  1. 村里填色（`facecolor=fill_hex, edgecolor='none'`，关闭抗锯齿防色晕）
-  2. 村里黑线 1px
-  3. 乡镇界：`dissolve(by=TOWNNAME).boundary` 生成线，再 `buffer(2px)` 成**黑带**用面绘制
-  4. 县市界线：全台图 3px、金门/连江/澎湖等小县市 1px 海岸线
-  5. 金门、连江附图为 1:1 平移至主图左上角的**插图盒**（6px 外框、乌坵放金门框内空余角落）
-- 装饰过滤：宜兰钓岛等离岸岛屿按「距县市形心 > km 阈值的部件」剔除；高雄市 `VILLNAME` 为空的未编制村里、基隆离岸岛也跳过。
+- **坐标系统一**：SHP 若无 CRS 则视为 `EPSG:4326`，一律重投影到 `EPSG:3826`（TWD97 / TM2，米制）。
+- **画布与比例尺**：强制 `Agg` 后端、`DPI=100`；比例尺
+  `scale = max(宽/MAX_PX, 高/MAX_PX, METERS_PER_PIXEL) / SCALE_UP`，
+  再取 `画布像素 = ceil(地理尺寸 / scale)`（全台约 12m/px，单县市默认 10m/px，长宽上限 11000–32000px）。
+  线宽以 `PX2PT = 72 / DPI` 由像素换算为点。
+- **图层顺序**（`zorder` 由低到高）：
+  1. 村里填色（`edgecolor='none'`、`antialiased=False`，关闭抗锯齿以免色晕）；
+  2. 村里界线 1px（zorder 5）；
+  3. 乡镇界：`dissolve(by=TOWNNAME).boundary` 后以 `buffer()` 画成**黑带**（zorder 7–9）；
+  4. 县市界线 3px（zorder 9）；
+  5. 外轮廓黑带（zorder 10–11）。
+- **两种画线法**：
+  - 全台图（如 `Draw_National_President_2024.py`）直接用 `dissolve().boundary` 画线；
+  - 单县市图（`Converge_to_map*.py`）用 `buffer(线宽/2)` 生成黑带，并与市界 `intersection` 裁切，
+    避免黑带溢出到邻县。
+- **小县市特例**：金门、连江、澎湖的海岸线用 1px，且只画「内部乡镇界」——即
+  `乡镇界.difference(县市界)`，以免 2–4px 的粗黑带把细碎岛屿糊成一团。
+- **离岸岛屿过滤**：基隆市剔除距形心 > 25km 的彭佳屿等；宜兰县 `drop_offshore_parts` 剔除 > 60km 的钓鱼台列屿；
+  高雄市 `VILLNAME` 为空的未编制村里/代管区不绘制；`TOWNNAME` 为空的要素一律跳过。
+- **金门/马祖插图（inset）**：两县以 1:1（`ISLAND_SCALE=1.0`）平移到主图左上角，外框 6px；
+  金门框在上、连江框在下紧贴；乌坵乡再以同比例尺塞进金门框内 4 个候选角落中「不与金门本体重叠」的一个，外框 1px。
+- **Method B（Colorful 底图）**：不读 SHP，直接对预制的「每乡镇一唯一色」底图 `Colorful.png` 做颜色替换
+  （详见第 4、8 节）。
 
 ### 4. 颜色量化 / Color quantization
 
-matplotlib 反锯齿会产出大量中间色，故绘图后统一**量化**到允许的调色盘：
+matplotlib 反锯齿会生成大量中间色，绘图后统一**量化**到允许的调色盘（含白、黑、灰与所有色阶色）：
 
 ```python
-pixels = img_rgb.reshape(-1, 3).astype(np.float32)        # 全部像素
-for start in range(0, n_pixels, CHUNK_SIZE):              # 500_000 一区块
-    d = np.sqrt(((chunk - allowed_rgb) ** 2).sum(axis=1)) # 欧氏距离
-    min_idx = np.argmin(d, axis=0)                        # 最近色
+pixels = img_rgb.reshape(-1, 3).astype(np.float32)
+for start in range(0, n_pixels, CHUNK_SIZE):               # 每块 500_000 像素
+    chunk = pixels[start:start + CHUNK_SIZE]
+    d = np.sqrt(((chunk - allowed_rgb) ** 2).sum(axis=1))  # 到每个允许色的欧氏距离
+    min_idx = np.argmin(d, axis=0)                         # 取最近色
 ```
 
-- County 底图法则更进一步：把 24-bit 颜色打包成 `uint32`，构造**全色域 LUT**
-  （`lut = np.arange(0x1000000)`，只把「唯一色→填色」的槽位覆盖），
-  用 fancy-index 一次处理约 1900 万像素的整图替换。
+- **分块处理**：避免一次性对全图 × 全调色盘做距离运算造成内存峰值。
+- **County 底图法加速**：把 24-bit RGB 打包成 `uint32`，构造 `0x1000000` 长的**全色域 LUT**
+  （`lut = np.arange(0x1000000)`，只覆盖「唯一色 → 填色」的槽位），用 `lut[pack]` 一次 fancy-index
+  完成约 1900 万像素的整图替换，取代 `np.unique + argsort` 的旧流程。
+- **对照表自我校正**（`color_map_from_rates.derive_base_color`）：`Name_Color_Correspondence.xlsx`
+  少数列的色栏/中心坐标可能错误（如台北信义 vs 基隆信义色栏互换、鹿野乡中心坐标落在高雄茄萣）。
+  程序以 `Colorful.png` 像素为准逐一验证：形心邻域（半径 20）能找到对照色则采用，否则取邻域内「属于对照色之众数」重绑，
+  并对显式 `TOWN_BASE_COLOR_OVERRIDE` 例外处理；最后检查底图色是否**一对一**，冲突则中止。
+- **无资料区块**（County）：先填白垫底，再以 `#323232` 覆盖内部，并保留外缘一圈白色（以膨胀/集合运算求得 rim），
+  使无资料乡镇仍能看出区界。
+- **白带保护**（台南区域立委）：立委选区白带另渲一张遮罩图 `protect_mask`，量化后调用
+  `fill_small_white_blobs`（`connectedComponentsWithStats`）把面积 ≤ 2000px、不在影像边缘、且邻域多数非白的小白点
+  填成邻域主色，消除抗锯齿残留的白点，同时不破坏选区白带。
 
 ### 5. 地图文字渲染（Print_word 模式）/ Text rendering (Print_word pattern)
 
-所有标题、图例文字都通过「Shard 的 `Print_word.py` 方式」生成透明背景图，保证中文与 `≤ ~ ≥` 符号都能正常显示：
+所有标题、图例文字都通过「`Shared/scripts/Print_word.py` 方式」生成透明背景图，保证中文与 `≤ ~ ≥` 符号都能正常显示：
 
 ```text
-matplotlib 于 1×1 画布写黑字（CJK：PMingLiU/MingLiU/新細明體/微軟正黑體/SimHei…，符号由 DejaVu Sans 回退）
-  → 先量测每行文字的 bbox 尺寸，再按实测尺寸建画布居中绘制
+matplotlib 在 1×1 画布上写黑字（CJK：PMingLiU/MingLiU/新細明體/Microsoft JhengHei/SimHei/SimSun，
+                                        缺字符号 ≤ ≥ 由 DejaVu Sans 回退）
+  → 逐行量测 get_window_extent 尺寸，按实测尺寸建立画布并居中绘制
   → plt.savefig 到 BytesIO → cv2.imdecode 灰度 → cv2.threshold(200) 二值化
-  → 背景(白)像素 alpha=0、文字像素 alpha=255，得到 RGBA 透明文字图
+  → 背景(白) alpha=0、文字 alpha=255（可指定黑字或白字），得到 RGBA 透明文字图
   → base_img.paste(rgba, xy, mask=rgba.getchannel("A")) 贴回地图
 ```
 
-- **双层缓存**：进程内 `_TEXT_IMG_CACHE` 以 `(lines, font_size)` 为 key；County 脚本另存
+- **字体链回退**：先找系统可用的 CJK 字体，再串接 `DejaVu Sans` 补 `≤ ~ ≥` 等符号，避免缺字方框。
+- **双层缓存**：进程内 `_TEXT_IMG_CACHE` 以 `(行内容, 字号[, 颜色])` 为 key；County 脚本另写
   `maps/_text_cache/<sha256>.png` 磁盘缓存，跨次运行免重渲染。
+- **效能优化**（`color_map_from_rates.py`）：量测用的 figure 只建一次（`_MEASURE_FIG` 复用），
+  字体清单一并缓存（`_FONT_FAMILY`），避免每次渲染都重建。
+- **长名换行**：政党名过长（如「無黨團結聯盟」）时缩小字号并折成两行（`render_cand_name_img`）。
 
-### 6. 图例自动起点 / Auto legend start tier
+### 6. 图例与版面 / Legend & layout
 
-- 依「全台最低领先得票率」动态决定图例起点：`start = int(min_win_rate // 5) * 5`；
-- 每个色阶标签格式：`≤x%`（首档）、`y~z%`（中档）、`≥w%`（末档）；
-- 只显示有领先乡镇的政党/候选人（如 2016 澎湖七美乡的无党团结联盟）。
+- **自动起点**：依「全台/全县市最低领先得票率」动态决定图例起点 `start = int(min_win_rate // 5) * 5`；
+  标签格式首档 `≤x%`、中档 `y~z%`、末档 `≥w%`。
+- **只列领先者**：仅显示至少领先一个乡镇市区的政党/候选人（如 2016 澎湖七美乡的无党团结联盟）。
+- **布局计算**：图例每栏宽 = 色块宽 + 间距 + 最长标签宽；右侧面板宽高由标题图与图例群组算出，
+  地图本体垂直居中贴入，标题对齐图例群组中心。台南区域立委 A/B 两版采用不同的图例起始留白与标签规则。
 
 ### 7. 爬虫 GetData.py / Web scraper
 
-- 三种入口页自动识别：`vote3.asp`（全国/县市）→ `vote31.asp`（乡镇）→ `vote32.asp`（村里），
-  依网域 URL 判断层级并自动下钻，每次都附带请求间隔与失败重试。
-- 页面以 `big5` 解码，`BeautifulSoup` 解析 `<table>`；`--region` 支持 `\u` 转义，避免命令行编码问题。
-- 输出交叉表 xlsx：`鄉鎮市區彙總`（每候选人两栏：得票数/得票率）、`村里層級明細`，并附加「总计」行。
-  命令行参数：`--region`（只抓某县市）、`--delay`（每页间隔秒）、`--retry`（失败重试次数）。
+- **三层下钻**：依入口 URL 自动识别层级——`vote3.asp`（全国/县市）→ 每位候选人下钻 `vote31.asp`（乡镇）
+  → 有连结者再下钻 `vote32.asp`（村里）；`vote31.asp`、`vote32.asp` 也可直接当入口。
+- **解析**：`requests`（带浏览器 UA）取回、以 `big5` 解码，`BeautifulSoup` 解析 `<table>`；
+  失败时以 `delay × 2` 退避重试（`--retry`）。
+- **村里切分**：`vote32` 的「地区」栏是「县市+乡镇+村里」合并字串，用已知乡镇清单（按长度排序）做前缀匹配切出乡镇/村里。
+- **输出**：`鄉鎮市區彙總`（每候选人两栏：得票数/得票率）与 `村里層級明細` 两个工作表，附「总计」列，
+  并冻结首列、套用样式。
+- **CLI**：`--region`（只取某县市，支援 `\u` 转义避免命令列编码问题）、`--delay`、`--retry`；
+  输出档被占用时自动改存 `*_新.xlsx`。
+
+### 8. 辅助脚本与历史行政区 / Helper scripts & boundary history
+
+- **`Empty_Map/DrawMap.py`**：产出全台与各县市**空白轮廓图**；沿用与全台图相同的金马插图布局，
+  最后以 `cv2.threshold(40, THRESH_BINARY_INV)` 把绘图结果转成纯黑白轮廓线。
+- **`Get_data/Convert.py`**：影像清理小工具，把除保留色（`#7F7F7F / #323232 / #0066CC`）外的像素一律涂灰。
+- **历史行政区映射**（`OLD_COUNTY_MAP` / `TOWN_MERGE` / `SPECIAL_TOWN`）：把旧行政区名对到现行对照表，
+  例：2008-01-01 高雄县三民乡→那玛夏乡；2010-12-25 五都改制（台北县→新北市，台中/台南/高雄县市合并）；
+  2014-12-25 桃园县→桃园市；台南市中区＋西区→中西区（得票取平均）。
+- **2016/2024 县市映射**：两届已是现行制，`OLD_COUNTY_MAP` 为恒等映射，仅用于统一走同一套比对逻辑。
+- **资料缺口处理**：2024 立委缺云林县原始档，该县 20 个乡镇市区以「无资料」处理（画布底色，不著色）。
 
 ---
 
