@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-將「第16任總統副總統選舉候選人在新北市各村(里)得票數一覽表.xlsx」
-轉換成與「2014新北_得票率.xlsx」相同的得票率格式。
+將所有縣市「第16任總統副總統選舉候選人在{縣市}各村(里)得票數一覽表.xlsx」
+轉換成得票率格式，輸出為「2024{縣市}_得票率.xlsx」。
 
 輸出工作表：各里彙總
 欄位：選舉區別、鄉(鎮、市、區)別、村里別、中國國民黨得票率、民主進步黨得票率、台灣民眾黨得票率
@@ -11,6 +11,7 @@
 執行方式：
     py convert_2024_president_percent.py
 """
+import glob
 import os
 
 from openpyxl import Workbook
@@ -19,16 +20,15 @@ from openpyxl.styles import Font
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(os.path.dirname(BASE_DIR), "data")
 
-CITY = "新北市"
-
 # 政黨欄位順序（與高雄2024.xlsx 各里彙總一致：國民黨 → 民進黨 → 民眾黨）
 PARTY_ORDER = ["中國國民黨", "民主進步黨", "台灣民眾黨"]
 
-SOURCE_FILE = os.path.join(
-    DATA_DIR,
-    "第16任總統副總統選舉候選人在新北市各村(里)得票數一覽表.xlsx",
-)
-OUTPUT_FILE = os.path.join(DATA_DIR, "2024新北_得票率.xlsx")
+# 候選人得票欄位於原始資料中的欄位：C=(柯文哲) D=(賴清德) E=(侯友宜)
+CAND_COLS = {
+    "台灣民眾黨": 3,
+    "民主進步黨": 4,
+    "中國國民黨": 5,
+}
 
 VALID_VOTES_COL = 6   # F = 有效票數A
 
@@ -38,14 +38,9 @@ def convert(source_file, output_file):
     import warnings
     warnings.filterwarnings("ignore")
     wb = openpyxl.load_workbook(source_file)
-    ws = wb["新北市"]
-
-    # 候選人得票欄位於原始資料中的欄位：C=(柯文哲) D=(賴清德) E=(侯友宜)
-    CAND_COLS = {
-        "台灣民眾黨": 3,
-        "民主進步黨": 4,
-        "中國國民黨": 5,
-    }
+    sheet_name = wb.sheetnames[0]
+    ws = wb[sheet_name]
+    CITY = sheet_name
 
     rows = []
     cur_district = None
@@ -58,7 +53,8 @@ def convert(source_file, output_file):
             cur_district = str(district).strip().replace("\u3000", "")
             continue
         valid = ws.cell(r, VALID_VOTES_COL).value
-        assert valid in (None, "") or float(valid) > 0
+        if valid in (None, "") or float(valid) <= 0:
+            continue
         pcts = []
         for party in PARTY_ORDER:
             votes = float(ws.cell(r, CAND_COLS[party]).value)
@@ -83,4 +79,12 @@ def convert(source_file, output_file):
 
 
 if __name__ == "__main__":
-    convert(SOURCE_FILE, OUTPUT_FILE)
+    source_files = glob.glob(os.path.join(DATA_DIR, "第16任總統副總統選舉候選人在*各村(里)得票數一覽表.xlsx"))
+    for source_file in sorted(source_files):
+        basename = os.path.basename(source_file)
+        # 從檔名中提取縣市名
+        start = basename.index("在") + 1
+        end = basename.index("各")
+        city = basename[start:end]
+        output_file = os.path.join(DATA_DIR, f"2024{city}_得票率.xlsx")
+        convert(source_file, output_file)
