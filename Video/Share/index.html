@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2014 新北市長選舉 · 開票看板</title>
+<!-- ============================================================
+     應用外殼樣式（工具列、舞台、縮略圖）
+     ============================================================ -->
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- ---------------- 左側：投影片清單 ---------------- -->
+  <aside class="rail">
+    <div class="rail__head">
+      <span class="rail__dot"></span>
+      <h1 class="rail__title">開票看板</h1>
+    </div>
+    <p class="rail__sub">以網頁取代 PPT，每一張都是 2560 × 1440 的看板圖。</p>
+    <ul class="rail__list" id="slideList"></ul>
+    <div class="rail__foot">
+      <span id="railMeta">—</span>
+    </div>
+  </aside>
+
+  <!-- ---------------- 右側：舞台 ---------------- -->
+  <main class="stageWrap">
+
+    <header class="toolbar">
+      <div class="toolbar__left">
+        <span class="badge" id="badgeSize">2560 × 1440</span>
+        <span class="toolbar__hint" id="hintText">載入中…</span>
+      </div>
+      <div class="toolbar__right">
+        <label class="zoom">
+          <span class="zoom__label">縮放</span>
+          <input type="range" id="zoomRange" min="10" max="100" value="100" step="1">
+          <span class="zoom__value" id="zoomValue">—</span>
+        </label>
+        <label class="zoom">
+          <span class="zoom__label">地圖</span>
+          <input type="range" id="mapRange" min="30" max="100" value="100" step="1">
+          <span class="zoom__value" id="mapValue">—</span>
+        </label>
+        <button class="btn" id="btnFit" type="button">符合視窗</button>
+        <button class="btn btn--ghost" id="btnActual" type="button">100%</button>
+        <button class="btn btn--primary" id="btnPng" type="button">下載 PNG</button>
+        <button class="btn btn--ghost" id="btnPng2x" type="button">下載 2× PNG</button>
+      </div>
+    </header>
+
+    <div class="stage" id="stage">
+      <div class="stage__scaler" id="stageScaler">
+        <canvas class="slideCanvas" id="slideCanvas" width="2560" height="1440"></canvas>
+      </div>
+    </div>
+
+    <footer class="statusbar">
+      <span id="statusLeft">就緒</span>
+      <span class="statusbar__sep">|</span>
+      <span id="statusRight">資料來源：中央選舉委員會 · 村里得票檔</span>
+    </footer>
+  </main>
+</div>
+
+<!-- ============================================================
+     資料層（由 tools/build_data.py 產生，已內嵌 base64 候選人照片，
+     因此可直接以 file:// 開啟，也能正常匯出 PNG）
+     data/local-assets.js 則是「檔案版的後備」：當選標誌 + 一份
+     assets/vote_map.png 的 base64 副本，只在 file:// 讀不到圖檔時才用。
+     得票率地圖的正式來源是 assets/vote_map.png（2400 × 2278 透明 PNG，
+     由 tools/build_vote_map.py 從 9824×7365 的海報預處理而來）；
+     換素材後記得跑 python tools/build_vote_map.py --embed 同步這份後備。
+     ============================================================ -->
+<script src="data/local-assets.js"></script>
+<script src="data/election-2014.js"></script>
+
+<!-- ============================================================
+     核心層：工具 / 主題 / 版式
+     ============================================================ -->
+<script src="js/core/utils.js"></script>
+<script src="js/core/theme.js"></script>
+<script src="js/core/layout.js"></script>
+
+<!-- ============================================================
+     模型層：選舉資料
+     ============================================================ -->
+<script src="js/model/election-model.js"></script>
+
+<!-- ============================================================
+     繪製層：地理投影 + 各圖層
+     ============================================================ -->
+<script src="js/render/geo-projector.js"></script>
+<script src="js/render/layers.js"></script>
+<script src="js/slide.js"></script>
+
+<!-- ============================================================
+     應用層：匯出 + 啟動
+     ============================================================ -->
+<script src="js/exporter.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
