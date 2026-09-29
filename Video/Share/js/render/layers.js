@@ -286,13 +286,14 @@
     ctx.fillRect(0, H.h - 1, L.W, 1);
 
     /* ---------------- 日期塊版面（純計算，先算完才能排左側市徽與名稱） ----------------
-       日期塊是一塊藍色圓角底，裝兩行：
-         第一行  「2014年」   年份數字大、年字小並靠基線
-         第二行  「11月29日」 月／日在同一行，日期數字大、月日兩字小
-       阿拉伯數字指定 NT.FONT_DISPLAY_NUM（Noto Sans UI Black），
-       年／月／日 是中文、該字型沒有中文字身，會自動往下一個字型找。 */
+       深紅圓盤墊在年份後面，年份數字極大，投票日降一級字、換細字重排在圓盤下緣
+       （參考使用者提供的樣板；比例係數與出處寫在 layout.js 的 dateBlock）。
+       阿拉伯數字兩行共用 NT.FONT_DISPLAY_NUM（Noto Sans UI Black），
+       主次只靠字級（96 / 36）區分；年／月／日 是中文、該字型沒有中文字身，
+       瀏覽器會逐字往下一個字型找。 */
     var db = H.dateBlock;
     var dateParts = splitDate(meta.date);          /* {m:'11', d:'29'} */
+    var dayFamily = db.day.family || NT.FONT_DISPLAY_NUM;
     var yearSegs = [
       { text: String(meta.year), size: db.year.size, weight: db.year.weight,
         family: NT.FONT_DISPLAY_NUM, color: '#fff', gapAfter: db.year.gap },
@@ -303,23 +304,34 @@
        比「11│月」大上一倍。數字貼單位緊、單位到下一組鬆，「29日」才是一組。 */
     var daySegs = [
       { text: dateParts.m, size: db.day.size, weight: db.day.weight,
-        family: NT.FONT_DISPLAY_NUM, color: '#fff', gapAfter: db.day.gap },
+        family: dayFamily, color: '#fff', gapAfter: db.day.gap },
       { text: '月', size: db.day.cjkSize, weight: db.day.cjkWeight,
-        color: '#fff', gapAfter: db.day.gap * 2.6 },
+        color: '#fff', gapAfter: db.day.gap * 2.0 },
       { text: dateParts.d, size: db.day.size, weight: db.day.weight,
-        family: NT.FONT_DISPLAY_NUM, color: '#fff', gapAfter: db.day.gap },
+        family: dayFamily, color: '#fff', gapAfter: db.day.gap },
       { text: '日', size: db.day.cjkSize, weight: db.day.cjkWeight, color: '#fff' }
     ];
 
-    /* 先量兩行的實際墨跡：底板寬度取「最小寬度」與「內容實際需要」之較大者，
-       高度則完全由墨跡 + 上下留白推導，換年份／換字級都不會擠在一起。 */
+    /* 先量兩行的實際墨跡，再量「年份數字自己」的墨跡：
+       圓盤的直徑與圓心只看後者，所以換年份、改字級，圓和數字永遠同一組比例。 */
     var yM = measureRich(ctx, yearSegs, db.year.gap, db.year.gapAfter);
     var dM = measureRich(ctx, daySegs, db.day.gap, db.day.gapAfter);
-    var boxW = Math.max(db.w, yM.width + db.padX * 2, dM.width + db.padX * 2);
+    var digitM = measureRich(ctx, [{
+      text: String(meta.year), size: db.year.size,
+      weight: db.year.weight, family: NT.FONT_DISPLAY_NUM
+    }], 0, 0);
+    var disc = db.disc || {};
+    var digitH = digitM.ascent || yM.ascent;                 /* 年份數字墨跡高 */
+    var discD = digitH * (disc.dRatio === undefined ? 1.95 : disc.dRatio);
+    var discCY = db.y + discD / 2;
+    /* 年份行基線：讓它的墨跡頂落在圓心的上方 cyRatio × 數字高 處 */
+    var baseY = discCY - (disc.cyRatio === undefined ? 0.70 : disc.cyRatio) * digitH
+      + yM.ascent;
+    var dayBaseY = baseY + yM.descent + db.lineGap + dM.ascent;   /* 日期行基線 */
+    /* 區塊＝圓盤的外接框；左右寬度取兩行內容較寬者（供右側小字定位與驗證量測） */
+    var boxW = Math.max(yM.width, dM.width);
     var boxX = db.cx - boxW / 2;
-    var boxH = db.padY * 2 + yM.ascent + yM.descent + db.lineGap + dM.ascent + dM.descent;
-    var baseY = db.y + db.padY + yM.ascent;              /* 第一行基線 */
-    var dayBaseY = baseY + yM.descent + db.lineGap + dM.ascent;  /* 第二行基線 */
+    var boxH = discD;
 
     /* ---------------- 左：新北市市徽（固定貼齊左邊界） ----------------
        重要：只畫「一次」。早先的寫法是先畫在 x=0 再用 clearRect 擦掉重畫，
@@ -361,30 +373,68 @@
       shadow: { color: 'rgba(0,0,0,0.5)', blur: 14, y: 4 }
     });
 
-    /* ---------------- 中：年份 + 投票日 ---------------- */
+    /* ---------------- 中：圓盤底 + 年份 + 投票日 ----------------
+       圓盤底色＝使用者提供的圓徽圖（assets/emblem.png）。
+       原圖是「正方形 + 內切圓」，所以畫滿外接正方形再切圓就完全貼合，
+       不必另外調比例；圓徽很亮、太陽又是白的，上面再罩一層暗色
+       （disc.scrim），白字才離得開、圓徽也才融得進看板的深藍色系。
+       讀不到圓徽圖時退回原本的暗絳紅平塗，畫面不會開天窗。 */
+    var emblem = this.assets.emblem;
     ctx.save();
-    ctx.shadowColor = 'rgba(30,123,216,0.55)';
-    ctx.shadowBlur = 26;
-    ctx.fillStyle = U_.gradient(ctx, boxX, db.y, boxX, db.y + boxH, [
-      [0, '#3d97ee'], [1, '#1668c8']
-    ]);
-    U_.roundRectPath(ctx, boxX, db.y, boxW, boxH, db.radius);
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 36;
+    ctx.shadowOffsetY = 10;
+    ctx.beginPath();
+    ctx.arc(db.cx, discCY, discD / 2, 0, Math.PI * 2);
+    ctx.fillStyle = disc.inner || '#4d0716';
     ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(db.cx, discCY, discD / 2, 0, Math.PI * 2);
+    ctx.clip();
+    if (emblem) {
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(emblem, db.cx - discD / 2, discCY - discD / 2, discD, discD);
+      /* disc.scrim 給 [offset,color] 陣列 → 徑向暗罩（中心重、外緣輕）；
+         給單一顏色字串 → 平塗。 */
+      if (disc.scrim) {
+        var sr = discD * (disc.scrimRadius === undefined ? 0.62 : disc.scrimRadius);
+        ctx.fillStyle = (disc.scrim instanceof Array)
+          ? U_.radial(ctx, db.cx, discCY, 0, db.cx, discCY, sr, disc.scrim)
+          : disc.scrim;
+        ctx.fillRect(db.cx - discD / 2, discCY - discD / 2, discD, discD);
+      }
+    } else {
+      ctx.fillStyle = U_.radial(ctx, db.cx, discCY - discD * 0.14, 0,
+        db.cx, discCY, discD * 0.56, [
+        [0, disc.inner || '#4d0716'],
+        [1, disc.outer || '#360310']
+      ]);
+      ctx.fillRect(db.cx - discD / 2, discCY - discD / 2, discD, discD);
+    }
     ctx.restore();
 
     var dateStyle = {
       color: '#fff', baseline: 'alphabetic',
-      shadow: { color: 'rgba(0,0,0,0.28)', blur: 8, y: 3 }
+      shadow: { color: 'rgba(0,0,0,0.5)', blur: 16, y: 5 }
     };
-    drawRichLine(ctx, yearSegs, boxX + boxW / 2, baseY, db.year.gap, db.year.gapAfter, dateStyle);
-    drawRichLine(ctx, daySegs, boxX + boxW / 2, dayBaseY, db.day.gap, 0, dateStyle);
+    drawRichLine(ctx, yearSegs, db.cx, baseY, db.year.gap, db.year.gapAfter, dateStyle);
+    drawRichLine(ctx, daySegs, db.cx, dayBaseY, db.day.gap, 0, dateStyle);
 
     /* 記下日期塊實際落點，供自動化驗證量測 */
-    this.assets.dateRect = { x: boxX, y: db.y, w: boxW, h: boxH, dayBaseY: dayBaseY };
+    this.assets.dateRect = {
+      x: boxX, y: db.y, w: boxW, h: boxH,
+      disc: { cx: db.cx, cy: discCY, d: discD },
+      yearTop: baseY - yM.ascent, yearBaseY: baseY, dayBaseY: dayBaseY
+    };
 
-    /* ---------------- 投票率 / 有效票：日期塊右側、垂直置中 ---------------- */
+    /* ---------------- 投票率 / 有效票：日期塊右側、垂直置中 ----------------
+       兩項之間**不放間隔號**（原本是「　·　」），只用兩個全角空格分開；
+       斷開距離與原本的觀感接近（約 2em），但不會再多一個圓點搶眼。 */
     var st = H.stats;
-    U_.text(ctx, '投票率 ' + meta.turnout.toFixed(2) + '%　·　有效票 ' +
+    U_.text(ctx, '投票率 ' + meta.turnout.toFixed(2) + '%\u3000\u3000有效票 ' +
       U_.voteWan(meta.validVotes), {
       x: boxX + boxW + (st.gap || 0), y: db.y + boxH / 2, size: st.size,
       weight: st.weight, color: T.BG.textDim, align: 'left', baseline: 'middle'
@@ -547,13 +597,32 @@
     var abbr = c.partyAbbr();
     ctx.font = U.font(cp.enSize, 700);
     var enW = ctx.measureText(abbr).width;
-    var markW = cp.h * 0.42;
+    var markW = cp.h * (cp.markRatio === undefined ? 0.42 : cp.markRatio);
     var gap1 = 20, gap2 = 16;
     var total = markW + gap1 + nameW + gap2 + enW;
     var sx = chipX + (cp.w - total) / 2;
     ctx.restore();
 
-    Marks.partyChip(ctx, sx, cp.y + (cp.h - markW) / 2, markW, th);
+    /* 徽章：使用者提供的政黨圖（assets/party_*.png，圓外已透明，見 build_assets.py）。
+       正方形框畫滿即可 —— 原圖是「圓形主體內切於正方形」，所以圓的直徑就等於 markW，
+       與原本抽象色塊的佔位完全一致，不需要另外調比例。
+       圖讀不到時退回抽象色塊，標籤不會開天窗。 */
+    var markY = cp.y + (cp.h - markW) / 2;
+    var partyMark = (this.assets.partyMarks || {})[c.partyKey];
+    if (partyMark) {
+      ctx.save();
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(partyMark, sx, markY, markW, markW);
+      ctx.restore();
+    } else {
+      Marks.partyChip(ctx, sx, markY, markW, th);
+    }
+    /* 記下徽章實際落點與來源，供自動化驗證量測 */
+    if (!this.assets.partyMarkRects) this.assets.partyMarkRects = {};
+    this.assets.partyMarkRects[c.key] = {
+      x: sx, y: markY, w: markW, h: markW,
+      source: (this.assets.partyMarkSource || {})[c.partyKey] || 'fallback'
+    };
     U.text(ctx, c.party, {
       x: sx + markW + gap1, y: cp.y + cp.h / 2, size: cp.nameSize, weight: 900,
       color: '#fff', baseline: 'middle'

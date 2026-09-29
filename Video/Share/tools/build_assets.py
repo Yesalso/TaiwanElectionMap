@@ -7,16 +7,19 @@ build_assets.py
 去白底這件事統一交給 tools/white_to_alpha.py 這個通用工具做，
 本檔只負責「這個專案要怎麼用」：選素材、下參數、寫出 data/local-assets.js。
 
-處理三張圖：
+處理六張圖：
   1. Share/Elect.png                                  當選標誌（白底 -> 透明）
   2. 2014NewTaipei/新北市市徽.png                      頁眉左上角市徽（白底 -> 透明）
-  3. 村里得票率地圖 —— 交給 tools/build_vote_map.py 做（本檔只負責呼叫）：
+  3. 2014NewTaipei/国徽.png                            日期底色的圓徽（白底 -> 只留內切圓）
+  4. 2014NewTaipei/中国国民党.png                      國民黨徽章（只留內切圓）
+  5. 2014NewTaipei/民主进步党.png                      民進黨徽章（只留內切圓）
+  6. 村里得票率地圖 —— 交給 tools/build_vote_map.py 做（本檔只負責呼叫）：
                                                         擦掉海報自帶的標題／圖例
                                                         -> 依 alpha 裁齊
                                                         -> 預乘 alpha 面積平均縮到 2400 寬
 
   地圖的處理順序與寬度都集中在 build_vote_map.py（換版面或換素材時改那支），
-  本檔只負責「整包重建」：三張圖都做一次，再一起寫出 data/local-assets.js。
+  本檔只負責「整包重建」：六張圖都做一次，再一起寫出 data/local-assets.js。
   單獨只想重出地圖時，直接跑：
     python tools/build_vote_map.py [--embed]
 
@@ -28,9 +31,13 @@ build_assets.py
 輸出：
   Share/assets/elected_mark.png   去背後（透明）的當選標誌
   Share/assets/city_seal.png      去背後（透明）的新北市市徽（480 寬）
+  Share/assets/emblem.png         只留內切圓的圓徽（512 寬，圓外透明）
+  Share/assets/party_kmt.png      只留內切圓的國民黨徽章（192 寬，圓外透明）
+  Share/assets/party_dpp.png      只留內切圓的民進黨徽章（192 寬，圓外透明）
   Share/assets/vote_map.png       只剩地圖本體、2400 寬的透明得票率地圖
   Share/assets/*_preview.png      貼在深色底上的預覽，方便肉眼檢查
-  Share/data/local-assets.js      window.NT_ASSETS = {electedMark, voteMap}
+  Share/data/local-assets.js      window.NT_ASSETS = {
+                                    electedMark, voteMap, citySeal, emblem, partyKmt, partyDpp }
 
 為什麼要內嵌 base64：
   看板以 canvas 繪製，若圖片以相對路徑載入，在 file:// 下會污染畫布，
@@ -41,8 +48,9 @@ build_assets.py
       只有在載入失敗、或該圖會污染畫布（file:// 開啟）時，才退回這裡內嵌的版本。
       退回邏輯在 js/slide.js 的 _loadVoteMap()。
     - 當選標誌：仍然只用內嵌版本（檔案小、很少換）。
-    - 新北市市徽：看板讀 Share/assets/city_seal.png，讀不到就退回預設圈勾方塊，
-      不做內嵌備援（見 js/slide.js 的 _loadCitySeal）。
+    - 新北市市徽、日期圓徽、兩張政黨徽章：看板優先讀 assets/ 底下的實體檔，
+      file:// 下改用內嵌版本（js/slide.js 的 _loadCitySeal / _loadEmblem /
+      _loadPartyMarks），兩邊都讀不到才退回預設畫法。
   因此本檔輸出的 local-assets.js 同時是「資料來源」與「file:// 的後備」。
 
 用法：
@@ -55,6 +63,9 @@ build_assets.py
 import base64
 import os
 import sys
+
+import numpy as np
+from PIL import Image
 
 # 讓 `python tools/build_assets.py` 能直接 import 同目錄的工具
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -72,12 +83,24 @@ ASSET_DIR = os.path.join(SHARE, "assets")
 DATA_DIR = os.path.join(SHARE, "data")
 
 SRC_MARK = os.path.join(SHARE, "Elect.png")
-# 市徽原圖放在專案根目錄的素材夾（與候選人照片、黨徽同一批使用者提供的圖）
+# 市徽、圓徽、黨徽原圖放在專案根目錄的素材夾（與候選人照片同一批使用者提供的圖）
 SRC_SEAL = os.path.join(PROJECT, "2014NewTaipei", "新北市市徽.png")
+SRC_EMBLEM = os.path.join(PROJECT, "2014NewTaipei", "国徽.png")
+# 兩張政黨徽章：候選人照片卡下方那條政黨標籤，字左邊的小圓徽。
+# key 要與 js/core/theme.js 的政黨 key（kmt / dpp）一致。
+SRC_PARTY = {
+    "kmt": os.path.join(PROJECT, "2014NewTaipei", "中国国民党.png"),
+    "dpp": os.path.join(PROJECT, "2014NewTaipei", "民主进步党.png"),
+}
 # 地圖的來源、輸出路徑都在 build_vote_map.py（那裡還有寬度與擦除區的設定）
 
 OUT_MARK = os.path.join(ASSET_DIR, "elected_mark.png")
 OUT_SEAL = os.path.join(ASSET_DIR, "city_seal.png")
+OUT_EMBLEM = os.path.join(ASSET_DIR, "emblem.png")
+OUT_PARTY = {
+    "kmt": os.path.join(ASSET_DIR, "party_kmt.png"),
+    "dpp": os.path.join(ASSET_DIR, "party_dpp.png"),
+}
 OUT_MAP = os.path.join(ASSET_DIR, "vote_map.png")
 OUT_JS = os.path.join(DATA_DIR, "local-assets.js")
 
@@ -92,6 +115,16 @@ MARK_TOL, MARK_SOFT = 255, 165
 SEAL_TOL, SEAL_SOFT = 250, 30
 SEAL_WIDTH = 480           # 頁眉只用到 ~140px 高，480 寬已足夠 2× 匯出的銳利度
 PREVIEW_BG = "#0d1730"    # 預覽底色，接近看板背景
+
+# 圓徽（日期底色）：原圖 1280×1280、白底、藍色圓盤剛好是正方形的內切圓。
+# 看板上圓盤直徑 ~135px，2× 匯出用到 270px，512 有 1.9× 餘量。
+EMBLEM_WIDTH = 512
+EMBLEM_BLUE = (0, 0, 149)  # 原圖圓盤的實色；圓外用同一個藍填掉，縮圖才不會混出白暈
+
+# 政黨徽章：看板上的徽章邊長約 0.42 × 標籤高度（76px）≈ 32px，
+# 2× 匯出用到 64px，192 有 3× 餘量，放大到 3× 交付也夠。
+PARTY_WIDTH = 192
+PARTY_BLUE = (0, 0, 149)   # 國民黨徽章是藍色圓盤，圓外填藍（同 EMBLEM_BLUE 的理由）
 
 
 # --------------------------------------------------------------------------
@@ -123,6 +156,93 @@ def build_city_seal():
 
 
 # --------------------------------------------------------------------------
+# 1c. 「圓形主體 + 白底」的通用處理：只留內切圓，圓外透明
+# --------------------------------------------------------------------------
+def circle_asset(src_path, out_path, width, edge_fill=None, preview_bg=PREVIEW_BG):
+    """把「圓形主體內切於正方形、四周白底」的圖裁成圓形透明 PNG。
+
+    ★ 這類圖不能走 white_to_alpha.py：那條管線是「白 -> 透明」，
+      但圖案**內部**的白色也是圖案的一部分（圓徽的太陽、民進黨徽的十字底色），
+      會被一起抽掉。透明範圍是「幾何」的（內切圓），所以改用圓形遮罩，
+      圓內像素原樣保留。
+
+    縮圖方式依圓周顏色分兩條路（edge_fill 決定）：
+
+    edge_fill 給定顏色 —— 圓周是單一顏色時用（國徽／國民黨徽都是藍色圓盤）。
+      先把圓外（含圓周內側 2px 的殘留抗鋸齒）一律填成該色，**再**縮圖。
+      這樣連原圖圓周上那圈「實色混白」的抗鋸齒都會被覆蓋掉，
+      縮圖後邊緣是乾淨的實色，深色底上不會有一圈白暈。
+
+    edge_fill 為 None —— 圓周顏色會變化的圖用（民進黨徽是一圈多色環，
+      沒有單一顏色可以填）。改成「先預乘 alpha、再縮圖、再反預乘」：
+      圓外的大片白在縮圖時權重為 0，不會被平均進圓周；
+      圓內顏色則因為反預乘而完整還原。
+    """
+    src = Image.open(src_path).convert("RGB")
+    w0, h0 = src.size
+    n0 = float(min(w0, h0))
+    arr = np.asarray(src).astype(np.float64)
+
+    yy, xx = np.mgrid[0:h0, 0:w0]
+    d0 = np.sqrt((xx - (w0 - 1) / 2.0) ** 2 + (yy - (h0 - 1) / 2.0) ** 2)
+
+    if edge_fill is not None:
+        arr = arr.copy()
+        arr[d0 > n0 / 2.0 - 2.0] = edge_fill
+        small = Image.fromarray(arr.astype(np.uint8)).resize((width, width), Image.LANCZOS)
+        rgb = np.asarray(small).astype(np.float64)
+    else:
+        a0 = np.clip(n0 / 2.0 - d0 + 0.5, 0.0, 1.0)
+        premul = np.dstack([arr * a0[..., None], a0 * 255.0]).astype(np.uint8)
+        small = Image.fromarray(premul, "RGBA").resize((width, width), Image.LANCZOS)
+        s = np.asarray(small).astype(np.float64)
+        a = s[..., 3:4] / 255.0
+        rgb = np.divide(s[..., :3], np.maximum(a, 1e-6))     # 反預乘，還原圓內顏色
+
+    # 圓形 alpha 在「輸出尺寸」上重做一次（邊界 1px 羽化），圓外全透明
+    yy, xx = np.mgrid[0:width, 0:width]
+    d = np.sqrt((xx - (width - 1) / 2.0) ** 2 + (yy - (width - 1) / 2.0) ** 2)
+    alpha = np.clip(width / 2.0 - d + 0.5, 0.0, 1.0)
+
+    out = Image.fromarray(np.dstack([
+        np.clip(rgb, 0, 255).astype(np.uint8),
+        (alpha * 255.0 + 0.5).astype(np.uint8)
+    ]), "RGBA")
+    os.makedirs(ASSET_DIR, exist_ok=True)
+    out.save(out_path, optimize=True)
+    print("  輸出   %-46s %s  (%.0f KB)" % (
+        os.path.basename(out_path), out.size, os.path.getsize(out_path) / 1024.0))
+
+    pv = w2a.make_preview(out, preview_bg)
+    pv.save(os.path.splitext(out_path)[0] + "_preview.png")
+    return out
+
+
+def build_emblem():
+    """日期底色的圓徽：國徽原圖 1280 × 1280、白底，藍色圓盤剛好是內切圓。"""
+    return circle_asset(SRC_EMBLEM, OUT_EMBLEM, EMBLEM_WIDTH, edge_fill=EMBLEM_BLUE)
+
+
+# --------------------------------------------------------------------------
+# 1d. 政黨徽章：只留內切圓（候選人卡片下方政黨標籤用）
+# --------------------------------------------------------------------------
+def build_party_marks():
+    """兩張政黨徽章原圖都是 1280 × 1280 上下、白底、圓形主體內切於正方形。
+
+    差別在圓周顏色，因此縮圖方式不同：
+      - 國民黨徽（青天白日）：藍色圓盤 → edge_fill 填藍，邊緣乾淨實色
+      - 民進黨徽：外圈是「民主進步黨 / DEMOCRATIC PROGRESSIVE PARTY」的多色環，
+        沒有單一顏色可填 → 走預乘 alpha，避免圓外的白被平均進圓周
+    輸出尺寸相同（PARTY_WIDTH），看板把它畫成正方形即可（圓外已透明）。
+    """
+    outs = {}
+    for key, src in SRC_PARTY.items():
+        fill = PARTY_BLUE if key == "kmt" else None
+        outs[key] = circle_asset(src, OUT_PARTY[key], PARTY_WIDTH, edge_fill=fill)
+    return outs
+
+
+# --------------------------------------------------------------------------
 # 2. 得票率地圖：交給 build_vote_map.py（擦標題／圖例 -> 依 alpha 裁齊 -> 預乘面積平均縮圖）
 # --------------------------------------------------------------------------
 def build_vote_map():
@@ -141,18 +261,23 @@ def data_uri(path):
         return "data:image/png;base64," + base64.b64encode(f.read()).decode("ascii")
 
 
-def write_js(mark_uri, map_uri, seal_uri):
+def write_js(assets):
+    """把素材寫成 data/local-assets.js 的內嵌 base64。
+
+    assets 是 {欄位名: data URI}，欄位名必須與 js/slide.js 讀的一致：
+      當選標誌 (electedMark)、地圖 (voteMap)、市徽 (citySeal)、圓徽 (emblem)、
+      兩張政黨徽章 (partyKmt / partyDpp，對應 Layout 的政黨 key kmt / dpp)。
+    """
+    lines = "".join('  "%s": "%s"%s\n' % (k, assets[k], "," if i < len(assets) - 1 else "")
+                    for i, k in enumerate(assets))
     js = ("/* 自動產生，請勿手改。來源：tools/build_assets.py */\n"
-          "/* 使用者提供的素材（當選標誌、村里得票率地圖、新北市市徽）以 base64 內嵌。\n"
-          "   正式來源是 assets/ 底下的實體檔；這份不只是備份，而是 file:// 開啟時的\n"
-          "   必要來源：file:// 下只要把本機圖檔畫上 canvas，canvas 就會被汙染成\n"
-          "   「畫得出來、讀不回去」，縮圖的 toDataURL 與匯出的 toBlob 都會拋\n"
-          "   SecurityError。js/slide.js 會在 file:// 下自動改用這三份內嵌副本。 */\n"
-          "window.NT_ASSETS = {\n"
-          '  "electedMark": "' + mark_uri + '",\n'
-          '  "voteMap": "' + map_uri + '",\n'
-          '  "citySeal": "' + seal_uri + '"\n'
-          "};\n")
+          "/* 使用者提供的素材（當選標誌、村里得票率地圖、新北市市徽、日期圓徽、\n"
+          "   兩張政黨徽章）以 base64 內嵌。正式來源是 assets/ 底下的實體檔；\n"
+          "   這份不只是備份，而是 file:// 開啟時的必要來源：file:// 下只要把本機\n"
+          "   圖檔畫上 canvas，canvas 就會被汙染成「畫得出來、讀不回去」，縮圖的\n"
+          "   toDataURL 與匯出的 toBlob 都會拋 SecurityError。js/slide.js 會在\n"
+          "   file:// 下自動改用這幾份內嵌副本。 */\n"
+          "window.NT_ASSETS = {\n" + lines + "};\n")
     with open(OUT_JS, "w", encoding="utf-8") as f:
         f.write(js)
     print("  %-32s %.0f KB" % (os.path.basename(OUT_JS),
@@ -165,8 +290,17 @@ def main():
     print("產生素材：")
     build_elected_mark()
     build_city_seal()
+    build_emblem()
+    build_party_marks()
     build_vote_map()
-    write_js(data_uri(OUT_MARK), data_uri(OUT_MAP), data_uri(OUT_SEAL))
+    write_js({
+        "electedMark": data_uri(OUT_MARK),
+        "voteMap": data_uri(OUT_MAP),
+        "citySeal": data_uri(OUT_SEAL),
+        "emblem": data_uri(OUT_EMBLEM),
+        "partyKmt": data_uri(OUT_PARTY["kmt"]),
+        "partyDpp": data_uri(OUT_PARTY["dpp"])
+    })
     print("完成。")
 
 

@@ -153,6 +153,104 @@
     }).catch(function () { return giveUp('讀不到 ' + src); });
   };
 
+  /**
+   * 載入日期塊的圓徽底圖（assets/emblem.png，已去背成透明 PNG）。
+   *
+   * 和地圖／市徽同一套規則：http(s) 下以實體檔（Layout.header.dateBlock.disc.src）
+   * 為準並加時間戳，file:// 下改用內嵌副本（否則同樣會汙染 canvas）。
+   * 兩邊都讀不到時回 null，由 HeaderLayer 退回原本的暗絳紅圓盤，頁面不會開天窗。
+   *
+   * @returns {Promise<HTMLImageElement|null>}
+   */
+  Slide.prototype._loadEmblem = function () {
+    var self = this;
+    var A = global.NT_ASSETS || {};
+    var src = (L.header.dateBlock.disc && L.header.dateBlock.disc.src) || '';
+
+    function giveUp(reason) {
+      if (src) console.warn('[Slide] 讀不到日期圓徽（' + reason + '），日期底色改用暗紅圓盤。');
+      self.assets.emblemSource = 'none';
+      return null;
+    }
+
+    if (useEmbeddedUnderFile()) {
+      if (!A.emblem) return Promise.resolve(giveUp('data/local-assets.js 沒有內嵌圓徽'));
+      return U.loadImage(A.emblem).then(function (img) {
+        self.assets.emblemSource = 'embedded';
+        return img;
+      }).catch(function () { return giveUp('內嵌圓徽解碼失敗'); });
+    }
+
+    if (!src) return Promise.resolve(giveUp('未設定 Layout.header.dateBlock.disc.src'));
+
+    /* http(s) 下加時間戳，避免換了圖還看到快取 */
+    var url = src.indexOf('?') < 0 ? src + '?t=' + Date.now() : src;
+
+    return U.loadImage(url).then(function (img) {
+      self.assets.emblemSource = 'file';
+      return img;
+    }).catch(function () { return giveUp('讀不到 ' + src); });
+  };
+
+  /**
+   * 載入兩張政黨徽章（assets/party_kmt.png / party_dpp.png，已去背成圓形透明 PNG）。
+   *
+   * 與市徽／圓徽同一套規則：http(s) 下以實體檔（Layout 的 chip.marks）為準並加時間戳，
+   * file:// 下改用內嵌副本（同樣的理由：實體檔會汙染 canvas）。
+   * 差別在這是「依政黨 key 對應的一組圖」，所以回傳 {kmt: img, dpp: img}；
+   * 單一政黨讀不到時那一格給 null，由 CandidateLayer 退回原本的抽象色塊，
+   * 另一個政黨不受影響。
+   *
+   * 注意：左右兩張候選人卡共用同一個 chip 設定物件（layout.js 的 candidateBlock
+   * 以 Object.assign 淺拷貝給 Layout.left / Layout.right），所以取 L.left.chip 即可。
+   *
+   * @returns {Promise<Object>} {kmt: HTMLImageElement|null, dpp: HTMLImageElement|null}
+   */
+  Slide.prototype._loadPartyMarks = function () {
+    var self = this;
+    var A = global.NT_ASSETS || {};
+    var conf = (L.left && L.left.chip && L.left.chip.marks) || {};
+    var keys = Object.keys(conf);
+    /* 內嵌副本的欄位名（data/local-assets.js），key 對齊 layout.js 的政黨 key */
+    var embedField = { kmt: 'partyKmt', dpp: 'partyDpp' };
+    var underFile = useEmbeddedUnderFile();
+    self.assets.partyMarkSource = {};
+
+    function fromEmbedded(key) {
+      var field = embedField[key];
+      if (!field || !A[field]) {
+        self.assets.partyMarkSource[key] = 'none';
+        return Promise.resolve(null);
+      }
+      return U.loadImage(A[field]).then(function (img) {
+        self.assets.partyMarkSource[key] = 'embedded';
+        return img;
+      }).catch(function () {
+        self.assets.partyMarkSource[key] = 'none';
+        return null;
+      });
+    }
+
+    return Promise.all(keys.map(function (key) {
+      var src = conf[key];
+      if (!src || underFile) return fromEmbedded(key);
+
+      var url = src.indexOf('?') < 0 ? src + '?t=' + Date.now() : src;
+      return U.loadImage(url).then(function (img) {
+        self.assets.partyMarkSource[key] = 'file';
+        return img;
+      }).catch(function () {
+        console.warn('[Slide] 讀不到政黨徽章 ' + src + '（' + key +
+          '），該格退回抽象色塊；請確認檔案存在，或重跑 python tools/build_assets.py。');
+        return fromEmbedded(key);
+      });
+    })).then(function (imgs) {
+      var out = {};
+      keys.forEach(function (key, i) { out[key] = imgs[i]; });
+      return out;
+    });
+  };
+
   /** 非同步載入影像、建立投影器 */
   Slide.prototype.load = function () {
     if (this._loaded) return Promise.resolve(this);
@@ -167,7 +265,9 @@
       U.loadImage(m.minor.photo),
       U.loadImage(A.electedMark),
       this._loadVoteMap(),
-      this._loadCitySeal()
+      this._loadCitySeal(),
+      this._loadEmblem(),
+      this._loadPartyMarks()
     ]).then(function (imgs) {
       self.assets.leftPhoto = imgs[0];
       self.assets.rightPhoto = imgs[1];
@@ -179,10 +279,12 @@
       /* 頁眉的現任者頭像沿用主要候選人的照片 */
       self.assets.incumbentPhoto = self.model.left.photo ? imgs[0] : null;
 
-      /* 當選印記（內嵌）＋ 得票率地圖 + 左上角市徽 */
+      /* 當選印記（內嵌）＋ 得票率地圖 + 左上角市徽 + 日期圓徽 + 兩張政黨徽章 */
       self.assets.electedMark = imgs[3];
       self.assets.voteMap = imgs[4];
       self.assets.citySeal = imgs[5];
+      self.assets.emblem = imgs[6];
+      self.assets.partyMarks = imgs[7];
 
       /* 地圖若帶海報自帶的標題／圖例（Layout.map.crop），擦掉並裁到地圖本體；
          正常情況下不會有 crop —— 素材已由 tools/build_vote_map.py 預處理成

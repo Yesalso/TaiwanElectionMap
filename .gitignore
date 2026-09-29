@@ -5,3 +5,10 @@
 *.jpeg
 __pycache__/
 *.pyc
+
+# 外部原始图资（下載取得，非本專案產出）
+/Base_JSON/
+
+# 看板除錯輸出與備份
+/Video/Share/tools/_out/
+/Video/Share/data/.local-assets.backup.js

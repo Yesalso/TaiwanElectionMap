@@ -14,12 +14,18 @@
     '"源石黑體","GenSekiGothic TW TTF Heavy","GenSekiGothic TW TTF",' +
     '"Microsoft JhengHei","Noto Sans TC","PingFang TC",' +
     '"Heiti TC",system-ui,Arial,sans-serif';
-  /* 數字沿用同一套字型，讓中英文與數字笔調一致 */
+  /* 數字沿用同一套字型，讓中英文與數字筆調一致 */
   NT.FONT_NUM = NT.FONT_STACK;
   /* 標題級阿拉伯數字：Noto Sans UI Black（單一字重 900 的西文黑體，
      數字又寬又重，適合「2014 / 11 / 29」這種要一眼看清楚的場合。
+     日期塊的年份與投票日兩行都走這一支，主次只靠字級大小分（96 / 36）。
      這支字型沒有中文字身，瀏覽器會逐字往下一個字型找，
-     所以只拿來畫數字，中文（年／月／日）仍然走 FONT_STACK。 */
+     所以只拿來畫數字，中文（年／月／日）仍然走 FONT_STACK。
+
+     註：曾經為了讓日期行「細一級」另外開過一份 FONT_NUM_LIGHT
+     （把微軟正黑排在最前面取 Bold），但機器上找不到夠細、又有中文字身
+     的黑體可選（源石黑體 H 只有 heavy、這支只有 900、正黑指定 700 會落到
+     Bold），結果只是兩支粗黑體並排、看起來像同一支沒對齊，已移除。 */
   NT.FONT_DISPLAY_NUM = '"Noto Sans UI Black",' + NT.FONT_STACK;
 
   /**

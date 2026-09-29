@@ -68,13 +68,20 @@
 </div>
 
 <!-- ============================================================
-     資料層（由 tools/build_data.py 產生，已內嵌 base64 候選人照片，
-     因此可直接以 file:// 開啟，也能正常匯出 PNG）
+     資料層（data/election-2014.js 由 tools/build_data.py 產生，已內嵌 base64
+     候選人照片；data/local-assets.js 由 tools/build_assets.py 產生），
+     兩份都內嵌資源，因此可直接以 file:// 開啟，也能正常匯出 PNG。
      data/local-assets.js 則是「檔案版的後備」：當選標誌 + 一份
-     assets/vote_map.png 的 base64 副本，只在 file:// 讀不到圖檔時才用。
+     assets/vote_map.png 的 base64 副本，加上市徽、日期圓徽與兩張政黨徽章，
+     只在 file:// 讀不到圖檔時才用。
      得票率地圖的正式來源是 assets/vote_map.png（2400 × 2278 透明 PNG，
      由 tools/build_vote_map.py 從 9824×7365 的海報預處理而來）；
-     換素材後記得跑 python tools/build_vote_map.py --embed 同步這份後備。
+     日期塊底色的圓徽正式來源是 assets/emblem.png（512 × 512，只留內切圓，
+     由 tools/build_assets.py 從 2014NewTaipei/国徽.png 處理而來）；
+     候選人卡片上政黨標籤的徽章是 assets/party_kmt.png / party_dpp.png
+     （192 × 192，同樣只留內切圓，從 2014NewTaipei/中国国民党.png、
+     民主进步党.png 處理而來）；
+     換素材後記得跑 python tools/build_assets.py 同步這份後備。
      ============================================================ -->
 <script src="data/local-assets.js"></script>
 <script src="data/election-2014.js"></script>
