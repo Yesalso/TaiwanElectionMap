@@ -520,6 +520,98 @@
   };
 
   /* =====================================================================
+     LegendLayer —— 得票率圖例（右下空位，帶獨立淺色底板）
+     ===================================================================== */
+  function LegendLayer(slide) { Layer.call(this, slide); }
+  LegendLayer.prototype = Object.create(Layer.prototype);
+  LegendLayer.prototype.constructor = LegendLayer;
+
+  /**
+   * 把得票率圖例擺到地圖右下那塊空白上。
+   *
+   * 為什麼一定要底板：
+   *   assets/legend.png 是「透明底 + 深藍近黑文字 + 藍綠九階色塊」（原素材來自
+   *   海報，文字本來是靠在白底上才看得見的）。看板底色是 #0d1738，直接貼上去
+   *   文字會整個消失——這是這張圖先天就有的問題，不是可以靠透明度解決的。
+   *   所以在圖例底下鋪一塊比看板亮好幾階的冷灰藍底板（Layout.legend.bg），
+   *   把對比撐起來；底板同時框出「這一塊不是地圖」的範圍。
+   *
+   * 畫法：
+   *   1. 底板：圓角矩形 + 陰影 + 一圈微亮描邊，比看板底色亮、但比候選人卡片收斂
+   *   2. 小標題：貼齊底板左上角的內距（讓看的人知道這塊是什麼）
+   *   3. 圖例圖片：contain 進「扣掉標題與內距」的區域，保持原圖比例、不變形
+   *
+   * 讀不到圖例圖片時整個跳過（連底板都不畫），不會留下一個空框。
+   */
+  LegendLayer.prototype.draw = function (ctx) {
+    var img = this.assets.legend;
+    if (!img) return;                       /* 沒有圖例就不畫底板，免得開天窗 */
+
+    var g = L.legend;
+    var x = g.x, y = g.y, w = g.w, h = g.h;
+    var inner = g.inner === undefined ? 16 : g.inner;
+
+    ctx.save();
+    ctx.globalAlpha = g.opacity === undefined ? 1 : g.opacity;
+
+    /* 1. 底板：淺色圓角矩形，把深色文字撐起來 */
+    ctx.save();
+    if (g.shadow) {
+      ctx.shadowColor = g.shadow;
+      ctx.shadowBlur = 34;
+      ctx.shadowOffsetY = 10;
+    }
+    ctx.fillStyle = g.bg || 'rgba(226,233,246,0.94)';
+    U.roundRectPath(ctx, x, y, w, h, g.radius || 20);
+    ctx.fill();
+    ctx.restore();
+
+    if (g.border) {
+      ctx.save();
+      ctx.strokeStyle = g.border;
+      ctx.lineWidth = 2;
+      U.roundRectPath(ctx, x, y, w, h, g.radius || 20);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    /* 2. 小標題（貼齊左上角內距） */
+    var contentX = x + inner, contentY = y + inner;
+    var contentW = w - inner * 2, contentH = h - inner * 2;
+    if (g.title) {
+      var tSize = g.titleSize || 24;
+      U.text(ctx, g.title, {
+        x: contentX, y: contentY + tSize * 0.82,
+        size: tSize, weight: g.titleWeight || 900,
+        color: g.titleColor || '#1b2740',
+        align: 'left', baseline: 'alphabetic', spacing: 2
+      });
+      contentY += tSize * 1.18 + (g.titleGap === undefined ? 12 : g.titleGap);
+      contentH = y + h - inner - contentY;
+    }
+    if (contentH <= 8 || contentW <= 8) { ctx.restore(); return; }
+
+    /* 3. 圖例圖片：contain 進剩餘區域（保持原圖比例） */
+    var k = Math.min(contentW / img.width, contentH / img.height);
+    var iw = img.width * k;
+    var ih = img.height * k;
+    var ix = contentX + (contentW - iw) / 2;      /* 水平置中 */
+    var iy = contentY + (contentH - ih) / 2;      /* 垂直置中 */
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, ix, iy, iw, ih);
+
+    ctx.restore();
+
+    /* 記下落點，供自動化驗證量測 */
+    this.assets.legendRect = {
+      panel: { x: x, y: y, w: w, h: h },
+      image: { x: ix, y: iy, w: iw, h: ih },
+      source: this.assets.legendSource
+    };
+  };
+
+  /* =====================================================================
      CandidateLayer —— 主要候選人區塊（照片卡 + 黨徽 + 姓名 + 得票率）
      ===================================================================== */
   function CandidateLayer(slide) { Layer.call(this, slide); }
@@ -813,6 +905,7 @@
   NT.BackgroundLayer = BackgroundLayer;
   NT.HeaderLayer = HeaderLayer;
   NT.MapLayer = MapLayer;
+  NT.LegendLayer = LegendLayer;
   NT.CandidateLayer = CandidateLayer;
   NT.MinorCandidateLayer = MinorCandidateLayer;
   NT.RibbonLayer = RibbonLayer;

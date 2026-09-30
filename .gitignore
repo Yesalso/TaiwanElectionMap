@@ -12,3 +12,9 @@ __pycache__/
 # 看板除錯輸出與備份
 /Video/Share/tools/_out/
 /Video/Share/data/.local-assets.backup.js
+
+# 本地工具記憶檔
+.workbuddy/
+
+# 其他專案的參考腳本（中國海南省村界，非本專案產出）
+/Empty_Map/Hainan_*.py

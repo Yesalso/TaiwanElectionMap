@@ -35,6 +35,7 @@
       new NT.BackgroundLayer(this),
       new NT.HeaderLayer(this),
       new NT.MapLayer(this),
+      new NT.LegendLayer(this),
       new NT.CandidateLayer(this),
       new NT.MinorCandidateLayer(this),
       new NT.RibbonLayer(this)
@@ -251,6 +252,46 @@
     });
   };
 
+  /**
+   * 載入得票率圖例（assets/legend.png，已去背的透明 PNG）。
+   *
+   * 和地圖／市徽／圓徽／黨徽同一套規則：http(s) 下以實體檔（Layout.legend.src）
+   * 為準並加時間戳，file:// 下改用內嵌副本（否則同樣會汙染 canvas）。
+   * 兩邊都讀不到時回 null，由 LegendLayer 整個跳過不畫（看板上少一塊圖例，
+   * 但不會留下一個空底板或開天窗）。
+   *
+   * @returns {Promise<HTMLImageElement|null>}
+   */
+  Slide.prototype._loadLegend = function () {
+    var self = this;
+    var A = global.NT_ASSETS || {};
+    var src = (L.legend && L.legend.src) || '';
+
+    function giveUp(reason) {
+      if (src) console.warn('[Slide] 讀不到圖例（' + reason + '），看板不畫圖例區。');
+      self.assets.legendSource = 'none';
+      return null;
+    }
+
+    if (useEmbeddedUnderFile()) {
+      if (!A.legend) return Promise.resolve(giveUp('data/local-assets.js 沒有內嵌圖例'));
+      return U.loadImage(A.legend).then(function (img) {
+        self.assets.legendSource = 'embedded';
+        return img;
+      }).catch(function () { return giveUp('內嵌圖例解碼失敗'); });
+    }
+
+    if (!src) return Promise.resolve(giveUp('未設定 Layout.legend.src'));
+
+    /* http(s) 下加時間戳，避免換了圖還看到快取 */
+    var url = src.indexOf('?') < 0 ? src + '?t=' + Date.now() : src;
+
+    return U.loadImage(url).then(function (img) {
+      self.assets.legendSource = 'file';
+      return img;
+    }).catch(function () { return giveUp('讀不到 ' + src); });
+  };
+
   /** 非同步載入影像、建立投影器 */
   Slide.prototype.load = function () {
     if (this._loaded) return Promise.resolve(this);
@@ -267,7 +308,8 @@
       this._loadVoteMap(),
       this._loadCitySeal(),
       this._loadEmblem(),
-      this._loadPartyMarks()
+      this._loadPartyMarks(),
+      this._loadLegend()
     ]).then(function (imgs) {
       self.assets.leftPhoto = imgs[0];
       self.assets.rightPhoto = imgs[1];
@@ -279,12 +321,13 @@
       /* 頁眉的現任者頭像沿用主要候選人的照片 */
       self.assets.incumbentPhoto = self.model.left.photo ? imgs[0] : null;
 
-      /* 當選印記（內嵌）＋ 得票率地圖 + 左上角市徽 + 日期圓徽 + 兩張政黨徽章 */
+      /* 當選印記（內嵌）＋ 得票率地圖 + 左上角市徽 + 日期圓徽 + 兩張政黨徽章 + 圖例 */
       self.assets.electedMark = imgs[3];
       self.assets.voteMap = imgs[4];
       self.assets.citySeal = imgs[5];
       self.assets.emblem = imgs[6];
       self.assets.partyMarks = imgs[7];
+      self.assets.legend = imgs[8];
 
       /* 地圖若帶海報自帶的標題／圖例（Layout.map.crop），擦掉並裁到地圖本體；
          正常情況下不會有 crop —— 素材已由 tools/build_vote_map.py 預處理成

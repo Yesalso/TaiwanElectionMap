@@ -7,13 +7,18 @@ build_assets.py
 去白底這件事統一交給 tools/white_to_alpha.py 這個通用工具做，
 本檔只負責「這個專案要怎麼用」：選素材、下參數、寫出 data/local-assets.js。
 
-處理六張圖：
+處理七張圖：
   1. Share/Elect.png                                  當選標誌（白底 -> 透明）
   2. 2014NewTaipei/新北市市徽.png                      頁眉左上角市徽（白底 -> 透明）
   3. 2014NewTaipei/国徽.png                            日期底色的圓徽（白底 -> 只留內切圓）
   4. 2014NewTaipei/中国国民党.png                      國民黨徽章（只留內切圓）
   5. 2014NewTaipei/民主进步党.png                      民進黨徽章（只留內切圓）
-  6. 村里得票率地圖 —— 交給 tools/build_vote_map.py 做（本檔只負責呼叫）：
+  6. 2014NewTaipei/map/图例.png                        得票率圖例（已透明 -> 依 alpha 裁齊
+                                                        -> 縮到 LEGEND_WIDTH 寬
+                                                        -> 切掉頂端標題／人名，只留
+                                                           九階色塊；深色文字原文保留，
+                                                           靠看板上的淺色底板撐對比）
+  7. 村里得票率地圖 —— 交給 tools/build_vote_map.py 做（本檔只負責呼叫）：
                                                         擦掉海報自帶的標題／圖例
                                                         -> 依 alpha 裁齊
                                                         -> 預乘 alpha 面積平均縮到 2400 寬
@@ -34,10 +39,13 @@ build_assets.py
   Share/assets/emblem.png         只留內切圓的圓徽（512 寬，圓外透明）
   Share/assets/party_kmt.png      只留內切圓的國民黨徽章（192 寬，圓外透明）
   Share/assets/party_dpp.png      只留內切圓的民進黨徽章（192 寬，圓外透明）
+  Share/assets/legend.png         裁到內容、1100 寬、切掉頂端標題的透明得票率圖例
+                                  （只剩「色塊 + 級距」兩欄）
   Share/assets/vote_map.png       只剩地圖本體、2400 寬的透明得票率地圖
   Share/assets/*_preview.png      貼在深色底上的預覽，方便肉眼檢查
   Share/data/local-assets.js      window.NT_ASSETS = {
-                                    electedMark, voteMap, citySeal, emblem, partyKmt, partyDpp }
+                                    electedMark, voteMap, citySeal, emblem, partyKmt,
+                                    partyDpp, legend }
 
 為什麼要內嵌 base64：
   看板以 canvas 繪製，若圖片以相對路徑載入，在 file:// 下會污染畫布，
@@ -92,6 +100,10 @@ SRC_PARTY = {
     "kmt": os.path.join(PROJECT, "2014NewTaipei", "中国国民党.png"),
     "dpp": os.path.join(PROJECT, "2014NewTaipei", "民主进步党.png"),
 }
+# 得票率圖例：與得票率地圖同一批素材（海報右上角那塊），已經去背成透明 PNG。
+# 深藍色文字原本是靠海報的白底才看得見，看板上要靠 js/render/layers.js 的
+# LegendLayer 鋪一塊淺色底板撐對比（見 Layout.legend）。
+SRC_LEGEND = os.path.join(PROJECT, "2014NewTaipei", "map", "图例.png")
 # 地圖的來源、輸出路徑都在 build_vote_map.py（那裡還有寬度與擦除區的設定）
 
 OUT_MARK = os.path.join(ASSET_DIR, "elected_mark.png")
@@ -101,6 +113,7 @@ OUT_PARTY = {
     "kmt": os.path.join(ASSET_DIR, "party_kmt.png"),
     "dpp": os.path.join(ASSET_DIR, "party_dpp.png"),
 }
+OUT_LEGEND = os.path.join(ASSET_DIR, "legend.png")
 OUT_MAP = os.path.join(ASSET_DIR, "vote_map.png")
 OUT_JS = os.path.join(DATA_DIR, "local-assets.js")
 
@@ -125,6 +138,22 @@ EMBLEM_BLUE = (0, 0, 149)  # 原圖圓盤的實色；圓外用同一個藍填掉
 # 2× 匯出用到 64px，192 有 3× 餘量，放大到 3× 交付也夠。
 PARTY_WIDTH = 192
 PARTY_BLUE = (0, 0, 149)   # 國民黨徽章是藍色圓盤，圓外填藍（同 EMBLEM_BLUE 的理由）
+
+# 得票率圖例：原圖 2867×2541、內容外框 2633×2120（其餘是透明邊）。
+# 看板上圖例框約 500 寬（見 Layout.legend），2× 匯出用到 ~1000px，
+# 1100 寬留約 10% 餘量；縮得太小會讓「≥85%」這種小字糊掉。
+LEGEND_WIDTH = 1100
+
+# ★ 只保留「色塊 + 級距」那兩欄，上面的標題與人名整段切掉。
+#   實測內容（已裁邊、縮到 1100 寬後，共 1100 × 886）的分帶：
+#     0 – 54    標題「第二屆新北市市長選舉」
+#     129 – 184 副標「在各村（里）得票領先之候選人得票比例圖」
+#     255 – 301 人名「朱立倫 / 游錫堃」
+#     363 – 885 九列色塊（第 1 列 363–407、列距 60，最底列切齊 885）
+#   切點 = 第一列色塊上緣減 20px 的呼吸量 = 343：
+#   落在人名（收在 301）與第一列（從 363 起）之間，標題層級一刀切乾淨，
+#   九階色塊連同「45~50%」那一列的第一排文字都完整保留。
+LEGEND_KEEP_TOP = 343
 
 
 # --------------------------------------------------------------------------
@@ -243,6 +272,62 @@ def build_party_marks():
 
 
 # --------------------------------------------------------------------------
+# 1e. 得票率圖例：已透明 -> 依 alpha 裁齊 -> 縮到 LEGEND_WIDTH 寬
+# --------------------------------------------------------------------------
+def build_legend():
+    """得票率圖例（2014NewTaipei/map/图例.png）。
+
+    來源已經是透明 PNG（92.9% 的像素 alpha = 0），圓角色塊與深藍文字是主體，
+    所以**不能**再走 white_to_alpha.py：「白 -> 透明」會把色塊裡的亮色一起抽掉，
+    而且來源本來就有 alpha，直接處理即可。
+
+    這裡只做三件事：
+      1. 依 alpha 裁掉四周的透明邊（原圖四周各留了 100px 上下的空白）
+      2. 縮到 LEGEND_WIDTH 寬，縮圖用 LANCZOS：主體是實色塊 + 文字，
+         不是 0/255 的硬遮罩，不會有 build_vote_map 那種振盪問題
+      3. ★ 從 LEGEND_KEEP_TOP 切掉上半段的標題／副標／人名，
+         只留「色塊 + 級距」——那兩行字是海報的標題層級，
+         看板自己用底板小標題（Layout.legend.title）說明就夠了，
+         貼上去只會跟看板的大標題打架。
+
+    ★ 文字顏色原樣保留。圖例是深藍近黑的字，貼在深色看板上會看不見，
+      所以對比是由「看板上的淺色底板」負責（js/render/layers.js 的
+      LegendLayer 先鋪底色再貼這張圖），不是改這張圖。
+    """
+    src = Image.open(SRC_LEGEND).convert("RGBA")
+    w0, h0 = src.size
+
+    # 依 alpha 裁掉外圍透明區
+    box = src.split()[3].point(lambda v: 255 if v > 8 else 0).getbbox()
+    im = src.crop(box) if box else src
+
+    # 縮到目標寬度（用 LANCZOS，文字邊緣比 BOX 銳利）
+    if LEGEND_WIDTH and im.width > LEGEND_WIDTH:
+        h = max(1, int(round(im.height * LEGEND_WIDTH / float(im.width))))
+        im = im.resize((LEGEND_WIDTH, h), Image.LANCZOS)
+
+    # 切掉上半段的標題／副標／人名，只留九階色塊圖例
+    top = max(0, min(LEGEND_KEEP_TOP, im.height - 1))
+    im = im.crop((0, top, im.width, im.height))
+    # 切完再依 alpha 收一次邊，免得留下透明帶（也讓檔名對應的框更貼合）
+    box2 = im.split()[3].point(lambda v: 255 if v > 8 else 0).getbbox()
+    if box2:
+        im = im.crop(box2)
+
+    os.makedirs(ASSET_DIR, exist_ok=True)
+    im.save(OUT_LEGEND, optimize=True)
+    print("  裁邊   %-46s %s -> %s (切掉頂端 %d px 標題)" % (
+        os.path.basename(SRC_LEGEND), "%d × %d" % (w0, h0),
+        "%d × %d" % im.size, top))
+    print("  輸出   %-46s %s  (%.0f KB)" % (
+        os.path.basename(OUT_LEGEND), im.size, os.path.getsize(OUT_LEGEND) / 1024.0))
+
+    pv = w2a.make_preview(im, PREVIEW_BG)
+    pv.save(os.path.splitext(OUT_LEGEND)[0] + "_preview.png")
+    return im
+
+
+# --------------------------------------------------------------------------
 # 2. 得票率地圖：交給 build_vote_map.py（擦標題／圖例 -> 依 alpha 裁齊 -> 預乘面積平均縮圖）
 # --------------------------------------------------------------------------
 def build_vote_map():
@@ -266,14 +351,15 @@ def write_js(assets):
 
     assets 是 {欄位名: data URI}，欄位名必須與 js/slide.js 讀的一致：
       當選標誌 (electedMark)、地圖 (voteMap)、市徽 (citySeal)、圓徽 (emblem)、
-      兩張政黨徽章 (partyKmt / partyDpp，對應 Layout 的政黨 key kmt / dpp)。
+      兩張政黨徽章 (partyKmt / partyDpp，對應 Layout 的政黨 key kmt / dpp)、
+      得票率圖例 (legend，對應 Layout.legend)。
     """
     lines = "".join('  "%s": "%s"%s\n' % (k, assets[k], "," if i < len(assets) - 1 else "")
                     for i, k in enumerate(assets))
     js = ("/* 自動產生，請勿手改。來源：tools/build_assets.py */\n"
           "/* 使用者提供的素材（當選標誌、村里得票率地圖、新北市市徽、日期圓徽、\n"
-          "   兩張政黨徽章）以 base64 內嵌。正式來源是 assets/ 底下的實體檔；\n"
-          "   這份不只是備份，而是 file:// 開啟時的必要來源：file:// 下只要把本機\n"
+          "   兩張政黨徽章、得票率圖例）以 base64 內嵌。正式來源是 assets/ 底下的\n"
+          "   實體檔；這份不只是備份，而是 file:// 開啟時的必要來源：file:// 下只要把本機\n"
           "   圖檔畫上 canvas，canvas 就會被汙染成「畫得出來、讀不回去」，縮圖的\n"
           "   toDataURL 與匯出的 toBlob 都會拋 SecurityError。js/slide.js 會在\n"
           "   file:// 下自動改用這幾份內嵌副本。 */\n"
@@ -292,6 +378,7 @@ def main():
     build_city_seal()
     build_emblem()
     build_party_marks()
+    build_legend()
     build_vote_map()
     write_js({
         "electedMark": data_uri(OUT_MARK),
@@ -299,7 +386,8 @@ def main():
         "citySeal": data_uri(OUT_SEAL),
         "emblem": data_uri(OUT_EMBLEM),
         "partyKmt": data_uri(OUT_PARTY["kmt"]),
-        "partyDpp": data_uri(OUT_PARTY["dpp"])
+        "partyDpp": data_uri(OUT_PARTY["dpp"]),
+        "legend": data_uri(OUT_LEGEND)
     })
     print("完成。")
 
