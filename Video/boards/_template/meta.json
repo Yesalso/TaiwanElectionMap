@@ -1,0 +1,53 @@
+{
+  "id": "board-id-slug",
+  "meta": {
+    "election": "",
+    "electionEn": "",
+    "year": 2014,
+    "date": "",
+    "dateEn": "",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "",
+    "officeEn": "",
+    "electorate": 0,
+    "turnout": 0,
+    "validVotes": 0,
+    "invalidVotes": 0,
+    "castVotes": 0
+  },
+  "candidates": [
+    {
+      "key": "a",
+      "name": "",
+      "party": "",
+      "partyShort": "KMT",
+      "partyEn": "",
+      "number": 1,
+      "votes": 0,
+      "elected": false
+    },
+    {
+      "key": "b",
+      "name": "",
+      "party": "",
+      "partyShort": "DPP",
+      "partyEn": "",
+      "number": 2,
+      "votes": 0,
+      "elected": false
+    }
+  ],
+  "region": {
+    "county": "",
+    "unitLevel": "village",
+    "sheet": null,
+    "simplify": 60,
+    "townFull": {}
+  },
+  "assets": {
+    "voteMapAspectTolerance": 0.2
+  },
+  "partyThemes": {},
+  "layout": {}
+}

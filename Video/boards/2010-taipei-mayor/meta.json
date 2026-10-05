@@ -1,0 +1,103 @@
+{
+  "id": "2010-taipei-mayor",
+  "meta": {
+    "election": "第五屆臺北市市長選舉",
+    "electionEn": "Taipei City Mayoral Election",
+    "year": 2010,
+    "date": "11月27日",
+    "dateEn": "27 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "臺北市市長",
+    "officeEn": "Mayor of Taipei City",
+    "electorate": 2020751,
+    "turnout": 70.96,
+    "validVotes": 1433736,
+    "invalidVotes": 8307,
+    "castVotes": 1442043,
+    "header": {
+      "role": "時任市長",
+      "name": "郝龍斌",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "wu1",
+      "name": "吳炎成",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 1,
+      "votes": 1832,
+      "elected": false
+    },
+    {
+      "key": "hao",
+      "name": "郝龍斌",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 2,
+      "votes": 797865,
+      "elected": true
+    },
+    {
+      "key": "hsiao",
+      "name": "蕭淑華",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 3,
+      "votes": 2238,
+      "elected": false
+    },
+    {
+      "key": "wu2",
+      "name": "吳武明",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 4,
+      "votes": 3672,
+      "elected": false
+    },
+    {
+      "key": "su",
+      "name": "蘇貞昌",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 5,
+      "votes": 628129,
+      "elected": false
+    }
+  ],
+  "region": {
+    "county": "臺北市",
+    "unitLevel": "village",
+    "sheet": "村里層級明細",
+    "simplify": 60,
+    "townFull": {
+      "松山": "松山區",
+      "信義": "信義區",
+      "大安": "大安區",
+      "中山": "中山區",
+      "中正": "中正區",
+      "大同": "大同區",
+      "萬華": "萬華區",
+      "文山": "文山區",
+      "南港": "南港區",
+      "內湖": "內湖區",
+      "士林": "士林區",
+      "北投": "北投區"
+    },
+    "mapVariant": "map"
+  },
+  "assets": {
+    "voteMapAspectTolerance": 0.2
+  },
+  "partyThemes": {},
+  "layout": {}
+}

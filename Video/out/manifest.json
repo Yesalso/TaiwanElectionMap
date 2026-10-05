@@ -1,0 +1,35 @@
+{
+  "generatedAt": "2026-10-04T09:17:35.312Z",
+  "edge": "Edg/154.0.4258.53",
+  "node": "v22.22.2",
+  "scales": [
+    1
+  ],
+  "results": [
+    {
+      "board": "2018-taipei-mayor",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\out\\2018-taipei-mayor_2560x1440.png",
+      "bytes": 3488961,
+      "sha256": "5e63864f48d280202a5071248ff84d0f0380d031f7fd721c07b6763174ce4798",
+      "ok": true
+    },
+    {
+      "board": "2022-taipei-mayor",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\out\\2022-taipei-mayor_2560x1440.png",
+      "bytes": 3514451,
+      "sha256": "a06910bb51eb7af7414f814f37b5ddb81ef0a6028d2084819a58892cdd3f47b8",
+      "ok": true
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "ok": 2,
+    "failed": 0
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "id": "2014-newtpei-mayor",
+  "meta": {
+    "election": "第二屆新北市市長選舉",
+    "electionEn": "New Taipei City Mayoral Election",
+    "year": 2014,
+    "date": "11月29日",
+    "dateEn": "29 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "新北市市長",
+    "officeEn": "Mayor of New Taipei City",
+    "electorate": 3156402,
+    "turnout": 61.65,
+    "validVotes": 1916283,
+    "invalidVotes": 29780,
+    "castVotes": 1946063
+  },
+  "candidates": [
+    {
+      "key": "zhu",
+      "name": "朱立倫",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 3,
+      "votes": 959302,
+      "elected": true
+    },
+    {
+      "key": "you",
+      "name": "游錫堃",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 1,
+      "votes": 934774,
+      "elected": false
+    },
+    {
+      "key": "lee",
+      "name": "李進順",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 2,
+      "votes": 22207,
+      "elected": false
+    }
+  ],
+  "region": {
+    "county": "新北市",
+    "unitLevel": "village",
+    "sheet": null,
+    "simplify": 60,
+    "townFull": {
+      "板橋": "板橋區",
+      "三重": "三重區",
+      "中和": "中和區",
+      "永和": "永和區",
+      "新莊": "新莊區",
+      "新店": "新店區",
+      "樹林": "樹林區",
+      "鶯歌": "鶯歌區",
+      "三峽": "三峽區",
+      "淡水": "淡水區",
+      "汐止": "汐止區",
+      "瑞芳": "瑞芳區",
+      "土城": "土城區",
+      "蘆洲": "蘆洲區",
+      "五股": "五股區",
+      "泰山": "泰山區",
+      "林口": "林口區",
+      "深坑": "深坑區",
+      "石碇": "石碇區",
+      "坪林": "坪林區",
+      "三芝": "三芝區",
+      "石門": "石門區",
+      "八里": "八里區",
+      "平溪": "平溪區",
+      "雙溪": "雙溪區",
+      "貢寮": "貢寮區",
+      "金山": "金山區",
+      "萬里": "萬里區",
+      "烏來": "烏來區"
+    }
+  },
+  "assets": {
+    "voteMapAspectTolerance": 0.2
+  },
+  "partyThemes": {},
+  "layout": {}
+}

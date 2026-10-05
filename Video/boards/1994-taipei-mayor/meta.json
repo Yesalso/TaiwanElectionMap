@@ -1,0 +1,93 @@
+{
+  "id": "1994-taipei-mayor",
+  "meta": {
+    "election": "第一屆臺北市市長選舉",
+    "electionEn": "Taipei City Mayoral Election",
+    "year": 1994,
+    "date": "12月3日",
+    "dateEn": "3 Dec",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "臺北市市長",
+    "officeEn": "Mayor of Taipei City",
+    "electorate": 1801992,
+    "turnout": 78.77,
+    "validVotes": 1408554,
+    "invalidVotes": 13795,
+    "castVotes": 1422349,
+    "header": {
+      "role": "時任市長",
+      "name": "黃大洲",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "ji",
+      "name": "紀榮治",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 1,
+      "votes": 3941,
+      "elected": false
+    },
+    {
+      "key": "chao",
+      "name": "趙少康",
+      "party": "新黨",
+      "partyShort": "NSC",
+      "partyEn": "New Party",
+      "number": 2,
+      "votes": 424905,
+      "elected": false
+    },
+    {
+      "key": "chen",
+      "name": "陳水扁",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 3,
+      "votes": 615090,
+      "elected": true
+    },
+    {
+      "key": "huang",
+      "name": "黃大洲",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 4,
+      "votes": 364618,
+      "elected": false
+    }
+  ],
+  "region": {
+    "county": "臺北市",
+    "unitLevel": "village",
+    "sheet": "村里層級明細",
+    "simplify": 60,
+    "townFull": {
+      "松山": "松山區",
+      "信義": "信義區",
+      "大安": "大安區",
+      "中山": "中山區",
+      "中正": "中正區",
+      "大同": "大同區",
+      "萬華": "萬華區",
+      "文山": "文山區",
+      "南港": "南港區",
+      "內湖": "內湖區",
+      "士林": "士林區",
+      "北投": "北投區"
+    },
+    "mapVariant": "map"
+  },
+  "assets": {
+    "voteMapAspectTolerance": 0.2
+  },
+  "partyThemes": {},
+  "layout": {}
+}

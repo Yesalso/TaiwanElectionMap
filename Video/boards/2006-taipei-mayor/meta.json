@@ -1,0 +1,113 @@
+{
+  "id": "2006-taipei-mayor",
+  "meta": {
+    "election": "第四屆臺北市市長選舉",
+    "electionEn": "Taipei City Mayoral Election",
+    "year": 2006,
+    "date": "12月9日",
+    "dateEn": "9 Dec",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "臺北市市長",
+    "officeEn": "Mayor of Taipei City",
+    "electorate": 2007385,
+    "turnout": 64.31,
+    "validVotes": 1286089,
+    "invalidVotes": 7643,
+    "castVotes": 1293732,
+    "header": {
+      "role": "時任市長",
+      "name": "馬英九",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "li",
+      "name": "李敖",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 1,
+      "votes": 7795,
+      "elected": false
+    },
+    {
+      "key": "chou",
+      "name": "周玉蔻",
+      "party": "台灣團結聯盟",
+      "partyShort": "TSU",
+      "partyEn": "Taiwan Solidarity Union",
+      "number": 2,
+      "votes": 3372,
+      "elected": false
+    },
+    {
+      "key": "hsieh",
+      "name": "謝長廷",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 3,
+      "votes": 525869,
+      "elected": false
+    },
+    {
+      "key": "soong",
+      "name": "宋楚瑜",
+      "party": "親民黨",
+      "partyShort": "PFP",
+      "partyEn": "People First Party",
+      "number": 4,
+      "votes": 53281,
+      "elected": false
+    },
+    {
+      "key": "hao",
+      "name": "郝龍斌",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 5,
+      "votes": 692085,
+      "elected": true
+    },
+    {
+      "key": "ko",
+      "name": "柯賜海",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 6,
+      "votes": 3687,
+      "elected": false
+    }
+  ],
+  "region": {
+    "county": "臺北市",
+    "unitLevel": "village",
+    "sheet": "村里層級明細",
+    "simplify": 60,
+    "townFull": {
+      "松山": "松山區",
+      "信義": "信義區",
+      "大安": "大安區",
+      "中山": "中山區",
+      "中正": "中正區",
+      "大同": "大同區",
+      "萬華": "萬華區",
+      "文山": "文山區",
+      "南港": "南港區",
+      "內湖": "內湖區",
+      "士林": "士林區",
+      "北投": "北投區"
+    },
+    "mapVariant": "map"
+  },
+  "assets": {
+    "voteMapAspectTolerance": 0.2
+  },
+  "partyThemes": {},
+  "layout": {}
+}

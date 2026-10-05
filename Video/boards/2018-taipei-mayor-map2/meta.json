@@ -1,0 +1,103 @@
+{
+  "id": "2018-taipei-mayor-map2",
+  "meta": {
+    "election": "第七屆臺北市市長選舉",
+    "electionEn": "Taipei City Mayoral Election",
+    "year": 2018,
+    "date": "11月24日",
+    "dateEn": "24 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "臺北市市長",
+    "officeEn": "Mayor of Taipei City",
+    "electorate": 2124112,
+    "turnout": 67.7,
+    "validVotes": 1413870,
+    "invalidVotes": 21241,
+    "castVotes": 1435111,
+    "header": {
+      "role": "時任市長",
+      "name": "柯文哲",
+      "party": "無黨籍",
+      "partyShort": "IND"
+    }
+  },
+  "candidates": [
+    {
+      "key": "ko",
+      "name": "柯文哲",
+      "party": "無黨籍及未經政黨推薦",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 4,
+      "votes": 580663,
+      "elected": true
+    },
+    {
+      "key": "ting",
+      "name": "丁守中",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 2,
+      "votes": 577096,
+      "elected": false
+    },
+    {
+      "key": "yao",
+      "name": "姚文智",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 3,
+      "votes": 244342,
+      "elected": false
+    },
+    {
+      "key": "wu",
+      "name": "吳蕚洋",
+      "party": "無黨籍及未經政黨推薦",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 1,
+      "votes": 5611,
+      "elected": false
+    },
+    {
+      "key": "lee",
+      "name": "李錫錕",
+      "party": "無黨籍及未經政黨推薦",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 5,
+      "votes": 6158,
+      "elected": false
+    }
+  ],
+  "region": {
+    "county": "臺北市",
+    "unitLevel": "village",
+    "sheet": "村里層級明細",
+    "simplify": 60,
+    "townFull": {
+      "松山": "松山區",
+      "信義": "信義區",
+      "大安": "大安區",
+      "中山": "中山區",
+      "中正": "中正區",
+      "大同": "大同區",
+      "萬華": "萬華區",
+      "文山": "文山區",
+      "南港": "南港區",
+      "內湖": "內湖區",
+      "士林": "士林區",
+      "北投": "北投區"
+    },
+    "mapVariant": "map2"
+  },
+  "assets": {
+    "voteMapAspectTolerance": 0.2
+  },
+  "partyThemes": {},
+  "layout": {}
+}

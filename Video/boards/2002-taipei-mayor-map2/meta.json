@@ -1,0 +1,73 @@
+{
+  "id": "2002-taipei-mayor-map2",
+  "meta": {
+    "election": "第三屆臺北市市長選舉",
+    "electionEn": "Taipei City Mayoral Election",
+    "year": 2002,
+    "date": "12月7日",
+    "dateEn": "7 Dec",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "臺北市市長",
+    "officeEn": "Mayor of Taipei City",
+    "electorate": 1944026,
+    "turnout": 70.06,
+    "validVotes": 1361913,
+    "invalidVotes": 11561,
+    "castVotes": 1373474,
+    "header": {
+      "role": "時任市長",
+      "name": "馬英九",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "lee",
+      "name": "李應元",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 1,
+      "votes": 488811,
+      "elected": false
+    },
+    {
+      "key": "ma",
+      "name": "馬英九",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 2,
+      "votes": 873102,
+      "elected": true
+    }
+  ],
+  "region": {
+    "county": "臺北市",
+    "unitLevel": "village",
+    "sheet": "村里層級明細",
+    "simplify": 60,
+    "townFull": {
+      "松山": "松山區",
+      "信義": "信義區",
+      "大安": "大安區",
+      "中山": "中山區",
+      "中正": "中正區",
+      "大同": "大同區",
+      "萬華": "萬華區",
+      "文山": "文山區",
+      "南港": "南港區",
+      "內湖": "內湖區",
+      "士林": "士林區",
+      "北投": "北投區"
+    },
+    "mapVariant": "map2"
+  },
+  "assets": {
+    "voteMapAspectTolerance": 0.2
+  },
+  "partyThemes": {},
+  "layout": {}
+}

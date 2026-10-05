@@ -1,0 +1,123 @@
+{
+  "id": "2014-taipei-mayor",
+  "meta": {
+    "election": "第六屆臺北市市長選舉",
+    "electionEn": "Taipei City Mayoral Election",
+    "year": 2014,
+    "date": "11月29日",
+    "dateEn": "29 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "臺北市市長",
+    "officeEn": "Mayor of Taipei City",
+    "electorate": 2146939,
+    "turnout": 70.46,
+    "validVotes": 1494046,
+    "invalidVotes": 1833,
+    "castVotes": 1495879,
+    "header": {
+      "role": "時任市長",
+      "name": "郝龍斌",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "chen",
+      "name": "陳汝斌",
+      "party": "三等國民公義人權自救黨",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 1,
+      "votes": 1624,
+      "elected": false
+    },
+    {
+      "key": "chao",
+      "name": "趙衍慶",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 2,
+      "votes": 15898,
+      "elected": false
+    },
+    {
+      "key": "li",
+      "name": "李宏信",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 3,
+      "votes": 2621,
+      "elected": false
+    },
+    {
+      "key": "chenyc",
+      "name": "陳永昌",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 4,
+      "votes": 1908,
+      "elected": false
+    },
+    {
+      "key": "feng",
+      "name": "馮光遠",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 5,
+      "votes": 8080,
+      "elected": false
+    },
+    {
+      "key": "lien",
+      "name": "連勝文",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 6,
+      "votes": 609932,
+      "elected": false
+    },
+    {
+      "key": "ko",
+      "name": "柯文哲",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 7,
+      "votes": 853983,
+      "elected": true
+    }
+  ],
+  "region": {
+    "county": "臺北市",
+    "unitLevel": "village",
+    "sheet": "村里層級明細",
+    "simplify": 60,
+    "townFull": {
+      "松山": "松山區",
+      "信義": "信義區",
+      "大安": "大安區",
+      "中山": "中山區",
+      "中正": "中正區",
+      "大同": "大同區",
+      "萬華": "萬華區",
+      "文山": "文山區",
+      "南港": "南港區",
+      "內湖": "內湖區",
+      "士林": "士林區",
+      "北投": "北投區"
+    },
+    "mapVariant": "map"
+  },
+  "assets": {
+    "voteMapAspectTolerance": 0.2
+  },
+  "partyThemes": {},
+  "layout": {}
+}

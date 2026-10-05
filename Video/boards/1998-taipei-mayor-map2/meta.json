@@ -1,0 +1,83 @@
+{
+  "id": "1998-taipei-mayor-map2",
+  "meta": {
+    "election": "第二屆臺北市市長選舉",
+    "electionEn": "Taipei City Mayoral Election",
+    "year": 1998,
+    "date": "12月5日",
+    "dateEn": "5 Dec",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "臺北市市長",
+    "officeEn": "Mayor of Taipei City",
+    "electorate": 1893792,
+    "turnout": 79.16,
+    "validVotes": 1498901,
+    "invalidVotes": 11310,
+    "castVotes": 1510211,
+    "header": {
+      "role": "時任市長",
+      "name": "陳水扁",
+      "party": "民主進步黨",
+      "partyShort": "DPP"
+    }
+  },
+  "candidates": [
+    {
+      "key": "ma",
+      "name": "馬英九",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 1,
+      "votes": 766377,
+      "elected": true
+    },
+    {
+      "key": "chen",
+      "name": "陳水扁",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 2,
+      "votes": 688072,
+      "elected": false
+    },
+    {
+      "key": "wang",
+      "name": "王建煊",
+      "party": "新黨",
+      "partyShort": "NSC",
+      "partyEn": "New Party",
+      "number": 3,
+      "votes": 44452,
+      "elected": false
+    }
+  ],
+  "region": {
+    "county": "臺北市",
+    "unitLevel": "village",
+    "sheet": "村里層級明細",
+    "simplify": 60,
+    "townFull": {
+      "松山": "松山區",
+      "信義": "信義區",
+      "大安": "大安區",
+      "中山": "中山區",
+      "中正": "中正區",
+      "大同": "大同區",
+      "萬華": "萬華區",
+      "文山": "文山區",
+      "南港": "南港區",
+      "內湖": "內湖區",
+      "士林": "士林區",
+      "北投": "北投區"
+    },
+    "mapVariant": "map2"
+  },
+  "assets": {
+    "voteMapAspectTolerance": 0.2
+  },
+  "partyThemes": {},
+  "layout": {}
+}

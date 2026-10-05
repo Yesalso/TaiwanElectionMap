@@ -1,0 +1,71 @@
+{
+  "_comment": [
+    "原始素材 -> 透明化成品的唯一對應表（給 tool/build_assets.py 讀）。",
+    "左邊的 key 就是原始檔案名（相對於 png/<kind>/<year>/）。",
+    "右邊是成品名；成品一律寫進 NewSolution/png/processed/，不寫到別的資料夾。",
+    "成品名也可以寫成 {\"to\": 檔名, \"how\": \"copy\"}，表示原樣搬過去、不做任何轉換。",
+    "  map/<year>/map.png          得票率地圖（白底轉透明，how 預設 white）",
+    "  map/<year>/map2.png         區級地圖（只畫區、不畫里；同畫布同範圍，同樣白底轉透明）",
+    "  map/<year>/legend.png        圖例（how=copy：Converge 直接產出透明底 + 白字，",
+    "                               再過白底轉透明會把白字整片吃掉）",
+    "  party/party_<key>.png        政黨徽章（內切圓去背）",
+    "  share/<name>.png             市徽 / 國徽 / 當選標誌",
+    "沒有 candidate 這一類：看板不畫候選人照片（卡面只填政黨純色），",
+    "照片怎麼合成由使用者自行後製決定。png/candidate/ 底下的原圖留著當素材，",
+    "不再產生任何成品，也不需要放進這張表。",
+    "新增一場選舉 = 在這裡補一段 + 把原圖丟進 png/ 對應資料夾，不用改程式。"
+  ],
+  "map": {
+    "1994": {
+      "map.png": "map.png",
+      "map2.png": "map2.png",
+      "legend.png": { "to": "legend.png", "how": "copy" }
+    },
+    "1998": {
+      "map.png": "map.png",
+      "map2.png": "map2.png",
+      "legend.png": { "to": "legend.png", "how": "copy" }
+    },
+    "2002": {
+      "map.png": "map.png",
+      "map2.png": "map2.png",
+      "legend.png": { "to": "legend.png", "how": "copy" }
+    },
+    "2006": {
+      "map.png": "map.png",
+      "map2.png": "map2.png",
+      "legend.png": { "to": "legend.png", "how": "copy" }
+    },
+    "2010": {
+      "map.png": "map.png",
+      "map2.png": "map2.png",
+      "legend.png": { "to": "legend.png", "how": "copy" }
+    },
+    "2014": {
+      "map.png": "map.png",
+      "map2.png": "map2.png",
+      "legend.png": { "to": "legend.png", "how": "copy" }
+    },
+    "2018": {
+      "map.png": "map.png",
+      "map2.png": "map2.png",
+      "legend.png": { "to": "legend.png", "how": "copy" }
+    },
+    "2022": {
+      "map.png": "map.png",
+      "map2.png": "map2.png",
+      "legend.png": { "to": "legend.png", "how": "copy" }
+    }
+  },
+  "party": {
+    "中国国民党.png": "party_kmt.png",
+    "民主进步党.png": "party_dpp.png",
+    "新党.png": "party_nsc.png",
+    "亲民党.png": "party_pfp.png"
+  },
+  "share": {
+    "台北市市徽.png": "city_seal.png",
+    "国徽.png": "emblem.png",
+    "当选标志.png": "mark_elected.png"
+  }
+}

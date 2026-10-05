@@ -13,6 +13,13 @@ __pycache__/
 /Video/Share/tools/_out/
 /Video/Share/data/.local-assets.backup.js
 
+# 影片合成產物與素材（大體積，本機保留，不入庫）
+/Video/out_video/
+/Video/final/
+
+# 數值中間檔
+*.npy
+
 # 本地工具記憶檔
 .workbuddy/
 

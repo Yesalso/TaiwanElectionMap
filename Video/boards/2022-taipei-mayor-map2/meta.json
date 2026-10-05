@@ -1,0 +1,164 @@
+{
+  "id": "2022-taipei-mayor-map2",
+  "meta": {
+    "election": "第八屆臺北市市長選舉",
+    "electionEn": "Taipei City Mayoral Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "臺北市市長",
+    "officeEn": "Mayor of Taipei City",
+    "electorate": 2026769,
+    "turnout": 67.7,
+    "validVotes": 1360951,
+    "invalidVotes": 11228,
+    "castVotes": 1372179,
+    "header": {
+      "role": "時任市長",
+      "name": "柯文哲",
+      "party": "無黨籍",
+      "partyShort": "IND"
+    }
+  },
+  "candidates": [
+    {
+      "key": "chang",
+      "name": "張家豪",
+      "party": "台灣動物保護黨",
+      "partyShort": "TAPP",
+      "partyEn": "Taiwan Animal Protection Party",
+      "number": 1,
+      "votes": 2367
+    },
+    {
+      "key": "wang",
+      "name": "王文娟",
+      "party": "無黨籍及未經政黨推薦",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 2,
+      "votes": 451
+    },
+    {
+      "key": "cheng",
+      "name": "鄭匡宇",
+      "party": "無黨籍及未經政黨推薦",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 3,
+      "votes": 386
+    },
+    {
+      "key": "huangsf",
+      "name": "黃聖峰",
+      "party": "台澎黨",
+      "partyShort": "TPIP",
+      "partyEn": "Taiwan Pescadores Party",
+      "number": 4,
+      "votes": 256
+    },
+    {
+      "key": "tong",
+      "name": "童文薰",
+      "party": "無黨籍及未經政黨推薦",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 5,
+      "votes": 2425
+    },
+    {
+      "key": "jiang",
+      "name": "蔣萬安",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 6,
+      "votes": 575590,
+      "elected": true
+    },
+    {
+      "key": "su",
+      "name": "蘇煥智",
+      "party": "台灣維新",
+      "partyShort": "TWR",
+      "partyEn": "Taiwan Renewal",
+      "number": 7,
+      "votes": 1851
+    },
+    {
+      "key": "huang",
+      "name": "黃珊珊",
+      "party": "無黨籍及未經政黨推薦",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 8,
+      "votes": 342141,
+      "color": "#00bfb2"
+    },
+    {
+      "key": "shi",
+      "name": "施奉先",
+      "party": "無黨籍及未經政黨推薦",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 9,
+      "votes": 383
+    },
+    {
+      "key": "tang",
+      "name": "唐新民",
+      "party": "共和黨",
+      "partyShort": "REP",
+      "partyEn": "Republican Party",
+      "number": 10,
+      "votes": 316
+    },
+    {
+      "key": "xie",
+      "name": "謝立康",
+      "party": "無黨籍及未經政黨推薦",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 11,
+      "votes": 227
+    },
+    {
+      "key": "chen",
+      "name": "陳時中",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 12,
+      "votes": 434558,
+      "elected": false
+    }
+  ],
+  "region": {
+    "county": "臺北市",
+    "unitLevel": "village",
+    "sheet": "村里層級明細",
+    "simplify": 60,
+    "townFull": {
+      "松山": "松山區",
+      "信義": "信義區",
+      "大安": "大安區",
+      "中山": "中山區",
+      "中正": "中正區",
+      "大同": "大同區",
+      "萬華": "萬華區",
+      "文山": "文山區",
+      "南港": "南港區",
+      "內湖": "內湖區",
+      "士林": "士林區",
+      "北投": "北投區"
+    },
+    "mapVariant": "map2"
+  },
+  "assets": {
+    "voteMapAspectTolerance": 0.2
+  },
+  "partyThemes": {},
+  "layout": {}
+}

@@ -1,0 +1,65 @@
+/* ==========================================================================
+   base.css — 重設、變數、字型、頁面底色
+   ========================================================================== */
+
+:root {
+  /* 應用外殼配色（深色，讓 2560×1440 的看板跳出來） */
+  --bg: #0a0f1e;
+  --bg-2: #0f1730;
+  --panel: rgba(255, 255, 255, 0.045);
+  --panel-2: rgba(255, 255, 255, 0.08);
+  --line: rgba(255, 255, 255, 0.12);
+  --line-strong: rgba(255, 255, 255, 0.22);
+  --fg: #eef2fb;
+  --fg-dim: rgba(238, 242, 251, 0.62);
+  --fg-faint: rgba(238, 242, 251, 0.38);
+
+  /* 政黨色（與看板一致） */
+  --kmt: #2f6bd8;
+  --dpp: #23a455;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+
+  --font: "Microsoft JhengHei", "Noto Sans TC", "PingFang TC",
+          "Heiti TC", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-num: "Segoe UI", "Helvetica Neue", Arial, "Microsoft JhengHei", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--fg);
+  background:
+    radial-gradient(1100px 700px at 12% -8%, rgba(47, 107, 216, 0.20), transparent 60%),
+    radial-gradient(1100px 700px at 92% -4%, rgba(35, 164, 85, 0.16), transparent 62%),
+    linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 55%, #060a14 100%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, p, ul, li, figure {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+button, input {
+  font-family: inherit;
+  color: inherit;
+}
+
+canvas {
+  display: block;
+}
+
+::selection {
+  background: rgba(47, 107, 216, 0.45);
+}
