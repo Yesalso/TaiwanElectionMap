@@ -25,3 +25,23 @@ __pycache__/
 
 # 其他專案的參考腳本（中國海南省村界，非本專案產出）
 /Empty_Map/Hainan_*.py
+
+# NewSolution 原始素材（外部取得，27 MB）
+/Video/NewSolution/png/
+
+# 看板建置產物與來源素材（由 tool/build_assets.py 產生，大體積）
+/Video/boards/*/assets/
+/Video/boards/*/source/
+
+# 影片／看板輸出圖（2560x1440 以上，每張數 MB）
+/Video/NewSolution/out/*.png
+/Video/NewSolution/out/final/
+/Video/out/*.png
+/Video/out/_*/
+# 除錯與備份輸出
+/Video/out/ab_downscale/
+/Video/out/raster_backup_pre_color_change/
+/Video/out/_map2018_source111_backup/
+
+# Empty_Map 產出的大圖
+/Empty_Map/Taipei/*.png
