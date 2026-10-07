@@ -1,29 +1,25 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-第 9 任總統副總統選舉（1996）— 縣市 + 鄉鎮市區 + 村里 三層級爬蟲（交叉表輸出）
-==================================================================================
-入口：vote3.asp 全國概況（10 欄總統列 + 4 欄副總統列，正副同號次取總統列代表）
+第 14 任總統副總統選舉（2016）— 縣市 + 鄉鎮市區 + 村里 三層級爬蟲（交叉表輸出）
+==============================================================================
+入口：vote3.asp 全國概況（含候選人清單，正副總統同號次只取總統代表）
 下鑽：vote312.asp 縣市級別 → vote313.asp 鄉鎮市區級別 → vote32.asp 村里級別
-      （加 --stations 時續抓 vote33.asp 投票所明細）
 
 特色：
-  * 頁面磁碟快取（快取目錄可指定），中斷後重跑只補抓缺頁。
-  * 鄉鎮、村里、投票所層級以執行緒池並行抓取，加快大量頁面。
-  * 網站為 big5 編碼，抓取後強制以 big5 解碼（否則中文全亂碼）。
-  * 跑完自動驗算：三層得票加總 vs 入口全國得票，列出差額即時抓出漏頁。
+  * 頁面磁碟快取（快取目錄可指定），中斷後重跑可沿用已抓頁面。
+  * 鄉鎮、村里層級以執行緒池並行抓取，加快大量頁面。
 
-輸出二個 xlsx，每個候選人佔兩欄（得票數、得票率）：
-  1. 「1996總統副總統選舉_縣市鄉鎮村里.xlsx」：
+輸出兩個 xlsx，每個候選人佔兩欄（得票數、得票率）：
+  1. 「2016總統副總統選舉_縣市鄉鎮村里.xlsx」：
      - 「縣市級別」    ：縣市 | 候選人1得票數 | 候選人1得票率 | ...
      - 「鄉鎮市區級別」：縣市 | 鄉鎮市區 | 候選人1得票數 | ...
      - 「村里層級明細」：縣市 | 鄉鎮市區 | 村里 | 候選人1得票數 | ...
-     - 「投票所明細」（--stations）：縣市 | 鄉鎮市區 | 村里 | 投票所 | ...
-  2. 「1996總統副總統選舉_得票率.xlsx」：得票率專用格式
+  2. 「2016總統副總統選舉_得票率.xlsx」：得票率專用格式
      - 「各里彙總」：選舉區別(縣市) | 鄉(鎮、市、區)別 | 村里別 | <候選人>得票率 ...
 
 用法：
-    python scrape_president_1996.py [vote3網址] [--stations] [--workers 5] [--delay 0.25]
+    python scrape_president_2016.py [vote3網址] [--workers 5] [--delay 0.25]
 """
 
 import argparse
@@ -42,13 +38,13 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-START_URL = "https://vote.nccu.edu.tw/cec/vote3.asp?pass1=I9AA%3EI8888888888iii(("
+START_URL = "https://vote.nccu.edu.tw/cec/vote3.asp?pass1=I:89%3EI8888888888iii(("
 BASE_URL = "https://vote.nccu.edu.tw/cec/"
-OUT_DIR = r"D:\Windows\TaiwanElection\1996Precident\data"
-DEFAULT_RAW = os.path.join(OUT_DIR, "1996總統副總統選舉_縣市鄉鎮村里.xlsx")
-DEFAULT_RATE = os.path.join(OUT_DIR, "1996總統副總統選舉_得票率.xlsx")
-DEFAULT_CANDS = ["陳履安", "李登輝", "彭明敏", "林洋港"]
-DEFAULT_CACHE = os.path.join(os.environ.get("TEMP", os.path.expanduser("~")), "pres1996_cache")
+OUT_DIR = r"D:\Windows\TaiwanElection\2016Precident\data"
+DEFAULT_RAW = os.path.join(OUT_DIR, "2016總統副總統選舉_縣市鄉鎮村里.xlsx")
+DEFAULT_RATE = os.path.join(OUT_DIR, "2016總統副總統選舉_得票率.xlsx")
+DEFAULT_CANDS = ["朱立倫", "蔡英文", "宋楚瑜"]
+DEFAULT_CACHE = os.path.join(os.environ.get("TEMP", os.path.expanduser("~")), "pres2016_cache")
 
 HEADERS = {
     "User-Agent": (
@@ -131,12 +127,7 @@ def rows_of(html):
 
 
 def parse_national(html):
-    """vote3.asp：候選人清單。
-
-    1996 版面為 rowspan 表格：總統列 10 欄（含政黨/得票數/得票率），
-    緊接的副總統列只有 4 欄（姓名/號次/性別/出生年次），故只取 8 欄以上
-    且姓名欄有連結的總統列，即代表整組候選人。
-    """
+    """vote3.asp：候選人清單（正副總統同號次只取總統代表之縣市層網址）。"""
     candidates = []
     soup = BeautifulSoup(html, "html.parser")
     table = soup.find("table")
@@ -213,27 +204,12 @@ def work_village(html, ctx):
         vills.append(
             {"county": county, "township": township,
              "village": vl["area"][len(prefix):],
-             "votes": vl["votes"], "rate": vl["rate"],
-             "detail_url": vl["detail_url"]}
+             "votes": vl["votes"], "rate": vl["rate"]}
         )
     return vills
 
 
-def work_station(html, ctx):
-    """vote33：村里內各投票所（葉子節點，無下鑽連結）。ctx=(county, township, village)"""
-    county, township, village = ctx
-    prefix = county + township + village
-    out = []
-    for st in rows_of(html):
-        area = st["area"]
-        name = area[len(prefix):] if area.startswith(prefix) else area
-        out.append({"county": county, "township": township, "village": village,
-                    "station": name, "votes": st["votes"], "rate": st["rate"]})
-    return out
-
-
-def scrape(start_url, raw_path, rate_path, cands, delay, retry, workers,
-           cache_dir, stations=False):
+def scrape(start_url, raw_path, rate_path, cands, delay, retry, workers, cache_dir):
     print("抓取入口頁 vote3.asp ...")
     html = cache_fetch(start_url, cache_dir, delay=delay, retry=retry)
     if not html:
@@ -283,51 +259,19 @@ def scrape(start_url, raw_path, rate_path, cands, delay, retry, workers,
     print(f"村里層投票32：共 {len(vill_jobs)} 頁 ...")
     vill_res = parallel(vill_jobs, work_village, cache_dir, "村里層", len(vill_jobs), workers, delay)
     vill_rows = {i: [] for i in range(len(candidates))}
-    station_jobs = []
-    station_map = {}
-    jid = 0
     for k in sorted(vill_res):
         i, county, township = vill_map[k]
         for v in vill_res[k]:
             vill_rows[i].append({"county": v["county"], "township": v["township"],
                                  "village": v["village"], "votes": v["votes"], "rate": v["rate"]})
-            if stations and v.get("detail_url"):
-                station_map[jid] = (i, v["county"], v["township"], v["village"])
-                station_jobs.append((jid, v["detail_url"],
-                                     (v["county"], v["township"], v["village"])))
-                jid += 1
 
     if not any(vill_rows.values()):
         print("未解析到任何村里資料，請確認網址。")
         return 1
 
-    station_rows = {i: [] for i in range(len(candidates))}
-    if stations:
-        print(f"投票所層投票33：共 {len(station_jobs)} 頁 ...")
-        st_res = parallel(station_jobs, work_station, cache_dir, "投票所層",
-                          len(station_jobs), workers, delay)
-        for k in sorted(st_res):
-            i, county, township, village = station_map[k]
-            for s in st_res[k]:
-                station_rows[i].append(s)
-
-    verify_totals(candidates, county_rows, town_rows, vill_rows)
-    write_raw_xlsx(candidates, county_rows, town_rows, vill_rows, station_rows, raw_path)
+    write_raw_xlsx(candidates, county_rows, town_rows, vill_rows, raw_path)
     write_rate_xlsx(candidates, vill_rows, rate_path, cands)
     return 0
-
-
-def verify_totals(candidates, county_rows, town_rows, vill_rows):
-    """三層各自加總，與入口全國得票比對，列出差額即時抓出漏頁。"""
-    print("\n────── 驗算：三層加總 vs 全國得票 ──────")
-    for i, c in enumerate(candidates):
-        county = sum(int(r["votes"]) for r in county_rows.get(i, []))
-        town = sum(int(r["votes"]) for r in town_rows.get(i, []))
-        vill = sum(int(r["votes"]) for r in vill_rows.get(i, []))
-        flag = "OK" if vill == int(c["votes"]) else "⚠ 差額!"
-        print(f"  {c['number']}號 {c['name']}: 縣市層={county:,} 鄉鎮層={town:,} "
-              f"村里層={vill:,} 全國={int(c['votes']):,} → {flag}")
-    print("──────────────────────────────────────")
 
 
 # ---------------------------------------------------------------- 輸出
@@ -341,7 +285,7 @@ def _styles():
     return header_font, header_fill, border
 
 
-def write_raw_xlsx(candidates, county_rows, town_rows, vill_rows, station_rows, path):
+def write_raw_xlsx(candidates, county_rows, town_rows, vill_rows, path):
     wb = Workbook()
     wb.remove(wb.active)
     header_font, header_fill, border = _styles()
@@ -371,71 +315,66 @@ def write_raw_xlsx(candidates, county_rows, town_rows, vill_rows, station_rows, 
     def cand_col(pos, idx):
         return pos + 1 + idx * 2
 
-    def first_rows(rows_by_cand):
-        """取第一組「有資料」的候選人列，避免 index 0 抓取失敗時整檔報錯。"""
-        for i in sorted(rows_by_cand):
-            if rows_by_cand[i]:
-                return rows_by_cand[i]
-        return []
-
-    def fill(ws, keys, pos, rows_by_cand, key_of):
-        data = {}
-        for i in range(len(candidates)):
-            for r in rows_by_cand.get(i, []):
-                data[(i,) + key_of(r)] = (r["votes"], r["rate"])
-        for row_no, key in enumerate(keys, 2):
-            for c, v in enumerate(key, 1):
-                ws.cell(row=row_no, column=c, value=v).border = border
-            for i in range(len(candidates)):
-                votes, rate = data.get((i,) + key, ("", ""))
-                ws.cell(row=row_no, column=cand_col(pos, i), value=votes).border = border
-                ws.cell(row=row_no, column=cand_col(pos, i) + 1, value=rate).border = border
-
     ws1 = new_sheet("縣市級別")
-    style_header(ws1, cand_headers(["縣市"]))
-    counties = list(OrderedDict.fromkeys(r["county"] for r in first_rows(county_rows)))
-    fill(ws1, [(c,) for c in counties], 1, county_rows, lambda r: (r["county"],))
+    headers1 = cand_headers(["縣市"])
+    style_header(ws1, headers1)
+    counties = list(OrderedDict.fromkeys(r["county"] for r in county_rows[0])) if county_rows else []
+    data1 = {}
+    for i in range(len(candidates)):
+        for r in county_rows.get(i, []):
+            data1[(i, r["county"])] = (r["votes"], r["rate"])
+    for r, co in enumerate(counties, 2):
+        ws1.cell(row=r, column=1, value=co).border = border
+        for i in range(len(candidates)):
+            votes, rate = data1.get((i, co), ("", ""))
+            ws1.cell(row=r, column=cand_col(1, i), value=votes).border = border
+            ws1.cell(row=r, column=cand_col(1, i) + 1, value=rate).border = border
     ws1.column_dimensions["A"].width = 14
 
     ws2 = new_sheet("鄉鎮市區級別")
-    style_header(ws2, cand_headers(["縣市", "鄉鎮市區"]))
-    towns = list(OrderedDict.fromkeys((r["county"], r["township"]) for r in first_rows(town_rows)))
-    fill(ws2, towns, 2, town_rows, lambda r: (r["county"], r["township"]))
+    headers2 = cand_headers(["縣市", "鄉鎮市區"])
+    style_header(ws2, headers2)
+    towns = list(OrderedDict.fromkeys((r["county"], r["township"]) for r in town_rows[0])) if town_rows else []
+    data2 = {}
+    for i in range(len(candidates)):
+        for r in town_rows.get(i, []):
+            data2[(i, r["county"], r["township"])] = (r["votes"], r["rate"])
+    for r, (co, tw) in enumerate(towns, 2):
+        ws2.cell(row=r, column=1, value=co).border = border
+        ws2.cell(row=r, column=2, value=tw).border = border
+        for i in range(len(candidates)):
+            votes, rate = data2.get((i, co, tw), ("", ""))
+            ws2.cell(row=r, column=cand_col(2, i), value=votes).border = border
+            ws2.cell(row=r, column=cand_col(2, i) + 1, value=rate).border = border
     ws2.column_dimensions["A"].width = 12
     ws2.column_dimensions["B"].width = 12
 
     ws3 = new_sheet("村里層級明細")
-    style_header(ws3, cand_headers(["縣市", "鄉鎮市區", "村里"]))
+    headers3 = cand_headers(["縣市", "鄉鎮市區", "村里"])
+    style_header(ws3, headers3)
     villages = list(OrderedDict.fromkeys(
-        (r["county"], r["township"], r["village"]) for r in first_rows(vill_rows)))
-    fill(ws3, villages, 3, vill_rows, lambda r: (r["county"], r["township"], r["village"]))
+        (r["county"], r["township"], r["village"]) for r in vill_rows[0])) if vill_rows else []
+    data3 = {}
+    for i in range(len(candidates)):
+        for r in vill_rows.get(i, []):
+            data3[(i, r["county"], r["township"], r["village"])] = (r["votes"], r["rate"])
+    for r, (co, tw, vl) in enumerate(villages, 2):
+        ws3.cell(row=r, column=1, value=co).border = border
+        ws3.cell(row=r, column=2, value=tw).border = border
+        ws3.cell(row=r, column=3, value=vl).border = border
+        for i in range(len(candidates)):
+            votes, rate = data3.get((i, co, tw, vl), ("", ""))
+            ws3.cell(row=r, column=cand_col(3, i), value=votes).border = border
+            ws3.cell(row=r, column=cand_col(3, i) + 1, value=rate).border = border
     ws3.column_dimensions["A"].width = 12
     ws3.column_dimensions["B"].width = 12
     ws3.column_dimensions["C"].width = 10
 
-    stats = [(len(counties), len(towns), len(villages))]
-
-    if any(station_rows.values()):
-        ws4 = new_sheet("投票所明細")
-        style_header(ws4, cand_headers(["縣市", "鄉鎮市區", "村里", "投票所"]))
-        sts = list(OrderedDict.fromkeys(
-            (r["county"], r["township"], r["village"], r["station"])
-            for r in first_rows(station_rows)))
-        fill(ws4, sts, 4, station_rows,
-             lambda r: (r["county"], r["township"], r["village"], r["station"]))
-        ws4.column_dimensions["A"].width = 12
-        ws4.column_dimensions["B"].width = 12
-        ws4.column_dimensions["C"].width = 10
-        ws4.column_dimensions["D"].width = 14
-        stats.append((len(sts),))
-
     wb.save(path)
     print(f"\n完成！已儲存至 '{path}'")
-    print(f"  縣市級別：{stats[0][0]} 縣市 × {len(candidates)} 候選人")
-    print(f"  鄉鎮市區級別：{stats[0][1]} 鄉鎮 × {len(candidates)} 候選人")
-    print(f"  村里層級明細：{stats[0][2]} 村里 × {len(candidates)} 候選人")
-    if len(stats) > 1:
-        print(f"  投票所明細：{stats[1][0]} 投票所 × {len(candidates)} 候選人")
+    print(f"  縣市級別：{len(counties)} 縣市 × {len(candidates)} 候選人")
+    print(f"  鄉鎮市區級別：{len(towns)} 鄉鎮 × {len(candidates)} 候選人")
+    print(f"  村里層級明細：{len(villages)} 村里 × {len(candidates)} 候選人")
 
 
 def parse_rate(v):
@@ -454,26 +393,15 @@ def parse_rate(v):
 def write_rate_xlsx(candidates, vill_rows, path, cand_names):
     """輸出「各里彙總」得票率專用檔：選舉區別(縣市) | 鄉(鎮、市、區)別 | 村里別 | <候選人>得票率。"""
     idx_of = {c["name"]: i for i, c in enumerate(candidates)}
-    if all(n in idx_of for n in cand_names):
-        order = [idx_of[n] for n in cand_names]
-        names = list(cand_names)
-    else:
-        order = list(range(len(candidates)))
-        names = [candidates[i]["name"] for i in order]
-        print(f"  注意：{cand_names} 與網站候選人不符，改用網站順序 {names}")
+    order = [idx_of[n] for n in cand_names] if all(n in idx_of for n in cand_names) else list(range(len(candidates)))
 
     rate_lookup = {}
     for i in order:
-        for r in vill_rows.get(i, []):
+        for r in vill_rows[i]:
             rate_lookup[(i, r["county"], r["township"], r["village"])] = r["rate"]
 
-    first_vill_rows = []
-    for i in sorted(vill_rows):
-        if vill_rows[i]:
-            first_vill_rows = vill_rows[i]
-            break
     base_keys = list(OrderedDict.fromkeys(
-        (r["county"], r["township"], r["village"]) for r in first_vill_rows))
+        (r["county"], r["township"], r["village"]) for r in vill_rows[0])) if vill_rows and any(vill_rows.values()) else []
     base_keys.sort()
     rows = []
     for co, tw, vl in base_keys:
@@ -486,7 +414,7 @@ def write_rate_xlsx(candidates, vill_rows, path, cand_names):
     wb.remove(wb.active)
     header_font, header_fill, border = _styles()
     ws = wb.create_sheet("各里彙總")
-    headers = ["選舉區別", "鄉(鎮、市、區)別", "村里別"] + [f"{n}得票率" for n in names]
+    headers = ["選舉區別", "鄉(鎮、市、區)別", "村里別"] + [f"{n}得票率" for n in cand_names]
     for c, h in enumerate(headers, 1):
         cell = ws.cell(row=1, column=c, value=h)
         cell.font = header_font
@@ -500,21 +428,20 @@ def write_rate_xlsx(candidates, vill_rows, path, cand_names):
     for col, w in zip("ABC", (12, 12, 10)):
         ws.column_dimensions[col].width = w
     wb.save(path)
-    print(f"完成！已儲存至 '{path}'  候選人={names}  村里數={len(rows)}")
+    print(f"完成！已儲存至 '{path}'  候選人={cand_names}  村里數={len(rows)}")
 
 
 # ---------------------------------------------------------------- CLI
 def parse_args(argv=None):
-    parser = argparse.ArgumentParser(description="爬取 85 年總統(副總統)選舉三層級交叉表與得票率專用檔")
+    parser = argparse.ArgumentParser(description="爬取 105 年總統(副總統)選舉三層級交叉表與得票率專用檔")
     parser.add_argument("start_url", nargs="?", default=START_URL, help="vote3.asp 入口網址")
     parser.add_argument("--raw", default=DEFAULT_RAW, help="原始交叉表 xlsx 輸出路徑")
     parser.add_argument("--rate", default=DEFAULT_RATE, help="得票率專用 xlsx 輸出路徑")
     parser.add_argument("--cands", nargs="*", default=DEFAULT_CANDS, help="得票率檔要列出的候選人")
     parser.add_argument("--delay", type=float, default=DELAY)
     parser.add_argument("--retry", type=int, default=RETRY)
-    parser.add_argument("--workers", type=int, default=WORKERS, help="鄉鎮/村里/投票所層並行數")
+    parser.add_argument("--workers", type=int, default=WORKERS, help="鄉鎮/村里層並行數")
     parser.add_argument("--cache", default=DEFAULT_CACHE, help="頁面磁碟快取目錄")
-    parser.add_argument("--stations", action="store_true", help="續抓 vote33.asp 投票所明細（頁數多，約 2~3 萬頁）")
     return parser.parse_args(argv)
 
 
@@ -530,8 +457,7 @@ def main(argv=None):
             except PermissionError:
                 print(f"原檔被佔用，將另存新的。")
     return scrape(args.start_url, raw_path, rate_path, args.cands,
-                  args.delay, args.retry, args.workers, args.cache,
-                  stations=args.stations)
+                  args.delay, args.retry, args.workers, args.cache)
 
 
 if __name__ == "__main__":

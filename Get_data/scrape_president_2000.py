@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-第 9 任總統副總統選舉（1996）— 縣市 + 鄉鎮市區 + 村里 三層級爬蟲（交叉表輸出）
+第 10 任總統副總統選舉（2000）— 縣市 + 鄉鎮市區 + 村里 三層級爬蟲（交叉表輸出）
 ==================================================================================
 入口：vote3.asp 全國概況（10 欄總統列 + 4 欄副總統列，正副同號次取總統列代表）
 下鑽：vote312.asp 縣市級別 → vote313.asp 鄉鎮市區級別 → vote32.asp 村里級別
@@ -13,17 +13,17 @@
   * 網站為 big5 編碼，抓取後強制以 big5 解碼（否則中文全亂碼）。
   * 跑完自動驗算：三層得票加總 vs 入口全國得票，列出差額即時抓出漏頁。
 
-輸出二個 xlsx，每個候選人佔兩欄（得票數、得票率）：
-  1. 「1996總統副總統選舉_縣市鄉鎮村里.xlsx」：
+輸出兩個 xlsx，每個候選人佔兩欄（得票數、得票率）：
+  1. 「2000總統副總統選舉_縣市鄉鎮村里.xlsx」：
      - 「縣市級別」    ：縣市 | 候選人1得票數 | 候選人1得票率 | ...
      - 「鄉鎮市區級別」：縣市 | 鄉鎮市區 | 候選人1得票數 | ...
      - 「村里層級明細」：縣市 | 鄉鎮市區 | 村里 | 候選人1得票數 | ...
      - 「投票所明細」（--stations）：縣市 | 鄉鎮市區 | 村里 | 投票所 | ...
-  2. 「1996總統副總統選舉_得票率.xlsx」：得票率專用格式
+  2. 「2000總統副總統選舉_得票率.xlsx」：得票率專用格式
      - 「各里彙總」：選舉區別(縣市) | 鄉(鎮、市、區)別 | 村里別 | <候選人>得票率 ...
 
 用法：
-    python scrape_president_1996.py [vote3網址] [--stations] [--workers 5] [--delay 0.25]
+    python scrape_president_2000.py [vote3網址] [--stations] [--workers 5] [--delay 0.25]
 """
 
 import argparse
@@ -42,13 +42,13 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-START_URL = "https://vote.nccu.edu.tw/cec/vote3.asp?pass1=I9AA%3EI8888888888iii(("
+START_URL = "https://vote.nccu.edu.tw/cec/vote3.asp?pass1=I:888I8888888888iii(("
 BASE_URL = "https://vote.nccu.edu.tw/cec/"
-OUT_DIR = r"D:\Windows\TaiwanElection\1996Precident\data"
-DEFAULT_RAW = os.path.join(OUT_DIR, "1996總統副總統選舉_縣市鄉鎮村里.xlsx")
-DEFAULT_RATE = os.path.join(OUT_DIR, "1996總統副總統選舉_得票率.xlsx")
-DEFAULT_CANDS = ["陳履安", "李登輝", "彭明敏", "林洋港"]
-DEFAULT_CACHE = os.path.join(os.environ.get("TEMP", os.path.expanduser("~")), "pres1996_cache")
+OUT_DIR = r"D:\Windows\TaiwanElection\2000Precident\data"
+DEFAULT_RAW = os.path.join(OUT_DIR, "2000總統副總統選舉_縣市鄉鎮村里.xlsx")
+DEFAULT_RATE = os.path.join(OUT_DIR, "2000總統副總統選舉_得票率.xlsx")
+DEFAULT_CANDS = ["宋楚瑜", "連戰", "李敖", "許信良", "陳水扁"]
+DEFAULT_CACHE = os.path.join(os.environ.get("TEMP", os.path.expanduser("~")), "pres2000_cache")
 
 HEADERS = {
     "User-Agent": (
@@ -133,7 +133,7 @@ def rows_of(html):
 def parse_national(html):
     """vote3.asp：候選人清單。
 
-    1996 版面為 rowspan 表格：總統列 10 欄（含政黨/得票數/得票率），
+    2000 版面為 rowspan 表格：總統列 10 欄（含政黨/得票數/得票率），
     緊接的副總統列只有 4 欄（姓名/號次/性別/出生年次），故只取 8 欄以上
     且姓名欄有連結的總統列，即代表整組候選人。
     """
@@ -321,9 +321,11 @@ def verify_totals(candidates, county_rows, town_rows, vill_rows):
     """三層各自加總，與入口全國得票比對，列出差額即時抓出漏頁。"""
     print("\n────── 驗算：三層加總 vs 全國得票 ──────")
     for i, c in enumerate(candidates):
-        county = sum(int(r["votes"]) for r in county_rows.get(i, []))
-        town = sum(int(r["votes"]) for r in town_rows.get(i, []))
-        vill = sum(int(r["votes"]) for r in vill_rows.get(i, []))
+        def s_(rows, key):
+            return sum(int(r["votes"]) for r in rows.get(i, []))
+        county = s_(county_rows, "county")
+        town = s_(town_rows, "township")
+        vill = s_(vill_rows, "village")
         flag = "OK" if vill == int(c["votes"]) else "⚠ 差額!"
         print(f"  {c['number']}號 {c['name']}: 縣市層={county:,} 鄉鎮層={town:,} "
               f"村里層={vill:,} 全國={int(c['votes']):,} → {flag}")
@@ -505,7 +507,7 @@ def write_rate_xlsx(candidates, vill_rows, path, cand_names):
 
 # ---------------------------------------------------------------- CLI
 def parse_args(argv=None):
-    parser = argparse.ArgumentParser(description="爬取 85 年總統(副總統)選舉三層級交叉表與得票率專用檔")
+    parser = argparse.ArgumentParser(description="爬取 89 年總統(副總統)選舉三層級交叉表與得票率專用檔")
     parser.add_argument("start_url", nargs="?", default=START_URL, help="vote3.asp 入口網址")
     parser.add_argument("--raw", default=DEFAULT_RAW, help="原始交叉表 xlsx 輸出路徑")
     parser.add_argument("--rate", default=DEFAULT_RATE, help="得票率專用 xlsx 輸出路徑")
@@ -514,7 +516,7 @@ def parse_args(argv=None):
     parser.add_argument("--retry", type=int, default=RETRY)
     parser.add_argument("--workers", type=int, default=WORKERS, help="鄉鎮/村里/投票所層並行數")
     parser.add_argument("--cache", default=DEFAULT_CACHE, help="頁面磁碟快取目錄")
-    parser.add_argument("--stations", action="store_true", help="續抓 vote33.asp 投票所明細（頁數多，約 2~3 萬頁）")
+    parser.add_argument("--stations", action="store_true", help="續抓 vote33.asp 投票所明細（頁數多，約 3 萬頁）")
     return parser.parse_args(argv)
 
 
