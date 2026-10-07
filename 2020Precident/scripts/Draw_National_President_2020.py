@@ -14,10 +14,13 @@
     - 村里界 1px、鄉鎮市區界 2px、縣市地界 3px；金門/連江/澎湖等面積小之縣市海岸線 1px、僅畫內部鄉鎮界
     - 金門/連江附圖外框 6px、烏坵以同比例尺置入金門空餘角落(1px 框)
 
-填色邏輯：沿用 Draw_National_President_2024.py：
+填色邏輯：油漆桶／洪水填充（同 Draw_NewTaipei_President_2020.py，共用 flood_fill_layer）：
     - 每村里取三候選人得票率最高者為該村里獲勝候選人，以其色階(5% 間距、35% 起)填色
     - 源資料若將多村里併為一列（以 、 分隔），拆解成各村(里)並填入相同顏色
-    - SHP 有地名但無資料者、空白地區一律填純白
+    - SHP 有地名但無資料者、空白/水域地區一律填純白
+    - 先畫完所有黑線（村里界/鄉鎮市區界/縣市地界/附圖框），再以線稿為封閉堤壩，
+      對堤壩以外每一塊 4-連通區域整塊填單色；顏色取區域內像素幾何所屬村里的眾數
+      → 顏色永不跨越黑線，全臺密集村里區不再有孤立錯色斑點
     - 右側圖例顯示候選人色階（自全臺最低領先得票率向下取 5 的倍數起）
 
 執行：
@@ -53,8 +56,6 @@ OUT_DIR = os.path.join(PROJECT_DIR, "2020Precident", "maps")
 
 SHP_CANDIDATE_PATHS = [
     r"D:\Windows\Documents\村里界歷史圖資_111\108\VILLAGE_MOI_1081121.shp",
-    r"D:\Windows\Documents\村里界歷史圖資_111\村里界歷史圖資_106\村里界歷史圖資_106\VILLAGE_MOI_1070205.shp",
-    r"D:\Windows\Documents\村里界歷史圖資_111\村里界歷史圖資_111\VILLAGE_MOI_1111118.shp",
 ]
 # 不同年份村里界圖資 .dbf 編碼不一：108(2019) 為 UTF-8、106(2018) 為 Big5，依內容自動嘗試
 SHP_ENCODINGS = ["utf-8", "cp950"]
@@ -463,6 +464,92 @@ def load_vote_data(data_dir):
     return by_key, by_town, n_rows, n_total
 
 
+# ===================== 填色：油漆桶／洪水填充（共用） =====================
+def flood_fill_layer(records, lines_mask, w_px, h_px, minx, maxy, sx, sy):
+    """油漆桶式填色（畫圖軟體「填充／洪水填充」規則），單一縣市與全臺地圖共用。
+
+    1) 堤壩 = 線稿 lines_mask（村里界 1px、鄉鎮市區界 2px、縣市地界 3px、
+       金門/連江附圖外框 6px …）。線稿由同一組 matplotlib 繪線指令產生。
+    2) 對堤壩以外的像素做 4-連通標記：1px 斜線也能阻斷 8 連通的斜向滲漏，
+       故顏色不可能跨越任何一條黑線。
+    3) 每個區域整塊填單色，顏色 = 區域內像素「中心點幾何所屬圖斑 id」的眾數。
+       界線上 1px 的渲染/幾何落差會被眾數吸收，密集村里區（如永和）不再出現
+       孤立錯色斑點或色塊滲透（單一取樣點則可能恰好落在落差像素而選錯圖斑）。
+
+    為支援全臺圖（>1 億像素、上萬個圖斑），眾數不用 ncomp×nlab 的計數矩陣，
+    而是「每區域散佈取樣 id → 一致度驗證 → 少數不一致的區域才精算」，記憶體 O(N)。
+
+    回傳 (arr, ncomp, comp)：arr 為填色後 RGB uint8 陣列（尚未畫黑線）；
+    ncomp/comp 為非線像素的 4-連通標記，供自檢重用避免重算。"""
+    from rasterio.features import rasterize
+    from affine import Affine
+
+    # 顏色查找表：id 0 = 無資料（白），id i+1 = 第 i 個圖斑的填色
+    lut = np.vstack([
+        np.array([[255, 255, 255]], dtype=np.uint8),
+        np.array([[int(round(v * 255)) for v in hex2rgb(hx)]
+                  for hx in records["fill_hex"]], dtype=np.uint8),
+    ])
+
+    # 逐像素幾何判定（GDAL/rasterio 像素中心規則）：id = 圖斑序號 + 1，0 = 無圖斑
+    ids = rasterize(((g, i + 1) for i, g in enumerate(records.geometry)),
+                    out_shape=(h_px, w_px),
+                    transform=Affine(1.0 / sx, 0, minx, 0, -1.0 / sy, maxy),
+                    fill=0, dtype="int32", all_touched=False)
+
+    free = ~lines_mask
+    ncomp, comp = cv2.connectedComponents(free.astype(np.uint8), connectivity=4)
+
+    seed = np.zeros(ncomp, dtype=np.int32)
+    seed[comp.ravel()] = ids.ravel()          # 每區域代表 id（散佈賦值，O(N)）
+    reps = seed[comp]
+    agree = (ids == reps)
+    cnt_all = np.bincount(comp.ravel(), minlength=ncomp)
+    cnt_ok = np.bincount(comp.ravel(), weights=agree.ravel(), minlength=ncomp)
+    del reps, agree
+    bad = np.nonzero(cnt_ok < 0.5 * cnt_all)[0]
+    for b in bad:                              # 正常情形 bad 為 0 個
+        m = (comp == b)
+        seed[b] = int(np.bincount(ids[m].ravel()).argmax())
+    if len(bad):
+        print(f"    洪水填充：{len(bad)} 個區域取樣不一致 → 已精算眾數")
+
+    arr = lut[seed[comp]].astype(np.uint8)
+    del ids, seed
+    return arr, ncomp, comp
+
+
+def check_region_single_color(arr, ncomp, comp):
+    """油漆桶不變式自檢：每個非線 4-連通區域必須只含單一顏色（色不越過黑線）。"""
+    from scipy import ndimage
+    c = (arr[..., 0].astype(np.int32) << 16) | \
+        (arr[..., 1].astype(np.int32) << 8) | arr[..., 2].astype(np.int32)
+    idx = np.arange(1, ncomp)
+    mn = ndimage.minimum(c, comp, index=idx)
+    mx = ndimage.maximum(c, comp, index=idx)
+    return ncomp - 1, int((mn != mx).sum())
+
+
+def full_geom_check(img, records, w_px, h_px, minx, maxy, sx, sy):
+    """全圖逐像素幾何參考比對（獨立方法：GDAL/rasterio 像素中心規則）。
+
+    黑線像素不計。回傳 (與幾何參考不同色的像素數, 無圖斑處非白的像素數)。"""
+    from rasterio.features import rasterize
+    from affine import Affine
+    ids = rasterize(((g, i + 1) for i, g in enumerate(records.geometry)),
+                    out_shape=(h_px, w_px),
+                    transform=Affine(1.0 / sx, 0, minx, 0, -1.0 / sy, maxy),
+                    fill=0, dtype="int32", all_touched=False)
+    fill = np.array([[int(round(v * 255)) for v in hex2rgb(hx)]
+                     for hx in records["fill_hex"]], dtype=np.uint8)
+    exp = np.full((h_px, w_px, 3), 255, dtype=np.uint8)
+    inside = ids > 0
+    exp[inside] = fill[ids[inside] - 1]
+    black = img.sum(axis=2) == 0
+    wrong = (img != exp).any(axis=2) & ~black
+    return int(wrong.sum()), int((wrong & ~inside).sum())
+
+
 # ===================== 主流程 =====================
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
@@ -667,11 +754,8 @@ def main():
     ax.set_ylim(miny, maxy)
     ax.set_facecolor(NO_DATA_COLOR)
 
-    # ① 村里填色（無邊）
-    records.plot(
-        ax=ax, facecolor=records["fill_hex"].tolist(),
-        edgecolor='none', linewidth=0, antialiased=False, legend=False
-    )
+    # ① 這裡「不」先填色：改成先把所有黑線畫完，再以線稿為堤壩做油漆桶洪水填充
+    #    （見下方「顏色量化」段；顏色永不跨越黑線，密集村里區不再有孤立錯色斑點）
     # ② 村里黑線（1px）
     gdf_plot_border = gpd.GeoDataFrame(records, geometry="geometry", crs=gdf_all.crs)
     gdf_plot_border.plot(
@@ -730,30 +814,31 @@ def main():
 
     img_bgr = cv2.imdecode(np.frombuffer(buf.getvalue(), np.uint8), cv2.IMREAD_COLOR)
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    del img_bgr
+    gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
 
-    # ===================== 顏色量化（分塊處理） =====================
-    allowed_hex = {NO_DATA_COLOR, "#000000"}
-    for stops in RATE_COLOR_STOPS:
-        allowed_hex.update(hx for _, hx in stops)
-    allowed_rgb_255 = np.array([hex2rgb(hx) for hx in allowed_hex]).astype(np.float32) * 255
+    # ===================== 填色：油漆桶／洪水填充 =====================
+    # 線稿（純黑線）即封閉堤壩；對堤壩以外每一塊 4-連通區域整塊填單色，
+    # 顏色取該區域內像素幾何所屬村里的眾數 → 顏色永不跨越任何一條黑線。
+    print("  填色（洪水填充／油漆桶規則，4-連通區域整塊上色）...")
+    lines_mask = np.zeros((img_h_px, img_w_px), dtype=bool)
+    h2 = min(img_h_px, gray.shape[0]); w2 = min(img_w_px, gray.shape[1])
+    lines_mask[:h2, :w2] = gray[:h2, :w2] < 128
+    del gray
+    sx = img_w_px / (maxx - minx)
+    sy = img_h_px / (maxy - miny)
+    arr, ncomp, comp = flood_fill_layer(records, lines_mask, img_w_px, img_h_px,
+                                        minx, maxy, sx, sy)
+    arr[lines_mask] = 0
+    print(f"  黑像素合計：{int(lines_mask.sum())}  非線連通區域：{ncomp - 1} 塊")
 
-    pixels = img_rgb.reshape(-1, 3).astype(np.float32)
-    n_pixels = pixels.shape[0]
-    CHUNK_SIZE = 500_000
-    quantized_flat = np.empty((n_pixels, 3), dtype=np.uint8)
-    for start in range(0, n_pixels, CHUNK_SIZE):
-        end = min(start + CHUNK_SIZE, n_pixels)
-        chunk = pixels[start:end]
-        min_dist = np.full(chunk.shape[0], np.inf, dtype=np.float32)
-        min_idx = np.zeros(chunk.shape[0], dtype=np.int32)
-        for i in range(allowed_rgb_255.shape[0]):
-            diff = chunk - allowed_rgb_255[i]
-            d = np.sqrt((diff * diff).sum(axis=1))
-            mask = d < min_dist
-            min_dist[mask] = d[mask]
-            min_idx[mask] = i
-        quantized_flat[start:end] = allowed_rgb_255[min_idx].astype(np.uint8)
-    quantized = quantized_flat.reshape(img_rgb.shape)
+    _nc, _nbad = check_region_single_color(arr, ncomp, comp)
+    print(f"  油漆桶不變式：非線區域 {_nc} 塊，非單色區域 {_nbad} 塊（應為 0）")
+    _nw, _nout = full_geom_check(arr, records, img_w_px, img_h_px, minx, maxy, sx, sy)
+    print(f"  與逐像素幾何參考差異：{_nw} px、無圖斑處非白 {_nout} px（皆應 ≈0）")
+    del lines_mask, comp
+    quantized = arr
+    del img_rgb
 
     # ===================== 文字與圖例 =====================
     pil_img = Image.fromarray(quantized)

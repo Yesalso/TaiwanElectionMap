@@ -45,3 +45,11 @@ __pycache__/
 
 # Empty_Map ç”¢å‡ºçš„å¤§åœ–
 /Empty_Map/Taipei/*.png
+# •º´æÅc‚ä·Ý™n
+*.bak_flood
+*.myflood_variant
+_tmp*.txt
+# •º´æÅc‚ä·Ý™n
+*.bak_flood
+*.myflood_variant
+_tmp*.txt
