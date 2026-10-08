@@ -20,6 +20,7 @@
 - [数据来源 / Data Sources](#数据来源--data-sources)
 - [核心流程 / Core Pipeline](#核心流程--core-pipeline)
 - [代码实现 / Implementation Details](#代码实现--implementation-details)
+- [看板与影片 / Boards & Video](#看板与影片--boards--video)
 - [目录结构 / Directory Structure](#目录结构--directory-structure)
 - [依赖与安装 / Dependencies & Setup](#依赖与安装--dependencies--setup)
 - [使用示例 / Usage Examples](#使用示例--usage-examples)
@@ -44,11 +45,12 @@ producing **vote-rate choropleth maps** for the whole island or a single county/
 |---|---|
 | 立法委员「全国不分区及侨居国外国民」/ Legislators (at-large, party list) | 2008（第 7 届/7th）、2012（第 8 届/8th）、2016（第 9 届/9th）、2024（第 11 届/11th）|
 | 立法委员「区域／县市」/ Legislators (regional) | 2024（第 11 届/11th）各县市区域立委图：基隆、新北、台北、桃园、新竹、苗栗、台中、云林、台南、高雄、台东 / per-county district-legislator maps: Keelung, New Taipei, Taipei, Taoyuan, Hsinchu, Miaoli, Taichung, Yunlin, Tainan, Kaohsiung, Taitung |
-| 总统副总统 / President & Vice President | 1996、2000、2024（第 16 届/16th）|
+| 总统副总统 / President & Vice President | 1996、2000、2004、2008、2012、2016、2020、2024（第 16 届/16th）：1996–2012 有资料与转换档；2016／2020 有**区域**得票率图；2020／2024 有全台村里图 / data & converters for 1996–2012; regional maps for 2016 & 2020; national village-level maps for 2020 & 2024 |
 | 台湾省省长 / Taiwan Provincial Governor | 1994 |
 | 台北县／新北市长 / Taipei County / New Taipei City mayors | 1993、1997、2001、2005、2010、2014、2018、2022 |
+| 台北市长 / Taipei City mayors | 2002、2006、2010 得票率图；1994–2022 开票看板（`Video/`）/ vote-rate maps for 2002/2006/2010; election boards for 1994–2022 (`Video/`) |
 | 高雄市长 / Kaohsiung City mayors | 2018、2022 |
-| 其他 / Others | 2001 立委政党票（2001 legislator party votes）、空图（blank map）产出 |
+| 其他 / Others | 2001 立委政党票（2001 legislator party votes）、空图（blank map）产出、看板合成影片 / board-to-video output |
 
 涵盖层级：**村里（village）** 与 **乡镇市区（township）** 两种分辨率。
 _Resolution: **village (村里)** and **township (乡镇市区)** level._
@@ -137,6 +139,8 @@ single county/city:
 - `MayoralElections/scripts/Converge_to_map.py`
 - `KaohsiungMayorlElections/scripts/Converge_to_map_kaohsiung.py`
 - `2024Precident/scripts/Draw_National_President_2024.py`（全台 2024 总统 / national 2024 president）
+- `2016Precident/scripts/Draw_*.py`、`2020Precident/scripts/Draw_*.py`（2016／2020 **区域**总统图 /
+  regional 2016 & 2020 president maps；选县市经验与检查清单见 `2016Precident/scripts/README.md`）
 - `2024DistrictLegislator/scripts/Tainan_legislative_map.py`（台南区域立委 A/B 版 / Tainan regional A/B）
 - `Empty_Map/DrawMap.py`（空白轮廓图 / blank outline maps）
 
@@ -489,6 +493,16 @@ CEC/NCCU web pages into Excel files.
   - `scrape_legislator_2001_party.py`：2001 立委，将同政党在同乡镇的多位候选人得票**加总**，输出「政党 × 乡镇市区」交叉表。
     / 2001 legislators: **sums** the votes of same-party candidates within a township and outputs a
     "party × township" cross table.
+  - `scrape_governor_1994.py`：1994 台湾省省长，输出得票率表。
+    / 1994 Taiwan governor: outputs a vote-rate table.
+  - `scrape_president_{2000,2004,2008,2012,2016,2020}.py`（部分另有 `_rates` 版）：历届总统逐层下钻，
+    下载各投开票所原始得票数并整理为 xlsx，存于 `Get_data/`。
+    / Per-term presidential scrapers (some with a `_rates` variant) drill down through the result pages,
+    download polling-station-level votes and write them as xlsx into `Get_data/`.
+  - `summarize_vs_county.py`：把历届结果汇出为跨届比较表（`1994vs2000.xlsx`、`2000vs2024.xlsx`、
+    `2008vs2020.xlsx` 等）。
+    / `summarize_vs_county.py` exports cross-election comparison workbooks
+    (`1994vs2000.xlsx`, `2000vs2024.xlsx`, `2008vs2020.xlsx`, etc.).
 
 ### 8. 辅助脚本与历史行政区 / Helper scripts & boundary history
 
@@ -520,12 +534,45 @@ CEC/NCCU web pages into Excel files.
 
 ---
 
+## 看板与影片 / Boards & Video
+
+**中文**：`Video/` 把得票资料与地图素材做成 2560×1440 的**开票看板 PNG**，再配上音乐合成为 **MP4 影片**。
+详细操作手册见 `Video/README_批量做看板.md`（看板链）与 `Video/README_合成视频.md`（影片链）。
+
+**English**: `Video/` turns vote data and map assets into 2560×1440 **election-board PNGs**, then composes
+them into a music-backed **MP4**. Full manuals: `Video/README_批量做看板.md` (board pipeline) and
+`Video/README_合成视频.md` (video pipeline).
+
+```text
+NewSolution/data/{年份}{縣市}.xlsx   逐里得票（唯一资料源 / sole data source）
+        │  NewSolution/Converge_to_map_taipei.py   ① 产地图 map/map2/legend.png
+        │  NewSolution/tool/build_assets.py        ② 素材透明化 → png/processed/
+        ▼
+Video/tools/build_board.py boards/<id>             ③ 读 meta.json + 资料 → board.js
+        │  Video/tools/render_boards.mjs --all     ④ Edge(CDP) 截图 → out/<id>_2560x1440.png
+        ▼
+Video/final/*.png + final/MP3/*.mp3                挑出成品看板与配乐
+        │  Video/tools/make_video.py               ⑤ 交叉淡化 + 音画同步 → out_video/*.mp4
+        ▼
+臺北市長選舉1994-2022_2560x1440_配樂.mp4            （另附 verify_video.py 对位质检）
+```
+
+- 看板定义在 `Video/boards/<id>/`（19 个：台北／新北市长 1994–2022，各含 `meta.json` 与素材）。
+- 关键约定（勿改）：地图档名固定 `map.png`／`map2.png`／`legend.png`；成品唯一落点
+  `NewSolution/png/processed/`；静态服务器根必须是 `Video/`。
+  / Key conventions (do not change): fixed map filenames; `NewSolution/png/processed/` is the only
+  asset output; the static server root must be `Video/`.
+
+---
+
 ## 目录结构 / Directory Structure
 
 **中文**：**English**：
 
 ```text
 TaiwanElection/
+├── 1996Precident/ … 2012Precident/   Presidential elections 1996–2012 (data/ converted rate xlsx; 2012 has scripts/)
+├── 2016Precident/ 2020Precident/     2016/2020 president (data/, scripts/Draw_*.py regional maps, maps/)
 ├── 2008Legislator-at-Large/   7th-term at-large legislators (Data/ raw xls, scripts/convert_2008_to_rates.py)
 ├── 2012Legislator-at-Large/   8th-term at-large legislators (scripts/convert_2012_to_rates.py)
 ├── 2016Legislator-at-Large/   9th-term at-large legislators (scripts/convert_2016_to_rates.py)
@@ -537,12 +584,21 @@ TaiwanElection/
 │   ├── color_map_from_rates.py / convert_1994_to_rates.py
 │   └── README_立委不分區資料整理與地圖製作.md   ← detailed at-large pipeline guide
 ├── Empty_Map/                 Blank outline maps (DrawMap.py, Taiwan.png, per-county blanks)
-├── Get_data/                  Scrapers (vote.nccu.edu.tw): GetData.py, scrape_*.py, Convert.py
+├── Get_data/                  Scrapers (vote.nccu.edu.tw): GetData.py, scrape_president_1996–2020.py,
+│                              scrape_governor_1994.py, summarize_vs_county.py, cross-year vs*.xlsx
 ├── KaohsiungMayorlElections/  Kaohsiung mayors 2018/2022 (scripts/, data/, maps/10-20)
 ├── MayoralElections/          Taipei County / New Taipei City mayors 1993-2022 (scripts/, data/, maps/10-20)
+├── TaipeiMayorlElections/     Taipei City mayors 2002/2006/2010 (scripts/, data/, maps/)
 ├── Shared/                    Shared utilities
 │   ├── scripts/Print_word.py  Chinese text renderer (transparent PNG)
 │   └── Color.txt              Shared color-ramp definitions
+├── Video/                     Election boards & music video (2560×1440 boards → MP4)
+│   ├── boards/<id>/           19 board definitions (Taipei/New Taipei mayors 1994–2022)
+│   ├── NewSolution/           Taipei mayor data, map/legend assets, build_assets.py
+│   ├── tools/                 build_board.py, render_boards.mjs, make_video.py, verify_*.py
+│   ├── out/ out_video/ final/ board PNGs, composed MP4 (git-ignored) / 成品（不入库）
+│   └── README_批量做看板.md、README_合成视频.md   ← pipeline manuals
+├── Script/                    One-off drawing helpers (draw_map_*.py, Merge.py)
 ├── maps/
 │   ├── County/                National township vote-rate map PNGs (1994→2024)
 │   └── _text_cache/           On-disk cache of rendered text PNGs
@@ -621,7 +677,19 @@ python "County\2024LegislatorParty.py"
 
 输出 / Output：`maps\County\{年份}年立法委員選舉_得票率地圖.png`
 
-### 5. 爬取中选会／政大开票资料 / Scrape CEC/NCCU result data
+### 5. 绘制 2016／2020 区域总统得票率图 / Draw regional 2016/2020 president maps
+
+```powershell
+python "2016Precident\scripts\Draw_South2_President_2016.py"    # 高屏 2016 / Kaohsiung-Pingtung
+python "2016Precident\scripts\Draw_TCM4_President_2016.py"       # 桃竹苗 2016 / Taoyuan-Hsinchu-Miaoli
+python "2020Precident\scripts\Draw_North5_President_2020.py"     # 北北基宜桃 2020 / North Taiwan
+```
+
+输出 / Output：`{2016|2020}Precident\maps\{区域}{年份}年總統副總統選舉_得票率地圖.png`。
+选县市、图资版本、自检清单见 `2016Precident\scripts\README.md`。
+/ For county selection, SHP versions and the self-check list, see `2016Precident\scripts/README.md`.
+
+### 6. 爬取中选会／政大开票资料 / Scrape CEC/NCCU result data
 
 通用爬虫（自动下钻到村里层）/ Generic scraper (auto-drills to village level):
 
@@ -634,14 +702,28 @@ python "Get_data\GetData.py" <election-results-url> [--region] [--delay] [--retr
 ```powershell
 python "Get_data\scrape_president_1996.py"          # 1996 总统扁平表 / flat 1996 president table
 python "Get_data\scrape_president_1996_levels.py"   # 1996 总统 县市＋乡镇两层 / county+township levels
+python "Get_data\scrape_president_2020.py"          # 2020 总统（2000/2004/2008/2012/2016 同型）
+python "Get_data\scrape_governor_1994.py"           # 1994 台湾省省长 / 1994 governor
 python "Get_data\scrape_legislator_2001_party.py"   # 2001 立委 政党×乡镇 / party x township
 ```
 
-### 6. 产出空白轮廓地图 / Generate blank outline maps
+### 7. 产出空白轮廓地图 / Generate blank outline maps
 
 ```powershell
 python "Empty_Map\DrawMap.py"
 ```
+
+### 8. 批量做看板并合成影片 / Build boards and compose the video
+
+```powershell
+# 在 Video/ 目录下 / run inside Video/
+node tools\render_boards.mjs --all --scale 1     # 渲染全部看板 PNG / render all board PNGs → out/
+python tools\make_video.py                       # 看板 + MP3 → MP4 / boards + music → out_video/
+python tools\verify_video.py                     # 音画对位质检 / audio-visual alignment check
+```
+
+详见 `Video\README_批量做看板.md` 与 `Video\README_合成视频.md`。
+/ See `Video/README_批量做看板.md` and `Video/README_合成视频.md`.
 
 ---
 
@@ -654,6 +736,10 @@ python "Empty_Map\DrawMap.py"
 | `maps\County\` | 全台乡镇级：1994 省长、1996/2000 总统、2001/2008/2012/2016/2024 立委 / National township: 1994 governorship, 1996/2000 president, 2001/2008/2012/2016/2024 legislators |
 | `MayoralElections\maps\10\`、`maps\20\` | 各年份新北县市长（含 2001 个别候选人：王建煊／苏贞昌）/ New Taipei mayors by year (incl. 2001 per-candidate: Wang Chien-shien / Su Tseng-chang) |
 | `KaohsiungMayorlElections\maps\` | 高雄市长 2018、2022 / Kaohsiung mayors 2018, 2022 |
+| `TaipeiMayorlElections\maps\` | 台北市长 2002、2010 等得票率图 / Taipei mayors 2002, 2010 etc. |
+| `2016Precident\maps\` | 2016 总统五区图：北北基宜、桃竹苗、中彰投、雲嘉南、高屏（另有迴针修正对照图）/ Five regional 2016 president maps (plus ring-slit fix comparison images) |
+| `2020Precident\maps\` | 2020 总统全台图 + 区域图（新北、北北基宜桃、雲嘉南高屏）/ National 2020 president + regional maps |
+| `Video\out\`、`Video\final\` | 2560×1440 开票看板 PNG（1994–2022 台北／新北市长）与合成 MP4（不入库 / not committed）|
 | `2024Precident\maps\` | 全台 2024 总统 + 台北／台中／新竹比较图 / National 2024 president + Taipei/Taichung/Hsinchu comparisons |
 | `2024DistrictLegislator\maps\` | 台南区域立委（A/B 版）+ 各县市区域立委图（`{县市}_District2024*.png`，多版本以 `_1`／`_2`／`_Zone` 等区分）/ Tainan regional legislators (A/B) + per-county district-legislator maps (`{County}_District2024*.png`, variants suffixed `_1`/`_2`/`_Zone` etc.) |
 | `2024Legislator-at-Large\maps\` | 新北不分区政党票 / New Taipei at-large party votes |
