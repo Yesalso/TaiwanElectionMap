@@ -130,6 +130,20 @@ VOTE_XLSX = os.path.join(os.path.dirname(SCRIPT_DIR), "data",
 # 檔案無內建 CRS → 視為 EPSG:4326，再投影至 EPSG:3826
 # （欄位正規化與 EPSG:4326→3826 的做法同 Base_JSON/draw_json_map.py、draw_county_maps.py）
 MAP_JSON = r"D:\Windows\TaiwanElection\Base_JSON\twvillage2012.json"
+
+# -------------------- 嘉義市村里層改用 pre2010 村里界 --------------------
+# 民國85年嘉義市為省轄市（東區/西區，108 里）；2012 圖資已是多次里界重編後的結果
+# （東區39+西區45＝84 里，與 1996 各里得票資料用字僅 55/54 里對得上），故嘉義市的
+# 村里層改用民國99年前村里界 twVillage_pre2010.geo.json（108 里，與 1996 資料 107 里
+# 逐字對上，餘 1 里以 CITY_VILL_REPAIR 修字）。
+# 邊界線處理原則：外緣（市界）與區界沿用 twvillage2012.json（＝「原本的地圖邊界線」），
+# 僅村里細分線改用 pre2010；pre2010 各里先裁到 2012 嘉義市市界內，再按 2012 東/西區
+# 區界硬切，最後把市界內未被涵蓋的小碎屑按「最近里」補回 → 接縫無重疊雙線、無破洞。
+CITY_GEOJSON = r"D:\Windows\TaiwanElection\Base_JSON\twVillage_pre2010.geo.json"
+CITY_GEOJSON_COUNTY = "嘉義市"      # pre2010 圖資縣市名（與 2012 同名，無須對照）
+CITY_GEOJSON_TOWN_COL = "TOWNNAME"     # pre2010 鄉鎮市區欄
+CITY_GEOJSON_VILL_COL = "VILLAGENAM"   # pre2010 村里欄
+CITY_VILL_REPAIR = {("西區", "磚嗂里"): "磚窯里"}   # pre2010 用字 → 1996 得票資料用字
 OUT_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), "maps")
 OUT_PNG = os.path.join(OUT_DIR, "雲嘉南1996年總統副總統選舉_得票率地圖.png")
 MISSING_MD = os.path.join(OUT_DIR, "雲嘉南1996_無資料與未匹配村里.md")   # ③ 缺資料回報
@@ -289,6 +303,152 @@ def repair_base_names(gdf):
     return out
 
 
+def _load_city_geojson(path=CITY_GEOJSON):
+    """讀入民國99年前村里界 twVillage_pre2010.geo.json 的嘉義市子集。
+
+    欄位為大寫 COUNTYNAME / TOWNNAME / VILLAGENAM，正規化為 COUNTYNAME / TOWNNAME /
+    VILLNAME 以沿用後續 dissolve / 匹配 / 清理邏輯。檔案無內建 CRS → 視為 EPSG:4326，
+    再投影至 EPSG:3826（同 2012 底圖的處理）。
+    """
+    g = gpd.read_file(path)
+    rename = {}
+    lower = {c.lower(): c for c in g.columns}
+    for src, dst in (("countyname", "COUNTYNAME"), ("townname", "TOWNNAME"),
+                     ("villagenam", "VILLNAME"), ("village", "VILLNAME")):
+        if dst in g.columns or src not in lower:
+            continue
+        rename[lower[src]] = dst
+    if rename:
+        g = g.rename(columns=rename)
+    lack = [c for c in ("COUNTYNAME", "TOWNNAME", "VILLNAME") if c not in g.columns]
+    if lack:
+        raise ValueError(f"{os.path.basename(path)} 缺少欄位：{'、'.join(lack)}"
+                         f"（現有：{g.columns.tolist()}）")
+    # 只取目標縣市（pre2010 縣市名與 2012 同名；先過濾再正規化縣市名）
+    g["COUNTYNAME"] = g["COUNTYNAME"].astype(str).str.strip()
+    g = g[g["COUNTYNAME"].eq(CITY_GEOJSON_COUNTY)].copy()
+    if g.crs is None:
+        g.crs = "EPSG:4326"
+    g = g.to_crs(TARGET_CRS)
+    g["TOWNNAME"] = g["TOWNNAME"].astype(str).str.strip()
+    g["VILLNAME"] = g["VILLNAME"].astype(str).str.strip()
+    g["geometry"] = g.geometry.buffer(0)
+    g = g[~g.geometry.isna() & ~g.geometry.is_empty].copy()
+    # 村名對齊 1996 得票資料用字
+    t = g["TOWNNAME"].tolist()
+    v = g["VILLNAME"].tolist()
+    nv = [CITY_VILL_REPAIR.get((a, b), b) for a, b in zip(t, v)]
+    _n = sum(1 for a, b in zip(v, nv) if a != b)
+    if _n:
+        print(f"  pre2010 村名對齊 1996 用字（CITY_VILL_REPAIR）：{_n} 筆")
+    g["VILLNAME"] = nv
+    g = g[["COUNTYNAME", "TOWNNAME", "VILLNAME", "geometry"]].copy()
+    return g.reset_index(drop=True)
+
+
+def _apply_city_geojson(gdf, path=CITY_GEOJSON):
+    """把嘉義市的村里層換成民國99年前村里界（pre2010）。
+
+    邊界線處理原則（依需求）：**大部分情況以原本的地圖邊界線為準**——
+      - 外緣（嘉義市市界）與區界：沿用 twvillage2012.json（＝原本底圖），不變動；
+      - 僅村里細分線：改用 pre2010。
+
+    實作（S_12 ＝ 2012 嘉義市聯集，S_pre ＝ pre2010 嘉義市聯集）：
+      ① 逐里裁剪：每個 pre2010 里的 geometry ∩ S_12 → 村里線不再越出 2012 市界；
+      ② 市界補塊：S_12 內未被任何 pre2010 里涵蓋的碎屑，逐塊併入「最靠近的」里
+         （同一塊只併入一個里，避免里與里重疊）→ 市界內零破洞；
+      ③ 區界硬切：每里再按 2012 東/西區區界裁剪，確保區界完全等於 2012，
+         不因 pre2010 里跨區而把區界畫歪。
+    最終市側合計恰等於 S_12（與外緣 2012 完全一致），村里線則為 pre2010。
+    """
+    city = _load_city_geojson(path)
+    if not len(city):
+        print("  pre2010 底圖置換：無有效要素，維持 JSON 底圖")
+        return gdf
+    CITY = CITY_GEOJSON_COUNTY
+    is12 = gdf["COUNTYNAME"].eq(CITY)
+    json_city = gdf[is12].copy()
+    rest = gdf[~is12].copy()
+    if not len(json_city):
+        print(f"  pre2010 底圖置換：底圖無「{CITY}」，維持 JSON 底圖")
+        return gdf
+
+    S_12 = unary_union(json_city.geometry.tolist())
+    S_pre = unary_union(city.geometry.tolist())
+
+    # 2012 東/西區區界（＝原本的地圖邊界線，須維持不變）
+    town_geoms = {}
+    for _t, _g in zip(json_city["TOWNNAME"], json_city["geometry"]):
+        town_geoms.setdefault(_t, []).append(_g)
+    town_geoms = {k: unary_union(v) for k, v in town_geoms.items()}
+
+    # ① 逐里裁剪到 2012 市界內
+    city["geometry"] = [g.intersection(S_12) for g in city.geometry]
+    city = city[~city.geometry.isna() & ~city.geometry.is_empty].copy().reset_index(drop=True)
+    if not len(city):
+        print("  pre2010 底圖置換：裁剪後無有效要素，維持 JSON 底圖")
+        return gdf
+
+    # ② 市界補塊：S_12 未被 pre2010 涵蓋的碎屑，逐塊併入最近的里
+    _geoms = list(city["geometry"])
+    _resid = S_12.difference(unary_union(_geoms))
+    _n_patch = 0
+    if not _resid.is_empty:
+        for _c in (list(_resid.geoms) if hasattr(_resid, "geoms") else [_resid]):
+            _k = int(np.argmin([g.distance(_c) for g in _geoms]))
+            _geoms[_k] = _geoms[_k].union(_c)
+            _n_patch += 1
+    city["geometry"] = _geoms
+
+    # ③ 區界硬切：每里按 2012 東西區區界裁剪
+    def _cut_row(r):
+        g = r["geometry"]
+        tg = town_geoms.get(r["TOWNNAME"])
+        if tg is not None:
+            g = g.intersection(tg)
+        return g
+    city["geometry"] = city.apply(_cut_row, axis=1)
+    city = city[~city.geometry.isna() & ~city.geometry.is_empty].copy().reset_index(drop=True)
+
+    # ④ 區內貼合：裁剪/求交會帶來座標精度漂移，使東、西區在共邊處留下亞像素縫隙
+    #    （聯集後市側會裂成 2 塊，縫隙兩側被誤判為「外輪廓」而畫成 5px 縣市界粗線）。
+    #    故對每個區，把「2012 區面 − 區內各里聯集」的殘餘逐塊補入該區最近的里，
+    #    使每區的里聯集精確等於 2012 區面 → 兩區必然共邊貼合、市界單一連通。
+    _n_fill = 0
+    for _t, _sub in city.groupby("TOWNNAME"):
+        tg = town_geoms.get(_t)
+        if tg is None:
+            continue
+        idxs = list(_sub.index)
+        gs = [city.at[i, "geometry"] for i in idxs]
+        _r = tg.difference(unary_union(gs))
+        if _r.is_empty:
+            continue
+        for _c in (list(_r.geoms) if hasattr(_r, "geoms") else [_r]):
+            _k = int(np.argmin([g.distance(_c) for g in gs]))
+            gs[_k] = gs[_k].union(_c)
+            _n_fill += 1
+        for i, g in zip(idxs, gs):
+            city.at[i, "geometry"] = g
+    city = city[~city.geometry.isna() & ~city.geometry.is_empty].copy().reset_index(drop=True)
+
+    # 補上 village_name_repair 相關欄位，讓後續 repair_base_names / 報告欄位一致
+    city["VILLNAME_RAW"] = city["VILLNAME"]
+    city["NAME_REPAIR"] = ""
+
+    out = pd.concat([rest, city], ignore_index=True)
+    out = out[~out.geometry.isna() & ~out.geometry.is_empty].copy().reset_index(drop=True)
+    _cy_u = unary_union(city.geometry.tolist())
+    _cy_parts = len(_cy_u.geoms) if hasattr(_cy_u, "geoms") else 1
+    print(f"  pre2010 底圖置換：{CITY} 村里層改用民國99年前村里界（原 JSON {len(json_city)} 筆"
+          f" → pre2010 {len(city)} 里）")
+    print(f"    S_12 {S_12.area / 1e6:.2f} km²、S_pre {S_pre.area / 1e6:.2f} km²、"
+          f"互有出入 {S_pre.symmetric_difference(S_12).area / 1e6:.3f} km²；"
+          f"市界補塊 {_n_patch} 塊、區內貼合 {_n_fill} 塊；"
+          f"市側聯集 {_cy_parts} 塊（應 1＝與 2012 市界完全一致）")
+    return out
+
+
 def write_missing_report(gdf_all, vote_dict):
     """把匹配稽核結果寫成 Markdown（MISSING_MD）：
 
@@ -429,6 +589,8 @@ def main():
 
     gdf_all = load_base_map(MAP_JSON)
     gdf_all = repair_base_names(gdf_all)
+    # 嘉義市村里層改用民國99年前村里界（外緣/區界沿用 2012，僅村里細分線置換）
+    gdf_all = _apply_city_geojson(gdf_all)
 
     # 指定縣市的「無村里名」圖斑整筆不畫 （本區 2012 圖資無此類圖斑）
     if DROP_NAN_COUNTIES:
@@ -713,12 +875,20 @@ def strip_far_parts(gdf, max_dist_nameless=REMOTE_MAX_DIST_M, max_dist_named=NAM
         ps = list(geom.geoms) if hasattr(geom, "geoms") else [geom]
         kp = [ps[k] for k in range(len(ps)) if keep_flags[idx0 + k]]
         idx0 += len(ps)
-        if not kp:
+        # 只保留面狀組件（union/intersection 後偶有 LineString/Point 殘留），
+        # 並展平 MultiPolygon，避免 MultiPolygon(kp) 因含非面組件而拋錯。
+        flat = []
+        for q in kp:
+            if q.geom_type == "Polygon":
+                flat.append(q)
+            elif hasattr(q, "geoms"):
+                flat.extend(x for x in q.geoms if x.geom_type == "Polygon")
+        if not flat:
             rebuilt.append(None)
-        elif len(kp) == 1:
-            rebuilt.append(kp[0])
+        elif len(flat) == 1:
+            rebuilt.append(flat[0])
         else:
-            rebuilt.append(MultiPolygon(kp))
+            rebuilt.append(MultiPolygon(flat))
     out = gdf.copy()
     out["geometry"] = rebuilt
     out = out[~out["geometry"].isna() & ~out["geometry"].is_empty].copy().reset_index(drop=True)
