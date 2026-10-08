@@ -12,6 +12,8 @@ Draw_NewTaipei_President_2020.py），只把「北北基宜桃五縣市」改為
      - 區界 3px + 縣市界/海岸線 5px：matplotlib(Agg, DPI=100) 繪區面與區界，
        以 THRESHOLD_VAL 二值化切掉抗鋸齒灰邊 → 純黑線層
      - 微孔洞清理（HOLE_MIN_AREA_M2）避免 dissolve 浮點誤差造成的散點
+     - 迴針清理（remove_ring_slits）折疊圖資「去而復返」的退化迴針，避免
+       dissolve 後殘留在區／縣市外環、被誤畫成憑空冒出的死線
      - 兩層同一像素網格約定（像素 i 中心 = minx+(i+0.5)/sx），疊加不錯開 1px
   ② 填色與圖例
      - 得票率 Excel 讀取、異體字/模糊匹配、三候選人取最高者填色（5% 色階、35% 起）
@@ -223,6 +225,7 @@ def main():
     for c in TARGET_COUNTIES:
         print(f"    {c}：村里 {int((records['COUNTYNAME'] == c).sum())}")
 
+    townships = remove_ring_slits(townships)
     townships = clean_tiny_holes(townships)
 
     # ----------------------畫布尺寸----------------------
@@ -520,6 +523,87 @@ def strip_far_parts(gdf, max_dist_nameless=REMOTE_MAX_DIST_M, max_dist_named=NAM
 
 
 # ===================== 線稿工具 =====================
+def _despike_ring(coords, tol=5.0, area_thr=5000.0, min_path=100.0):
+    """折疊單一線環（ring）中的「迴針／零寬裂縫」退化子路徑。
+
+    村里界圖資在少數里別邊界有數位化瑕疵：線環從某點出發、沿同一條路徑往外
+    走數百公尺～數公里後又原路折返（去而復返），圍出的面積近乎 0。dissolve
+    後這種退化迴針會殘留在區／縣市外環或內環上，繪圖時就變成地圖中間憑空
+    冒出的「死線」（一端接邊界、另一端懸空）。新竹市香山區、臺南市歸仁區等
+    皆有數筆。
+
+    作法：對每個頂點 i 找最近的其他頂點 j（僅計 i+2 之後、排除線環首尾
+    閉合），若 |Pj-Pi| <= tol 且子路徑 i..j 的長度 > min_path、圍出面積 <
+    area_thr，即視為退化迴針，刪除 i+1..j-1 之間的頂點將其折疊回一個點。
+    三道門檻（位移、長度、面積）確保真實的半島、岬角、細長沙洲不會被誤刪。
+    """
+    P = np.asarray(coords, dtype=float)
+    n = len(P)
+    if n < 5:
+        return P
+    dead = np.zeros(n, dtype=bool)
+    i = 0
+    while i < n:
+        if dead[i]:
+            i += 1
+            continue
+        d = np.hypot(P[:, 0] - P[i, 0], P[:, 1] - P[i, 1])
+        d[:i + 2] = np.inf            # 至少隔 2 個點才算「繞了一大圈」
+        if i == 0:
+            d[n - 1] = np.inf         # 排除線環正常的首尾閉合
+        j = int(np.argmin(d))
+        if d[j] <= tol:
+            seg = P[i:j + 1]
+            path_len = float(np.hypot(np.diff(seg[:, 0]), np.diff(seg[:, 1])).sum())
+            _x, _y = seg[:, 0], seg[:, 1]
+            area = 0.5 * abs(np.dot(_x[:-1], _y[1:]) - np.dot(_x[1:], _y[:-1]))
+            if path_len > min_path and area < area_thr:
+                dead[i + 1:j] = True  # 折疊此迴針
+        i += 1
+    return P[~dead]
+
+
+def remove_ring_slits(gdf, tol=5.0, area_thr=5000.0, min_path=100.0, verbose=True):
+    """移除區層多邊形外環/內環的退化迴針（見 _despike_ring）。
+
+    只作用於 dissolve 後的區層；村里層（① 1px）實測無此瑕疵，不需處理。
+    """
+    n_ring_fixed = 0
+    n_vert_removed = 0
+
+    def _fix(geom):
+        nonlocal n_ring_fixed, n_vert_removed
+        if geom is None or geom.is_empty:
+            return geom
+        out = []
+        for poly in (list(geom.geoms) if hasattr(geom, "geoms") else [geom]):
+            ext = _despike_ring(poly.exterior.coords, tol, area_thr, min_path)
+            if len(ext) != len(poly.exterior.coords):
+                n_ring_fixed += 1
+                n_vert_removed += len(poly.exterior.coords) - len(ext)
+            holes = []
+            for r in poly.interiors:
+                h = _despike_ring(r.coords, tol, area_thr, min_path)
+                if len(h) != len(r.coords):
+                    n_ring_fixed += 1
+                    n_vert_removed += len(r.coords) - len(h)
+                if len(h) >= 4:
+                    holes.append(h)
+            out.append(Polygon(ext, holes).buffer(0))
+        if not out:
+            return geom
+        return out[0] if len(out) == 1 else MultiPolygon(out)
+
+    o = gdf.copy()
+    o["geometry"] = o.geometry.apply(_fix)
+    o = o[~o.geometry.isna() & ~o.geometry.is_empty].copy().reset_index(drop=True)
+    if verbose:
+        print(f"  區層迴針清理：修正 {n_ring_fixed} 個線環、折疊 {n_vert_removed} 個頂點"
+              f"（tol={tol:.0f}m、面積<{area_thr:.0f}m²、長度>{min_path:.0f}m）"
+              if n_ring_fixed else "  區層迴針清理：無退化迴針")
+    return o
+
+
 def clean_tiny_holes(gdf, min_area=HOLE_MIN_AREA_M2):
     """移除面積 < min_area 的內環(洞)與過小碎片（dissolve 浮點誤差造成的微孔）。"""
     def _fix(geom):

@@ -1,47 +1,55 @@
 # -*- coding: utf-8 -*-
 """
-北臺五縣市（臺北市・新北市・基隆市・宜蘭縣・桃園市）
-2020 總統副總統選舉 各村（里）得票領先候選人得票比例圖
+北部四縣市（桃園市・新竹縣・新竹市・苗栗縣）
+2016 總統副總統選舉 各村（里）得票領先候選人得票比例圖
 
-繪圖邏輯完全沿用 Draw_NewTaipei_President_2020.py，只把「只找新北市」改為
-「找這五個縣市」，並依需求調整比例尺與離島處理：
+資料來源：2016Precident/data/2016總統副總統選舉_得票率.xlsx（工作表「各里彙總」）
+    選舉區別 | 鄉(鎮、市、區)別 | 村里別 | 朱立倫得票率 | 蔡英文得票率 | 宋楚瑜得票率
+    → 候選人（號次）：朱立倫(01) → 蔡英文(02) → 宋楚瑜(03)，與 2020 版色階順序一致
+      （藍／綠／橘），故 RATE_COLOR_STOPS 沿用 Draw_National_President_2020。
+村里界圖資：107 年 2 月 5 日版 VILLAGE_MOI_1070205.shp（.dbf 為 Big5/cp950），
+    與 2016 選舉最為接近之歷史圖資（次新者為 108 年版）。
+
+繪圖邏輯沿用 Draw_South2_President_2016.py（高屏版），把「高雄市、屏東縣」改為
+「桃園市、新竹縣、新竹市、苗栗縣（桃竹苗）」：
 
   ① 線稿（兩層畫法）
      - 村里界 1px：PIL Bresenham 逐段 1px 直繪 → skimage.morphology.thin 取中心線
      - 區界 3px + 縣市界/海岸線 5px：matplotlib(Agg, DPI=100) 繪區面與區界，
        以 THRESHOLD_VAL 二值化切掉抗鋸齒灰邊 → 純黑線層
      - 微孔洞清理（HOLE_MIN_AREA_M2）避免 dissolve 浮點誤差造成的散點
-     - 迴針清理（remove_ring_slits）折疊圖資「去而復返」的退化迴針，避免
-       dissolve 後殘留在區／縣市外環、被誤畫成憑空冒出的死線
      - 兩層同一像素網格約定（像素 i 中心 = minx+(i+0.5)/sx），疊加不錯開 1px
-  ② 填色與圖例（同 2020 全臺腳本）
+  ② 填色與圖例
      - 得票率 Excel 讀取、異體字/模糊匹配、取最高者填色（5% 色階、35% 起）
      - 填色採「油漆桶／洪水填充」規則：以線稿構成封閉堤壩，堤壩以外每一塊
        4-連通區域整塊填單色，顏色取區域內像素幾何所屬村里的眾數
-       → 顏色永不跨越任何一條黑線，密集村里區（如永和）不會出現錯色
-     - 自檢：① 油漆桶不變式（每塊非線區域皆單色）；② 與逐像素幾何參考
-       （GDAL/rasterio 中心規則，獨立方法）差異 ≈0、村外非白 ≈0
-     - 版面：**不畫標題**，只把圖例置於畫布右上角；
-       圖例自最低領先得票率向下取 5 的倍數起
+       → 顏色永不跨越任何一條黑線，密集村里區不會出現錯色
+      - 自檢：① 油漆桶不變式（每塊非線區域皆單色）；② 與逐像素幾何參考
+        （GDAL/rasterio 中心規則，獨立方法）差異 ≈0、村外非白 ≈0
+      - 版面：**不畫標題，只把圖例置於畫布右上角**
 
-與新北版的差異：
-  - 縣市：臺北市 / 新北市 / 基隆市 / 宜蘭縣 / 桃園市（五個一起選取）
-  - 區層 dissolve 改以 (COUNTYNAME, TOWNNAME) 為鍵——臺北/基隆都有「中正區、
-    信義區、中山區」，只按 TOWNNAME dissolve 會把同名區合併、畫出跨縣市的假區界
-  - 縣市界另以 5px 繪製（原新北版只有市界＝海岸線），五縣市交界才看得出來
-  - 比例尺 1px = 20m（METERS_PER_PIXEL=20，不再額外放大）
-  - 基隆市的「無村里名」圖斑整筆不畫（基隆港水域等）＝ DROP_NAN_COUNTIES
-  - 遠離本島的圖斑以 strip_far_parts 處理：
-      無村里名者超過 2km 即剔除（基隆中正區之彭佳嶼／棉花嶼／花瓶嶼／基隆嶼）；
-      有村里名者超過 20km 才剔除（宜蘭頭城鎮大溪里 MultiPolygon 內 100 塊散佈在
-      120km 外海的圖資錯誤碎塊）——宜蘭頭城鎮龜山里之龜山島（≈9km）有村里編制，
-      **保留並畫出**
+與高屏版的差異：
+  - 縣市：桃園市 / 新竹縣 / 新竹市 / 苗栗縣（桃竹苗四縣市）
+  - 區層 dissolve 仍以 (COUNTYNAME, TOWNNAME) 為鍵
+  - 縣市界另以 5px 繪製，縣市交界才看得出來
+  - 比例尺 1px = 20m（METERS_PER_PIXEL=20）
+  - 新竹市的「無村里名」圖斑整筆不畫（北區 366ha 港區水域、香山區 159ha
+    溼地/漁港水域）＝ DROP_NAN_COUNTIES
+  - strip_far_parts 處理：本圖聯集僅 1 個連通分量（全部圖斑皆與本島相連，
+    無任何離島）→ 2km / 20km 兩道門檻不會剔除任何圖斑
+  - 區層迴針清理 remove_ring_slits：村里界圖資少數里別邊界有「去而復返」的
+    數位化瑕疵（線環沿同一條路徑往外走再原路折返，圍出面積≈0），dissolve 後
+    會殘留在區/縣市外環，繪圖時就成了憑空冒出的死線。例如新竹市香山區有兩條
+    （約 1.2km、2.1km，一端接海岸、一端懸空，會誤畫成縣市界）。本函數在三道
+    門檻（位移≤5m、路徑>100m、圍出面積<5000m²）下折疊這些退化迴針；桃竹苗
+    實測命中 18 個區、面積變化 <0.5m²，真實邊界不受影響。
 
-比例尺：1px = 30m
-輸出：2020Precident/maps/北北基宜桃2020年總統副總統選舉_得票率地圖.png
-執行：py Draw_North5_President_2020.py
+比例尺：1px = 20m
+輸出：2016Precident/maps/桃竹苗2016年總統副總統選舉_得票率地圖.png
+執行：py Draw_TCM4_President_2016.py
 """
 import os
+import re
 import sys
 import math
 import warnings
@@ -65,23 +73,39 @@ warnings.filterwarnings("ignore")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
-import Draw_National_President_2020 as nat   # 得票率匹配 / 填色 / 圖例 / 文字渲染
+# 共用模組（得票率匹配 / 填色 / 圖例 / 文字渲染）位於 2020Precident/scripts
+SHARED_SCRIPTS = os.path.join(
+    os.path.dirname(os.path.dirname(SCRIPT_DIR)), "2020Precident", "scripts")
+if SHARED_SCRIPTS not in sys.path:
+    sys.path.insert(0, SHARED_SCRIPTS)
+import Draw_National_President_2020 as nat
 
 # ===================== 配置 =====================
-# 108 年版村里界（2019/11/21），與 2020 選舉年份一致，同 2020 全臺腳本之首選圖資
-shp_path = r"D:\Windows\Documents\村里界歷史圖資_111\108\VILLAGE_MOI_1081121.shp"
+# 2016 總統副總統選舉三組候選人（號次 01/02/03）：
+# 色階沿用 nat.RATE_COLOR_STOPS —— 第 1 組藍(國民黨 朱立倫)、第 2 組綠(民進黨 蔡英文)、
+# 第 3 組橘(親民黨 宋楚瑜)，與 2020 版順序一致，不需另建色表
+CAND_NAMES = ["朱立倫", "蔡英文", "宋楚瑜"]
+CAND_RATE_COLS = [f"{n}得票率" for n in CAND_NAMES]
+
+# 2016 各里得票率 Excel（工作表「各里彙總」）
+VOTE_XLSX = os.path.join(os.path.dirname(SCRIPT_DIR), "data",
+                         "2016總統副總統選舉_得票率.xlsx")
+
+# 107 年 2 月 5 日版村里界：與 2016 選舉最接近之歷史圖資（.dbf 為 Big5）
+shp_path = (r"D:\Windows\Documents\村里界歷史圖資_111\村里界歷史圖資_106"
+            r"\村里界歷史圖資_106\VILLAGE_MOI_1070205.shp")
 OUT_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), "maps")
-OUT_PNG = os.path.join(OUT_DIR, "北北基宜桃2020年總統副總統選舉_得票率地圖.png")
-layer_name = "layer_north5_district_2px.png"   # ② 層單獨輸出（核對用）
-TARGET_COUNTIES = ["臺北市", "新北市", "基隆市", "宜蘭縣", "桃園市"]
-encoding = "UTF-8"        # 108 版 .dbf 為 UTF-8；若失效可改 "cp950"
+OUT_PNG = os.path.join(OUT_DIR, "桃竹苗2016年總統副總統選舉_得票率地圖.png")
+layer_name = "layer_tcm4_district_3px.png"   # ② 層單獨輸出（核對用）
+TARGET_COUNTIES = ["桃園市", "新竹縣", "新竹市", "苗栗縣"]
+encoding = "cp950"       # 107 版 .dbf 為 Big5/cp950；若失效可改 "UTF-8"
 TARGET_CRS = "EPSG:3826"
 
 TITLE_LINES = []          # 不畫標題（只保留右側圖例）
 
 # 比例尺：1px = 20m（不再額外放大）
-# 五縣市 bbox 約 103.5 x 109.7 km（桃園觀音～宜蘭龜山島、宜蘭南澳～新北石門），
-# 1px=20m 後地圖約 5200x5500 px（長寬皆 < MAX_PX）
+# 桃竹苗 bbox 約 86.9 x 92.5 km（新竹香山～桃園復興、桃園蘆竹～苗栗卓蘭），
+# 1px=20m 後地圖約 4345x4625 px（長寬皆 < MAX_PX）
 METERS_PER_PIXEL = 20.0
 MAX_PX = 12000
 SCALE_UP = 1.0
@@ -94,14 +118,13 @@ LINE_TOWNSHIP_PX = 3     # ② 區界線寬(px)
 LINE_OUTER_PX = 5        # ② 縣市界/海岸線線寬(px)
 THRESHOLD_VAL = 40       # ② 二值化閾值
 HOLE_MIN_AREA_M2 = 10000.0   # 小於此面積的內環視為 dissolve 雜訊，填平
-# 無村里名(VILLNAME 空)的圖斑：這些縣市整筆不畫（如基隆港水域）
-DROP_NAN_COUNTIES = ["基隆市"]
+# 無村里名(VILLNAME 空)的圖斑：這些縣市整筆不畫
+# （新竹市北區 366ha 港區水域、香山區 159ha 溼地/漁港水域）
+DROP_NAN_COUNTIES = ["新竹市"]
 REMOTE_MAX_DIST_M = 2000.0   # 無村里名者：與本島相距超過此值 → 不畫（外海無編制離島）
 NAMED_MAX_DIST_M = 20000.0   # 有村里名者：超過此值才視為圖資錯誤碎塊並剔除
-# 實測 108 版圖資：北北基宜桃 2512 個圖斑與本島的距離分布——
-#   貼岸/內陸水域 = 0m；有村里名的離島僅龜山島 ≈9km（有編制，須保留）；
-#   其餘非 0 者皆 ≥3320m（基隆嶼等無名離島）；圖資錯誤碎塊則在 ≥196km。
-# 故 2km / 20km 兩道門檻可精準切開。
+# 實測 107 版圖資（桃園市+新竹縣+新竹市+苗栗縣 1094 筆）聯集僅 1 個連通分量，
+# 全部圖斑皆與本島相連（無任何離島）→ 2km / 20km 兩道門檻不會剔除任何圖斑。
 SAVE_LAYER = False
 # ==================================================
 
@@ -109,9 +132,53 @@ os.makedirs(OUT_DIR, exist_ok=True)
 
 
 # ----------------------① 讀 SHP + 讀得票率 + 匹配填色----------------------
+def load_vote_data(vote_xlsx=VOTE_XLSX):
+    """讀取 2016 各里得票率 Excel（工作表「各里彙總」）。
+
+    欄位：選舉區別 | 鄉(鎮、市、區)別 | 村里別 | 朱立倫得票率 | 蔡英文得票率 | 宋楚瑜得票率
+    得票率依 CAND_NAMES（= CAND_RATE_COLS）順序擷取為 tuple（字尾 % 移除），
+    回傳 (by_key, by_town, n_rows, n_total)，供 nat.fuzzy_lookup 使用。
+    源資料若將多村里併為一列（以 、 分隔），拆解成各村(里)並共用同一組得票率。
+    """
+    by_key, by_town = {}, {}
+    n_total, n_rows = 0, 0
+    df = pd.read_excel(vote_xlsx, sheet_name="各里彙總", dtype=str)
+    df.columns = [str(c) for c in df.columns]
+    need = ["選舉區別", "鄉(鎮、市、區)別", "村里別"] + CAND_RATE_COLS
+    lack = [c for c in need if c not in df.columns]
+    if lack:
+        raise ValueError(f"{os.path.basename(vote_xlsx)} 缺少欄位：{'、'.join(lack)}")
+    for _, r in df.iterrows():
+        county = nat.normalize_text(r.get("選舉區別"))
+        town = nat.strip_town_suffix(r.get("鄉(鎮、市、區)別"))
+        vill_raw = nat.normalize_text(r.get("村里別"))
+        if not county or not town or not vill_raw:
+            continue
+        try:
+            vals = tuple(float(str(r[c]).strip().replace("%", "").replace("\u00a0", ""))
+                         for c in CAND_RATE_COLS)
+        except (TypeError, ValueError):
+            continue
+        if not all(np.isfinite(v) for v in vals):
+            continue
+        n_total += 1
+        parts = [p for p in re.split(r"[、，,]", vill_raw) if p.strip()]
+        for part in parts:
+            part_core = nat.strip_village_suffix(part.strip())
+            if not part_core:
+                continue
+            key = (county, town, part_core)
+            if key in by_key:
+                continue
+            by_key[key] = vals
+            by_town.setdefault((county, town), []).append((part_core, vals))
+            n_rows += 1
+    return by_key, by_town, n_rows, n_total
+
+
 def main():
     print("=" * 62)
-    print("  北北基宜桃 2020 總統副總統選舉 各村（里）得票率地圖")
+    print("  桃竹苗 2016 總統副總統選舉 各村（里）得票率地圖")
     print("=" * 62)
 
     gdf_all = gpd.read_file(shp_path, encoding=encoding)
@@ -130,7 +197,7 @@ def main():
     gdf_all = gdf_all[~gdf_all.geometry.isna() & ~gdf_all.geometry.is_empty].copy()
     gdf_all = gdf_all.reset_index(drop=True)
 
-    # 指定縣市的「無村里名」圖斑整筆不畫（基隆港水域等）
+    # 指定縣市的「無村里名」圖斑整筆不畫（新竹港區/溼地水域等）
     if DROP_NAN_COUNTIES:
         _vv = gdf_all["VILLNAME"].fillna("").astype(str).str.strip()
         _drop = gdf_all["COUNTYNAME"].isin(DROP_NAN_COUNTIES) & _vv.isin(["", "nan", "None"])
@@ -139,18 +206,22 @@ def main():
             gdf_all = gdf_all[~_drop].copy().reset_index(drop=True)
 
     # 遠離本島的圖斑處理：無村里名者超 2km 剔除；有村里名者超 20km 才剔除
+    # （本圖聯集僅 1 個連通分量，無任何離島 → 不會剔除任何圖斑）
     gdf_all = strip_far_parts(gdf_all)
-    EXPECT_CC = 1 + int(gdf_all.attrs.get("n_islands", 0))   # 本島 + 保留之離島（龜山島）
+    # ② 層連通分量期待值＝保留圖斑聯集的連通分量數（本圖＝1，無離島）
+    _union = unary_union(gdf_all.geometry.tolist())
+    EXPECT_CC = len(list(_union.geoms)) if hasattr(_union, "geoms") else 1
+    del _union
 
-    # 得票率（沿用 2020 全臺腳本的 Excel 讀取與異體字/模糊匹配）
-    vote_dict, vote_by_town, n_rows, n_total = nat.load_vote_data(nat.DATA_DIR)
+    # 得票率（2016 各里彙總 Excel，異體字/模糊匹配沿用全臺腳本）
+    vote_dict, vote_by_town, n_rows, n_total = load_vote_data()
     print(f"  Excel 得票率記錄 : {n_total} 筆（去重後 {n_rows} 筆）")
 
     gdf_all["county_core"] = gdf_all["COUNTYNAME"].apply(nat.normalize_text)
     gdf_all["town_core"] = gdf_all["TOWNNAME"].apply(nat.strip_town_suffix)
     gdf_all["vill_core"] = gdf_all["VILLNAME"].apply(nat.strip_village_suffix)
 
-    rate_cols = [f"rate{i}" for i in range(len(nat.CAND_NAMES))]
+    rate_cols = [f"rate{i}" for i in range(len(CAND_NAMES))]
 
     def process_row(r):
         matched, vals, mt = nat.fuzzy_lookup(
@@ -187,8 +258,8 @@ def main():
 
     # 各候選人領先村里數：完全沒人領先的候選人不畫圖例欄
     _win = np.argmax(gdf_all.loc[has_data, rate_cols].fillna(0.0).to_numpy(dtype=float), axis=1)
-    active_idx = [i for i in range(len(nat.CAND_NAMES)) if int((_win == i).sum()) > 0]
-    for i, nm in enumerate(nat.CAND_NAMES):
+    active_idx = [i for i in range(len(CAND_NAMES)) if int((_win == i).sum()) > 0]
+    for i, nm in enumerate(CAND_NAMES):
         print(f"    領先村里：{nm} {int((_win == i).sum())} 村"
               + ("" if i in active_idx else " → 不畫圖例"))
     assert active_idx, "無任何候選人領先村里"
@@ -207,7 +278,7 @@ def main():
     if SIMPLIFY_TOL_M > 0:
         villages["geometry"] = villages.geometry.simplify(SIMPLIFY_TOL_M, preserve_topology=True)
     # ② 區層：含未編定村里圖斑（港區/水域等），區界才完整。
-    #    必須以 (縣市, 區) 為鍵——臺北/基隆同名之「中正區、信義區、中山區」不可合併
+    #    必須以 (縣市, 區) 為鍵——同名區（不同縣市）不可合併
     townships = records.dissolve(by=["COUNTYNAME", "TOWNNAME"]).reset_index()
     print(f"  縣市：{records['COUNTYNAME'].nunique()}，區：{len(townships)}，村里 {len(villages)}")
     for c in TARGET_COUNTIES:
@@ -254,11 +325,11 @@ def main():
     print(f"  區/縣市界 1px 原始線 {int(_town_1px.sum())} px，未被 {LINE_TOWNSHIP_PX}/{LINE_OUTER_PX}px 層覆蓋 {_miss} px（應 ≈0）")
     del _town_1px
 
-    # 散點自檢：② 層連通分量＝本島 ＋ 保留之有編制離島（龜山島），不應有其他散塊
+    # 散點自檢：② 層連通分量＝本島（本圖無離島），不應有其他散塊
     _cc_n, _, _cc_st, _ = cv2.connectedComponentsWithStats(town_layer.astype(np.uint8), connectivity=8)
     _cc_area = _cc_st[1:, cv2.CC_STAT_AREA]
     _cc_small = int((_cc_area <= 40).sum())
-    print(f"  ② 層連通分量：{_cc_n - 1} 個（應為 {EXPECT_CC}＝本島＋龜山島）；"
+    print(f"  ② 層連通分量：{_cc_n - 1} 個（應為 {EXPECT_CC}＝本島，無離島）；"
           f"<=40px 小分量 {_cc_small} 個（應為 0）")
     if _cc_n - 1 != EXPECT_CC:
         for _i in range(1, _cc_n):
@@ -307,17 +378,20 @@ def main():
     pil_img = Image.fromarray(arr, mode="RGB")
     del arr
 
-    # ----------------------版面：圖例置於右上角（無標題）----------------------
+    # ----------------------版面：圖例置於右上角（不畫標題）----------------------
+    if SAVE_LAYER:
+        _la = np.full((h_px, w_px, 3), 255, dtype=np.uint8)
+        _la[town_layer] = 0
+        Image.fromarray(_la, mode="RGB").save(os.path.join(OUT_DIR, layer_name))
+
     print("  圖例（右上角；不畫標題）...")
     W, H = pil_img.size
-    title_img = (nat.render_text_image_cached(TITLE_LINES, TITLE_FONT_SIZE)
-                 if TITLE_LINES else None)
 
     legend_stops_list = [
         [(u, c) for u, c in nat.RATE_COLOR_STOPS[i] if u > legend_start_tier]
         for i in active_idx
     ]
-    name_imgs = [nat.render_text_image_cached([nat.CAND_NAMES[i]], nat.CAND_NAME_FONT_SIZE)
+    name_imgs = [nat.render_text_image_cached([CAND_NAMES[i]], nat.CAND_NAME_FONT_SIZE)
                  for i in active_idx]
     name_h = max((im.height for im in name_imgs), default=0)
 
@@ -339,15 +413,11 @@ def main():
     legend_h = name_h + nat.COLUMN_TITLE_GAP + max_n * (nat.BLOCK_HEIGHT + nat.V_SPACING) - nat.V_SPACING
 
     LEGEND_X_MARGIN = 80
-    TITLE_GAP = 70
     panel_x = W + LEGEND_X_MARGIN
-    title_w = title_img.width if title_img is not None else 0
-    content_w = int(max(title_w, group_w))
-    title_x = panel_x + (content_w - title_w) / 2
+    content_w = int(group_w)
     legend_x = panel_x + (content_w - group_w) / 2
     new_W = int(panel_x + content_w + nat.LEGEND_PADDING)
-    head_h = (title_img.height + TITLE_GAP) if title_img is not None else 0
-    panel_content_h = head_h + legend_h
+    panel_content_h = legend_h
     new_H = int(max(H, panel_content_h + 2 * nat.LEGEND_PADDING))
     print(f"  版型：地圖 {W}x{H}，圖例寬 {int(group_w)}px，"
           f"面板 x={int(panel_x)}、內容寬 {content_w}px（圖例置於右上角）")
@@ -357,10 +427,6 @@ def main():
     del pil_img
 
     py = nat.LEGEND_PADDING
-    if title_img is not None:
-        nat.blit_rgba(final_img, title_img, (title_x, py))
-        py += title_img.height + TITLE_GAP
-
     draw_obj = ImageDraw.Draw(final_img)
     col_positions = [legend_x + i * (col_width + nat.H_SPACING) for i in range(n_cols)]
     for col_idx, stops in enumerate(legend_stops_list):
@@ -375,11 +441,6 @@ def main():
             limg = label_img_cols[col_idx][i]
             nat.blit_rgba(final_img, limg, (x_start + nat.BLOCK_WIDTH + 8,
                                             y + (nat.BLOCK_HEIGHT - limg.height) / 2))
-
-    if SAVE_LAYER:
-        _la = np.full((h_px, w_px, 3), 255, dtype=np.uint8)
-        _la[town_layer] = 0
-        Image.fromarray(_la, mode="RGB").save(os.path.join(OUT_DIR, layer_name))
 
     final_img.save(OUT_PNG)
 
@@ -407,13 +468,12 @@ def strip_far_parts(gdf, max_dist_nameless=REMOTE_MAX_DIST_M, max_dist_named=NAM
     作法是取全部圖斑的聯集，其最大連通分量即為本島；再對每個圖斑算與本島的距離：
       - 無村里名（無編制）者：> max_dist_nameless(2km) 即剔除
       - 有村里名（有編制）者：> max_dist_named(20km) 才剔除
-    有編制的離島必須保留——例如宜蘭頭城鎮「龜山里」的龜山島（距本島約 9km）。
+    有編制的離島必須保留，僅剔除「無編制之外海水域（>2km）」或「有編制但在
+    20km 外海的圖資錯誤碎塊」。
 
-    實測（108 版村里界，北北基宜桃 2407 筆 / 2512 個圖斑）被剔除者為：
-      - 基隆市 中正區（無村里名）：彭佳嶼、棉花嶼、花瓶嶼、基隆嶼
-      - 宜蘭縣 頭城鎮 大溪里：MultiPolygon 101 塊中 100 塊散佈在 120km 外海
-        （圖資本身的錯誤碎塊，面積 0 ~ 0.055km²）
-    本島、貼岸之水域/礁岩圖斑，以及有編制的龜山島全部保留。
+    實測（107/2/5 版村里界，桃園市+新竹縣+新竹市+苗栗縣 1094 筆）：聯集僅
+      1 個連通分量，全部圖斑皆與本島相連（距 0m）→ 無需剔除任何圖斑。
+      本函數在此僅為安全護欄，防止外海無編制水域或圖資錯誤碎塊被畫進地圖。
     """
     parts, owner = [], []
     for i, geom in enumerate(gdf.geometry):
@@ -449,7 +509,7 @@ def strip_far_parts(gdf, max_dist_nameless=REMOTE_MAX_DIST_M, max_dist_named=NAM
     else:
         print("  離島/碎塊清理：無需剔除")
 
-    # 保留的有編制離島（如龜山島）——列出來供核對
+    # 保留的有編制離島（本圖無離島）——列出來供核對
     kept_far = [j for j in range(len(parts)) if keep_flags[j] and dist[j] > 500]
     kept_cent = []
     if kept_far:
@@ -489,9 +549,9 @@ def _despike_ring(coords, tol=5.0, area_thr=5000.0, min_path=100.0):
 
     村里界圖資在少數里別邊界有數位化瑕疵：線環從某點出發、沿同一條路徑往外
     走數百公尺～數公里後又原路折返（去而復返），圍出的面積近乎 0。dissolve
-    後這種退化迴針會殘留在區／縣市外環或內環上，繪圖時就變成地圖中間憑空
-    冒出的「死線」（一端接邊界、另一端懸空）。新竹市香山區、臺南市歸仁區等
-    皆有數筆。
+    後這種退化迴針會殘留在區/縣市外環上，繪圖時就變成地圖中間憑空冒出的
+    「死線」（新竹市香山區即出現兩條，各約 1.2km / 2.1km，一端接海岸、
+    另一端懸空）。
 
     作法：對每個頂點 i 找最近的其他頂點 j（僅計 i+2 之後、排除線環首尾
     閉合），若 |Pj-Pi| <= tol 且子路徑 i..j 的長度 > min_path、圍出面積 <
@@ -628,7 +688,7 @@ def render_line_layer(gdf, w_px, h_px, minx, maxx, miny, maxy,
     """matplotlib 繪區面+區界+縣市界 → 二值化 → 純黑線層。
 
     區界畫 town_px px；縣市界（各縣市聯集的邊界，含海岸線）與全體外輪廓
-    畫 outer_px px——五縣市交界以較粗線清楚分隔。"""
+    畫 outer_px px——縣市交界以較粗線清楚分隔。"""
     fig = plt.figure(figsize=(w_px / dpi, h_px / dpi), dpi=dpi)
     ax = fig.add_axes([0, 0, 1, 1])
     ax.set_xlim(minx, maxx)
