@@ -86,7 +86,6 @@ HISTORICAL_CUTOFF_YEAR = 2019
 
 SHP_SOURCES = [
     {
-        "id": "moi106",
         "label": "村里界歷史圖資_106（VILLAGE_MOI_1070205）",
         "paths": [
             os.path.join(HIST_ROOT, "村里界歷史圖資_106",
@@ -97,7 +96,6 @@ SHP_SOURCES = [
         "year_max": HISTORICAL_CUTOFF_YEAR - 1,
     },
     {
-        "id": "moi111",
         "label": "現行村里界圖資_111（VILLAGE_MOI_1111118）",
         "paths": [
             os.path.join(HIST_ROOT, "村里界歷史圖資_111", "VILLAGE_MOI_1111118.shp"),
@@ -347,11 +345,6 @@ OTHER_RATE_STOPS = [
     (100, "#2A3040"),
 ]
 
-# 別名：舊程式碼（單一候選人模式）以這兩個名字取色階。
-# 既然顏色已經固定成政黨屬性，這裡直接指向對應的那一組，不再另立一套。
-KMT_RATE_STOPS = RATE_COLOR_STOPS[0]        # 國民黨單一候選人
-KO_WEN_JE_RATE_STOPS = RATE_COLOR_STOPS[2]  # 柯文哲（2018 無黨籍身分參選，仍用民眾黨青）
-
 # 政黨名 -> 色階。key 是中選會資料欄位裡會出現的字串片段。
 # ★ 1994–2010 的得票資料欄位**只有人名、沒有政黨**（如「馬英九（01）_得票率」），
 #   所以除政黨全稱／簡稱外，這裡一併列出各屆兩大黨候選人的姓名 ——
@@ -449,40 +442,19 @@ def hex2rgb(hx):
     h = hx.lstrip("#")
     return (int(h[0:2], 16) / 255.0, int(h[2:4], 16) / 255.0, int(h[4:6], 16) / 255.0)
 
-def text_width(font, txt):
-    try:
-        bbox = font.getbbox(txt)
-    except AttributeError:
-        bbox = font.getmask(txt).getbbox()
-    return (bbox[2] - bbox[0]) if bbox else 0
-
-def resolve_source(year=None, source_id=None, shp=None):
+def resolve_source(year=None):
     """挑一份村里界圖資，回傳 (path, encoding, label)。
 
-    shp        直接指定路徑（覆寫 year / source_id）
-    source_id  指定圖資 id（見 SHP_SOURCES）
-    year       選舉年；<2019 走歷史圖資 106，否則走現行圖資 111
+    year：選舉年；<2019 走歷史圖資 106，否則走現行圖資 111。
     """
-    if shp:
-        return shp, "utf-8", os.path.basename(shp)
-
+    y = HISTORICAL_CUTOFF_YEAR if year is None else int(year)
     src = None
-    if source_id:
-        for s in SHP_SOURCES:
-            if s["id"] == source_id:
-                src = s
-                break
-        if src is None:
-            raise ValueError("未知的圖資 id：%r（可用：%s）"
-                             % (source_id, "、".join(s["id"] for s in SHP_SOURCES)))
-    else:
-        y = HISTORICAL_CUTOFF_YEAR if year is None else int(year)
-        for s in SHP_SOURCES:
-            if y >= s["year_min"] and (s["year_max"] is None or y <= s["year_max"]):
-                src = s
-                break
-        if src is None:
-            raise ValueError("沒有任何圖資涵蓋 %r 年" % year)
+    for s in SHP_SOURCES:
+        if y >= s["year_min"] and (s["year_max"] is None or y <= s["year_max"]):
+            src = s
+            break
+    if src is None:
+        raise ValueError("沒有任何圖資涵蓋 %r 年" % year)
 
     for p in src["paths"]:
         if os.path.exists(p):
@@ -491,12 +463,12 @@ def resolve_source(year=None, source_id=None, shp=None):
                             % (src["label"], "、".join(src["paths"])))
 
 
-def load_village_boundaries(year=None, source_id=None, shp=None):
+def load_village_boundaries(year=None):
     """載入村里界圖資，統一欄位 COUNTYNAME / TOWNNAME / VILLNAME，投影至 EPSG:3826。
 
     圖資版本由 year 決定（<2019 用歷史圖資 106），編碼自動適配。
     """
-    path, preferred, label = resolve_source(year=year, source_id=source_id, shp=shp)
+    path, preferred, label = resolve_source(year=year)
     print(f"  ※ 圖資來源：{label}")
     print(f"    {path}")
 
@@ -664,21 +636,13 @@ def load_rates(cfg):
     df = pd.read_excel(excel_path, sheet_name=cfg["sheet"], header=cfg.get("header", 0))
     df.columns = [str(c) for c in df.columns]
 
-    # 支援三種來源：
+    # 支援兩種來源：
     #  ① 得票率專用檔：欄位直接是「<候選人>（號次，政黨）_得票率」，值為 "48.14%" 字串
     #  ② 高雄格式全量檔：<候選人>得票數 ＋ 有效票數A，再除以 A×100 得得票率
-    #  ③ 指定候選人欄位（cfg["cand_columns"]）：欄名即候選人、值為得票率(%)
     pct_cols = [c for c in df.columns if c.endswith("得票率")]
     vote_cols = [c for c in df.columns if c.endswith("得票數")]
-    given_cands = cfg.get("cand_columns")
 
-    if given_cands:
-        cand_cols = list(given_cands)
-        rate_cols = []
-        for c in cand_cols:
-            rate_cols.append(c)
-            df[c] = df[c].map(_to_rate)
-    elif pct_cols:
+    if pct_cols:
         cand_cols = pct_cols
         rate_cols = []
         for c in cand_cols:
@@ -702,7 +666,7 @@ def load_rates(cfg):
     #     「蔣萬安（06，中國國民黨）_得票率」↔「…_得票數」），各年都有。
     #   * 高雄格式全量檔：cand_cols 本身就是得票數欄，與 rate1..rateN 順序一致。
     # 找不到成對欄的候選人記 None（該場會跳過區級地圖並提示）。
-    if vote_cols and not pct_cols and not given_cands:
+    if vote_cols and not pct_cols:
         vote_num_cols = list(cand_cols)
     else:
         vote_num_cols = []
@@ -875,7 +839,7 @@ def _quantize_to_allowed(img_rgb, allowed_rgb_255):
     return quantized_flat.reshape(img_rgb.shape)
 
 def draw_district_map(cfg, gdf_plot, df_vote, rate_cols, vote_num_cols,
-                      pick_stops, no_floor, kmt_col, xlim, ylim, w_px, h_px):
+                      pick_stops, no_floor, xlim, ylim, w_px, h_px):
     """區級地圖（map2.png）：只畫區、不畫里，不另出圖例（沿用村里地圖的 legend.png）。
 
     * 區級得票率 = 該區各候選人**得票數**加總 ÷ 該區全體候選人得票數加總 × 100。
@@ -911,14 +875,7 @@ def draw_district_map(cfg, gdf_plot, df_vote, rate_cols, vote_num_cols,
     def town_fill(town):
         if town not in dist.index:
             return "#FFFFFF"
-        row = dist.loc[town]
-        if kmt_col:
-            stops = pick_stops[0]
-            val = row.get(kmt_col, np.nan) if hasattr(row, "get") else np.nan
-            return get_color_by_value(
-                float(val) if pd.notna(val) else np.nan, stops,
-                below_color=stops[0][1])
-        vals = row.to_numpy(dtype=float)
+        vals = dist.loc[town].to_numpy(dtype=float)
         if np.isnan(vals).all():
             return "#FFFFFF"
         i = int(np.argmax(np.where(np.isnan(vals), 0.0, vals)))
@@ -936,8 +893,6 @@ def draw_district_map(cfg, gdf_plot, df_vote, rate_cols, vote_num_cols,
         vals = dist.loc[town].to_numpy(dtype=float)
         if np.isnan(vals).all():
             print(f"      {town}：無資料（白色）")
-        elif kmt_col:
-            print(f"      {town}：{cand_display_name(kmt_col)} {vals[list(dist.columns).index(kmt_col)]:.2f}%")
         else:
             i = int(np.argmax(np.where(np.isnan(vals), 0.0, vals)))
             print(f"      {town}：{cand_display_name(rate_cols[i])} 領先 {vals[i]:.2f}%")
@@ -1009,9 +964,7 @@ def make_map(cfg):
     print(f"  組別：{cfg['tag']}")
     print("=" * 62)
 
-    gdf_all = load_village_boundaries(year=cfg.get("year"),
-                                      source_id=cfg.get("geoSource"),
-                                      shp=cfg.get("shp"))
+    gdf_all = load_village_boundaries(year=cfg.get("year"))
 
     # 縣市名稱經異體字正規化（臺→台）後比對：圖資寫「臺北市」、Excel 寫「台北市」
     city_key = normalize_text(cfg["city"])
@@ -1036,49 +989,36 @@ def make_map(cfg):
     df_vote = df_vote[city_mask | missing_mask].copy()
 
     n_cand = len(cand_cols)
-    kmt_col = cfg.get("kmt_rate_col")
     no_floor = bool(cfg.get("no_floor", False))
 
-    if kmt_col:
-        # 國民黨候選人得票率模式：單一候選人、單一色階（35%~85%，每 5% 一檔）
-        # 特殊處理：2018 柯文哲使用專用色階
-        is_ko_wen_je = "柯文哲" in str(cfg.get("legend_names", [""])) or "柯文哲" in str(kmt_col)
-        selected_stops = KO_WEN_JE_RATE_STOPS if is_ko_wen_je else KMT_RATE_STOPS
-        cand_names = cfg.get("legend_names", [cand_display_name(kmt_col)])
-        stops_list = [as_legend_stops(selected_stops)]
-        pick_stops = [selected_stops]
-        leaders = None
-        lead_counts = None
-        legend_range = None
-    else:
-        # 先算每一里的領先候選人：只有真的會出現在地圖上的候選人進圖例，
-        # 色階依政黨指派：藍=國民黨、綠=民進黨、青=民眾黨（柯文哲／黃珊珊）、
-        # 灰=其他（無黨籍與各小黨）。規則集中在檔案上方的 stops_for_column()。
-        rate_matrix = df_vote[rate_cols].to_numpy(dtype=float)
-        filled = np.where(np.isnan(rate_matrix), 0.0, rate_matrix)
-        lead_idx = filled.argmax(axis=1)
-        lead_counts = np.bincount(lead_idx, minlength=n_cand)
-        leaders = [i for i in range(n_cand) if lead_counts[i] > 0]
+    # 先算每一里的領先候選人：只有真的會出現在地圖上的候選人進圖例，
+    # 色階依政黨指派：藍=國民黨、綠=民進黨、青=民眾黨（柯文哲／黃珊珊）、
+    # 灰=其他（無黨籍與各小黨）。規則集中在檔案上方的 stops_for_column()。
+    rate_matrix = df_vote[rate_cols].to_numpy(dtype=float)
+    filled = np.where(np.isnan(rate_matrix), 0.0, rate_matrix)
+    lead_idx = filled.argmax(axis=1)
+    lead_counts = np.bincount(lead_idx, minlength=n_cand)
+    leaders = [i for i in range(n_cand) if lead_counts[i] > 0]
 
-        palette_for = {}
-        for i in range(n_cand):
-            palette_for[i] = stops_for_column(rate_cols[i])
+    palette_for = {}
+    for i in range(n_cand):
+        palette_for[i] = stops_for_column(rate_cols[i])
 
-        cand_names = [cand_display_name(rate_cols[i]) for i in leaders]
+    cand_names = [cand_display_name(rate_cols[i]) for i in leaders]
 
-        # 圖例的色階檔依實際資料收斂：全部領先里的得票率都落在 [lo, hi]，
-        # 區間之外的檔位不對應任何一里（例如所有領先里都 >40% 時的「≤35%」），
-        # 畫出來只是空佔位、還讓人以為地圖上會有那個顏色，所以直接省略。
-        # 收斂用**全體**領先里的區間（不是各欄各自的），三欄的列數才會一致、對得齊。
-        lead_rate = filled[np.arange(filled.shape[0]), lead_idx]
-        legend_range = (float(lead_rate.min()), float(lead_rate.max()))
-        stops_list = [as_legend_stops(palette_for[i], *legend_range)   # 圖例用
-                      for i in leaders]
-        pick_stops = [palette_for[i] for i in range(n_cand)]     # 地圖著色用（依欄位索引）
+    # 圖例的色階檔依實際資料收斂：全部領先里的得票率都落在 [lo, hi]，
+    # 區間之外的檔位不對應任何一里（例如所有領先里都 >40% 時的「≤35%」），
+    # 畫出來只是空佔位、還讓人以為地圖上會有那個顏色，所以直接省略。
+    # 收斂用**全體**領先里的區間（不是各欄各自的），三欄的列數才會一致、對得齊。
+    lead_rate = filled[np.arange(filled.shape[0]), lead_idx]
+    legend_range = (float(lead_rate.min()), float(lead_rate.max()))
+    stops_list = [as_legend_stops(palette_for[i], *legend_range)   # 圖例用
+                  for i in leaders]
+    pick_stops = [palette_for[i] for i in range(n_cand)]     # 地圖著色用（依欄位索引）
 
     def below_color(stops):
-        """未達首檔門檻的顏色：不設門檻（或單一候選人模式）時用最淺色，否則不著色。"""
-        return stops[0][1] if (no_floor or kmt_col) else None
+        """未達首檔門檻的顏色：不設門檻時用最淺色，否則不著色。"""
+        return stops[0][1] if no_floor else None
 
     vote_dict = {
         (r["town_core"], r["vill_core"]): tuple(r[c] for c in rate_cols)
@@ -1116,27 +1056,17 @@ def make_map(cfg):
         raise ValueError(f"{cfg['excel']} 沒有任一村里資料匹配成功。")
 
     def pick_fill_color(row):
-        if kmt_col:
-            is_ko_wen_je = "柯文哲" in str(cfg.get("legend_names", [""])) or "柯文哲" in str(kmt_col)
-            selected_stops = KO_WEN_JE_RATE_STOPS if is_ko_wen_je else KMT_RATE_STOPS
-            return get_color_by_value(row[kmt_col], selected_stops, below_color=below_color(selected_stops))
         vals = [row[c] if not np.isnan(row[c]) else 0.0 for c in rate_cols]
         i = int(np.argmax(vals))
         stops = pick_stops[i]
         return get_color_by_value(vals[i], stops, below_color=below_color(stops))
 
     gdf_with_data["fill_hex"] = gdf_with_data.apply(pick_fill_color, axis=1)
-    if kmt_col:
-        is_ko_wen_je = "柯文哲" in str(cfg.get("legend_names", [""])) or "柯文哲" in str(kmt_col)
-        selected_stops = KO_WEN_JE_RATE_STOPS if is_ko_wen_je else KMT_RATE_STOPS
-        first_bin = selected_stops[0][0]
-        below_cnt = int((gdf_with_data[kmt_col] < first_bin).sum())
-    else:
-        first_bin = RATE_COLOR_STOPS[0][0][0]
-        vals = gdf_with_data[rate_cols].to_numpy(dtype=float)
-        v = np.where(np.isnan(vals), 0.0, vals)
-        leader_rate = v[np.arange(v.shape[0]), v.argmax(axis=1)]
-        below_cnt = int((leader_rate < first_bin).sum())
+    first_bin = RATE_COLOR_STOPS[0][0][0]
+    vals = gdf_with_data[rate_cols].to_numpy(dtype=float)
+    v = np.where(np.isnan(vals), 0.0, vals)
+    leader_rate = v[np.arange(v.shape[0]), v.argmax(axis=1)]
+    below_cnt = int((leader_rate < first_bin).sum())
     gdf_with_data["fill_hex"] = gdf_with_data["fill_hex"].fillna(GRAY_COLOR)
 
     # ---- 統計報告 ----
@@ -1148,23 +1078,18 @@ def make_map(cfg):
     no_data_cnt = int((~has_data).sum())
 
     print(f"  圖資村里要素     : {len(gdf_nt)}")
-    if kmt_col:
-        print(f"  Excel 有效記錄   : {len(df_vote)}   (圖例：{cand_names[0]} 得票率)")
-    else:
-        print(f"  Excel 有效記錄   : {len(df_vote)}   (候選人 {n_cand} 位，圖例列示領先者 {len(leaders)} 位)")
-        print("  領先里數         : " + "、".join(
-            f"{cand_names[k]} {int(lead_counts[leaders[k]])} 里" for k in range(len(leaders))
-        ))
-        if leaders:
-            print(f"  圖例色階         : 保留 {len(stops_list[0])} / {len(palette_for[leaders[0]])} 檔"
-                  f"（領先率 {legend_range[0]:.2f}~{legend_range[1]:.2f}%，區間外的檔不畫）")
+    print(f"  Excel 有效記錄   : {len(df_vote)}   (候選人 {n_cand} 位，圖例列示領先者 {len(leaders)} 位)")
+    print("  領先里數         : " + "、".join(
+        f"{cand_names[k]} {int(lead_counts[leaders[k]])} 里" for k in range(len(leaders))
+    ))
+    if leaders:
+        print(f"  圖例色階         : 保留 {len(stops_list[0])} / {len(palette_for[leaders[0]])} 檔"
+              f"（領先率 {legend_range[0]:.2f}~{legend_range[1]:.2f}%，區間外的檔不畫）")
     print(f"  精確匹配         : {exact_cnt}")
     print(f"  異體字匹配       : {variant_cnt}")
     print(f"  模糊匹配         : {fuzzy_cnt}")
     print(f"  無候選(無匹配)   : {none_cnt}")
-    if kmt_col:
-        print(f"  有資料           : {cnt_valid}（其中得票率<{first_bin}% 以最淺色顯示 {below_cnt} 個）")
-    elif no_floor:
+    if no_floor:
         print(f"  有資料           : {cnt_valid}（全部著色，不設門檻；≤{first_bin}% 一檔以最淺色顯示 {below_cnt} 個）")
     else:
         print(f"  有資料           : {cnt_valid}（其中得票率<{first_bin}% 未著色 {below_cnt} 個）")
@@ -1311,7 +1236,7 @@ def make_map(cfg):
 
     # ===================== 區級地圖（map2：只畫區，沿用原圖例） =====================
     draw_district_map(cfg, gdf_plot, df_vote, rate_cols, vote_num_cols,
-                      pick_stops, no_floor, kmt_col, xlim, ylim, w_px, h_px)
+                      pick_stops, no_floor, xlim, ylim, w_px, h_px)
 
     # ===================== 圖例（獨立圖檔：僅候選人姓名 + 色階） =====================
     legend_out = cfg.get("legend_out")
