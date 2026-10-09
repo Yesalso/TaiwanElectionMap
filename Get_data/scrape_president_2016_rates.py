@@ -29,7 +29,7 @@ from openpyxl.utils import get_column_letter
 
 START_URL = "https://vote.nccu.edu.tw/cec/vote3.asp?pass1=I:89%3EI8888888888iii(("
 BASE_URL = "https://vote.nccu.edu.tw/cec/"
-OUTPUT_DIR = r"D:\Windows\TaiwanElection\2016Precident\data"
+OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Precident", "2016Precident", "data")
 OUTPUT = os.path.join(OUTPUT_DIR, "2016總統副總統選舉_得票率.xlsx")
 
 HEADERS = {

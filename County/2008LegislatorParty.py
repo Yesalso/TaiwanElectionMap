@@ -39,7 +39,7 @@ MAPS_DIR = os.path.join(os.path.dirname(BASE_DIR), "maps")
 
 COLORFUL_PNG = os.path.join(BASE_DIR, "Colorful.png")
 CORR_XLSX = os.path.join(BASE_DIR, "Name_Color_Correspondence.xlsx")
-DATA_DIR = os.path.join(os.path.dirname(BASE_DIR), "2008Legislator-at-Large", "Data")
+DATA_DIR = os.path.join(os.path.dirname(BASE_DIR), "LegislationYuan", "2008Legislator-at-Large", "Data")
 OUT_PNG = os.path.join(MAPS_DIR, os.path.basename(BASE_DIR),
                        "2008年立法委員選舉_得票率地圖.png")
 

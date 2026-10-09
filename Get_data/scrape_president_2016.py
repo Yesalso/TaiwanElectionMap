@@ -40,7 +40,7 @@ from openpyxl.utils import get_column_letter
 
 START_URL = "https://vote.nccu.edu.tw/cec/vote3.asp?pass1=I:89%3EI8888888888iii(("
 BASE_URL = "https://vote.nccu.edu.tw/cec/"
-OUT_DIR = r"D:\Windows\TaiwanElection\2016Precident\data"
+OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Precident", "2016Precident", "data")
 DEFAULT_RAW = os.path.join(OUT_DIR, "2016總統副總統選舉_縣市鄉鎮村里.xlsx")
 DEFAULT_RATE = os.path.join(OUT_DIR, "2016總統副總統選舉_得票率.xlsx")
 DEFAULT_CANDS = ["朱立倫", "蔡英文", "宋楚瑜"]

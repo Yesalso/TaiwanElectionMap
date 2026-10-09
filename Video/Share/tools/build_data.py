@@ -29,8 +29,8 @@ SHARE = os.path.join(ROOT, "Video", "Share")
 DATA_DIR = os.path.join(SHARE, "data")
 ASSET_DIR = os.path.join(SHARE, "assets")
 
-XLS_VOTE = os.path.join(ROOT, "MayoralElections", "data", "2014新北.xlsx")
-XLS_RATE = os.path.join(ROOT, "MayoralElections", "data", "2014新北_得票率.xlsx")
+XLS_VOTE = os.path.join(ROOT, "Mayors", "MayoralElections", "data", "2014新北.xlsx")
+XLS_RATE = os.path.join(ROOT, "Mayors", "MayoralElections", "data", "2014新北_得票率.xlsx")
 SHP = r"D:\Windows\Documents\村里界歷史圖資_111\村里界歷史圖資_111\VILLAGE_MOI_1111118.shp"
 
 PHOTO_ZHU = os.path.join(ROOT, "Video", "2014NewTaipei", "candidate", "朱立伦.png")

@@ -36,7 +36,7 @@ plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Microsoft Jheng
 plt.rcParams['axes.unicode_minus'] = False
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-EXCEL_DIR = os.path.join(os.path.dirname(BASE_DIR), "Mayors", "MayoralElections", "data")
+EXCEL_DIR = os.path.join(os.path.dirname(os.path.dirname(BASE_DIR)), "data")
 MAPS_DIR = os.path.join(os.path.dirname(os.path.dirname(BASE_DIR)), "maps")
 
 # ===================== 配置区 =====================
@@ -45,126 +45,31 @@ SHP_CANDIDATE_PATHS = [
     r"D:\Windows\Documents\村里界歷史圖資_111\VILLAGE_MOI_1111118.shp",
 ]
 
-# 要生成的地圖（兩張新北市長選舉）
+# 要生成的地圖（高雄市長選舉）
 DATASETS = [
     {
-        "excel": os.path.join(EXCEL_DIR, "2010新北_得票率.xlsx"),
+        "excel": os.path.join(EXCEL_DIR, "2018高雄市長_得票率.xlsx"),
         "sheet": "各里彙總",
-        "city": "新北市",
-        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "新北市2010年市長選舉_得票率地圖.png"),
-        "tag": "2010 新北市長選舉（中國國民黨：朱立倫 / 民主進步黨：蔡英文）",
-        "title_lines": ["第一屆新北市市長選舉", "在各村（里）得票領先之候選人得票比例圖"],
-        "legend_names": ["朱立倫", "蔡英文"],
+        "city": "高雄市",
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "高雄市2018年市長選舉_得票率地圖.png"),
+        "tag": "2018 高雄市長選舉（中國國民黨：韓國瑜 / 民主進步黨：陳其邁）",
+        "title_lines": ["第三屆高雄市市長選舉", "在各村（里）得票領先之候選人得票比例圖"],
+        "legend_names": ["韓國瑜", "陳其邁"],
+        "drop_nan_vill": True,   # 高雄市：排除 SHP 中無地名（VILLNAME 為 NaN/空）的区块
     },
     {
-        "excel": os.path.join(EXCEL_DIR, "2014新北_得票率.xlsx"),
+        "excel": os.path.join(EXCEL_DIR, "2022高雄市長_得票率.xlsx"),
         "sheet": "各里彙總",
-        "city": "新北市",
-        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "新北市2014年市長選舉_得票率地圖.png"),
-        "tag": "2014 新北市長選舉（中國國民黨：朱立倫 / 民主進步黨：游錫堃）",
-        "title_lines": ["第二屆新北市市長選舉", "在各村（里）得票領先之候選人得票比例圖"],
-        "legend_names": ["朱立倫", "游錫堃"],
-    },
-    {
-        "excel": os.path.join(EXCEL_DIR, "2018新北_得票率.xlsx"),
-        "sheet": "各里彙總",
-        "city": "新北市",
-        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "新北市2018年市長選舉_得票率地圖.png"),
-        "tag": "2018 新北市長選舉（中國國民黨：侯友宜 / 民主進步黨：蘇貞昌）",
-        "title_lines": ["第三屆新北市市長選舉", "在各村（里）得票領先之候選人得票比例圖"],
-        "legend_names": ["侯友宜", "蘇貞昌"],
-    },
-    {
-        "excel": os.path.join(EXCEL_DIR, "新北县市首长_2022.xlsx"),
-        "sheet": "各里彙總",
-        "city": "新北市",
-        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "新北市2022年市長選舉_得票率地圖.png"),
-        "tag": "2022 新北市長選舉（中國國民黨：侯友宜 / 民主進步黨：林佳龍）",
-        "title_lines": ["第四屆新北市市長選舉", "在各村（里）得票領先之候選人得票比例圖"],
-        "legend_names": ["侯友宜", "林佳龍"],
-    },
-    {
-        "excel": os.path.join(EXCEL_DIR, "2005台北县.xlsx"),
-        "sheet": "Sheet1",
-        "header": 1,
-        "city": "新北市",
-        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "臺北縣2005年縣長選舉_得票率地圖.png"),
-        "tag": "2005 臺北縣長選舉（中國國民黨：周錫瑋 / 民主進步黨：羅文嘉）",
-        "title_lines": ["第十五屆臺北縣縣長選舉", "在各村（里）得票領先之候選人得票比例圖"],
-        "legend_names": ["周錫瑋", "羅文嘉"],
-        "cand_columns": ["周錫偉", "羅文佳"],
-        "col_city": "縣市",
-        "col_town": "鄉鎮市區",
-        "col_vill": "區里",
-    },
-    {
-        "excel": os.path.join(EXCEL_DIR, "台北县2001_得票率.xlsx"),
-        "sheet": "各里彙總",
-        "city": "新北市",
-        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "臺北縣2001年縣長選舉_得票率地圖.png"),
-        "tag": "2001 臺北縣長選舉（新黨：王建煊 / 民主進步黨：蘇貞昌）",
-        "title_lines": ["第十四屆臺北縣縣長選舉", "在各村（里）得票領先之候選人得票比例圖"],
-        "legend_names": ["王建煊", "蘇貞昌"],
-        "color_schemes": [
-            [(0,   "#FFFFEB"), (35,  "#FFFFEB"), (40, "#FFF8CC"),
-             (45, "#FFF0A8"), (50, "#FFE780"), (55, "#FFDD55"),
-             (60, "#FFF200"), (65, "#E6DA00"), (70, "#BFB500"),
-             (75, "#999100"), (80, "#736D00"), (85, "#4D4900"),
-             (100, "#383502")],
-            [(35, "#E8FFE0"), (40, "#CEFFC2"), (45, "#C0FFB1"),
-             (50, "#A4FF90"), (55, "#78FF4F"), (60, "#68DE45"),
-             (65, "#54B337"), (70, "#3C8027"), (75, "#2B5C1C"),
-             (80, "#1D3D13"), (85, "#0F210A"), (100, "#071A09")],
-        ],
-    },
-    {
-        "excel": os.path.join(EXCEL_DIR, "1993台北县长.xlsx"),
-        "sheet": 0,
-        "city": "新北市",
-        "excel_city": "臺北縣",
-        "full_loc_col": "鄉鎮市區",
-        "cand_columns": ["尤清（02）_得票率", "蔡勝邦（04）_得票率"],
-        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "臺北縣1993年縣長選舉_得票率地圖.png"),
-        "tag": "1993 臺北縣長選舉（民主進步黨：尤清 / 中國國民黨：蔡勝邦）",
-        "title_lines": ["第十二屆臺北縣縣長選舉", "在各村（里）得票領先之候選人得票比例圖"],
-        "legend_names": ["尤清", "蔡勝邦"],
-        "color_schemes": [
-            [(35, "#E8FFE0"), (40, "#CEFFC2"), (45, "#C0FFB1"),
-             (50, "#A4FF90"), (55, "#78FF4F"), (60, "#68DE45"),
-             (65, "#54B337"), (70, "#3C8027"), (75, "#2B5C1C"),
-             (80, "#1D3D13"), (85, "#0F210A"), (100, "#071A09")],
-            [(35, "#D9F6FF"), (40, "#A6E9FF"), (45, "#73D9FF"),
-             (50, "#40C8FF"), (55, "#00C0F4"), (60, "#00A2E8"),
-             (65, "#0080B8"), (70, "#006591"), (75, "#004B6B"),
-             (80, "#003247"), (85, "#001F2E"), (100, "#010D29")],
-        ],
-    },
-    {
-        "excel": os.path.join(EXCEL_DIR, "1997台北縣長.xlsx"),
-        "sheet": 0,
-        "city": "新北市",
-        "excel_city": "臺北縣",
-        "full_loc_col": "鄉鎮市區",
-        "cand_columns": ["蘇貞昌（05）_得票率", "謝深山（01）_得票率"],
-        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "臺北縣1997年縣長選舉_得票率地圖.png"),
-        "tag": "1997 臺北縣長選舉（民主進步黨：蘇貞昌 / 中國國民黨：謝深山）",
-        "title_lines": ["第十三屆臺北縣縣長選舉", "在各村（里）得票領先之候選人得票比例圖"],
-        "legend_names": ["蘇貞昌", "謝深山"],
-        "color_schemes": [
-            [(35, "#E8FFE0"), (40, "#CEFFC2"), (45, "#C0FFB1"),
-             (50, "#A4FF90"), (55, "#78FF4F"), (60, "#68DE45"),
-             (65, "#54B337"), (70, "#3C8027"), (75, "#2B5C1C"),
-             (80, "#1D3D13"), (85, "#0F210A"), (100, "#071A09")],
-            [(35, "#D9F6FF"), (40, "#A6E9FF"), (45, "#73D9FF"),
-             (50, "#40C8FF"), (55, "#00C0F4"), (60, "#00A2E8"),
-             (65, "#0080B8"), (70, "#006591"), (75, "#004B6B"),
-             (80, "#003247"), (85, "#001F2E"), (100, "#010D29")],
-        ],
+        "city": "高雄市",
+        "out": os.path.join(MAPS_DIR, os.path.basename(BASE_DIR), "高雄市2022年市長選舉_得票率地圖.png"),
+        "tag": "2022 高雄市長選舉（中國國民黨：柯志恩 / 民主進步黨：陳其邁）",
+        "title_lines": ["第四屆高雄市市長選舉", "在各村（里）得票領先之候選人得票比例圖"],
+        "legend_names": ["柯志恩", "陳其邁"],
+        "drop_nan_vill": True,   # 高雄市：排除 SHP 中無地名（VILLNAME 為 NaN/空）的区块
     },
 ]
-
 # ===================== 繪圖參數 =====================
-METERS_PER_PIXEL, MAX_SAFE_PX = 10, 32000   # 1px = 10m
+METERS_PER_PIXEL, MAX_SAFE_PX = 20, 32000   # 1px = 20m
 VILL_LINE_PX = 1              # 村里界线宽
 TOWN_LINE_PX = 4              # 乡镇市区界线宽（黑）
 OUTER_LINE_PX = 6             # 市外轮廓线宽（黑）
@@ -172,71 +77,25 @@ BUF_RES, BUF_JOIN, BUF_CAP = 1, 2, 2
 
 GRAY_COLOR = "#CCCCCC"
 
-# ===================== 色階（35% 起，5% 間距）=====================
+# ===================== 色階（0% 起，10% 間距）=====================
 RATE_COLOR_STOPS = [
-    [   # 第 1 组：中国国民党候选人
-        (35, "#D9F6FF"),
-        (40, "#A6E9FF"),
-        (45, "#73D9FF"),
-        (50, "#40C8FF"),
-        (55, "#00C0F4"),
-        (60, "#00A2E8"),
-        (65, "#0080B8"),
-        (70, "#006591"),
-        (75, "#004B6B"),
-        (80, "#003247"),
-        (85, "#001F2E"),
-        (100, "#010D29"),
-    ],
-    [   # 第 2 组：民主进步党候选人
-        (35, "#E8FFE0"),
-        (40, "#CEFFC2"),
-        (45, "#C0FFB1"),
-        (50, "#A4FF90"),
-        (55, "#78FF4F"),
-        (60, "#68DE45"),
-        (65, "#54B337"),
-        (70, "#3C8027"),
-        (75, "#2B5C1C"),
-        (80, "#1D3D13"),
-        (85, "#0F210A"),
-        (100, "#071A09"),
-    ],
-    [   # 第 3 组：台湾民众党候选人（图中未出现）
-        (35, "#B3FFF0"),
-        (40, "#00EBD1"),
-        (45, "#00D9CA"),
-        (50, "#00BFB2"),
-        (55, "#00A89C"),
-        (60, "#008080"),
-        (65, "#006666"),
-        (70, "#004C4C"),
-        (75, "#003838"),
-        (80, "#003030"),
-        (85, "#002626"),
-        (100, "#021F1F"),
-    ],
-    [   # 第 4 组：黄新党王建煊
-        (0,   "#FFFFEB"),
-        (35,  "#FFFFEB"),
-        (40,  "#FFF8CC"),
-        (45,  "#FFF0A8"),
-        (50,  "#FFE780"),
-        (55,  "#FFDD55"),
-        (60,  "#FFF200"),
-        (65,  "#E6DA00"),
-        (70,  "#BFB500"),
-        (75,  "#999100"),
-        (80,  "#736D00"),
-        (85,  "#4D4900"),
-        (100, "#383502"),
-    ],
+    # 國民黨
+    [(10, "#00FFFF"), (20, "#00F2FF"), (30, "#00E6FF"), (40, "#00DAFF"),
+     (50, "#00C0F4"), (60, "#00A2E8"), (70, "#0080B8"), (80, "#006591"),
+     (90, "#004B6B"), (100, "#003247")],
+    # 民進黨
+    [(10, "#E2FFE0"), (20, "#D2FFC9"), (30, "#C0FFB1"), (40, "#A4FF90"),
+     (50, "#78FF4F"), (60, "#68DE45"), (70, "#54B337"), (80, "#3C8027"),
+     (90, "#2B5C1C"), (100, "#1D3D13")],
+    # 第三組（備用）
+    [(10, "#00EBD1"), (20, "#00D9CA"), (30, "#00BFB2"),
+     (40, "#00A89C"), (50, "#008080"), (60, "#006666"), (70, "#004C4C")],
 ]
 
 BLOCK_WIDTH, BLOCK_HEIGHT = 170, 105
 V_SPACING, H_SPACING = 38, 150
 LEGEND_PADDING = 60
-MAP_LEGEND_GAP = 125      # 圖例與地圖之間距
+MAP_LEGEND_GAP = 700      # 圖例與地圖之間距
 COLUMN_TITLE_GAP = 100      # 圖例欄標題（候選人）與第一個色塊的間距
 
 # ---- 所有文字皆以 Print_word.py 方式輸出，以下字級可依需求適度調整 ----
@@ -257,6 +116,7 @@ VARIANT_CHAR_MAP = str.maketrans({
     '廍': '部',     # 永和區新廍 / 新部
     '峯': '峰',     # 土城區峯廷 / 新店區五峯 / 瑞芳區爪峯
     '脚': '腳',     # 萬里區崁脚 / 崁腳
+    '豊': '豐',     # 內門區內豊 / 內豐（2018高雄）
 })
 
 def normalize_text(s):
@@ -607,20 +467,12 @@ def draw_legend_on(final_img, x0, y0, cand_names, stops_list, col_width, max_lab
                 [x_start, y, x_start + BLOCK_WIDTH, y + BLOCK_HEIGHT],
                 fill=color_hex, outline="#000000", width=1)
             prev = stops[i - 1][0] if i > 0 else start_tier
-            limg = render_text_image_cached(
-                [get_label_text(upper, prev, is_first=(i == 0), is_last=(i == len(stops) - 1))],
-                LEGEND_LABEL_FONT_SIZE)
+            limg = render_text_image_cached([get_label_text(upper, prev)], LEGEND_LABEL_FONT_SIZE)
             blit_rgba(final_img, limg, (x_start + BLOCK_WIDTH + 8,
                                         y + (BLOCK_HEIGHT - limg.height) / 2))
 
-def get_label_text(upper, prev=None, is_first=False, is_last=False):
-    if is_last:
-        return f"≥{prev}%"
-    if is_first and prev <= 35:
-        return f"≤{upper}%"
-    if prev is None:
-        return f"≤{upper}%"
-    return f"{prev}~{upper}%"
+def get_label_text(upper, prev=None):
+    return f"≤{upper}%" if prev is None else f"{prev}~{upper}%"
 
 def make_map(cfg):
     print("=" * 62)
@@ -630,6 +482,14 @@ def make_map(cfg):
     gdf_nt = gdf_all[gdf_all["COUNTYNAME"].astype(str).str.contains(cfg["city"], na=False)].copy()
     if len(gdf_nt) == 0:
         raise ValueError(f"SHP 中未找到 {cfg['city']} 數據")
+
+    # ---- 高雄市特殊處理：排除 SHP 中無地名（VILLNAME 為 NaN / 空字串）的区块 ----
+    dropped = 0
+    if cfg.get("drop_nan_vill", False):
+        nan_mask = gdf_nt["VILLNAME"].isna() | (gdf_nt["VILLNAME"].astype(str).str.strip() == "")
+        dropped = int(nan_mask.sum())
+        gdf_nt = gdf_nt[~nan_mask].copy()
+        print(f"  ※ 依 drop_nan_vill 排除無地名区块 {dropped} 個（未編定村里 / 代管離島）")
 
     gdf_nt["town_core"] = gdf_nt["TOWNNAME"].apply(strip_town_suffix)
     gdf_nt["vill_core"] = gdf_nt["VILLNAME"].apply(strip_village_suffix)
@@ -644,6 +504,28 @@ def make_map(cfg):
 
     n_cand = len(cand_cols)
     cand_names = cfg.get("legend_names", [c[:-3] for c in cand_cols])   # 圖例欄名稱＝候選人
+    # 依圖例名稱順序重排候選人欄位：確保位置式配色（如國黨藍/民進黨綠）對到正確候選人，
+    # Excel 欄位順序可與圖例順序不同
+    if cfg.get("legend_names"):
+        def _cand_key(c):
+            s = str(c)
+            for suf in ("得票率", "得票數"):
+                if s.endswith(suf):
+                    s = s[:-len(suf)]
+            return s
+        key_map = {_cand_key(rc): rc for rc in rate_cols}
+        new_rc, new_cc, used = [], [], set()
+        for nm in cand_names:
+            k = next((k for k in key_map if k == nm or nm in k or k in nm), None)
+            if k is not None:
+                rc = key_map[k]
+                new_rc.append(rc)
+                new_cc.append(rc)
+                used.add(rc)
+        rest = [c for c in rate_cols if c not in used]
+        if len(new_rc) + len(rest) == len(rate_cols) and len(new_rc) == len(cand_names):
+            rate_cols = new_rc + rest
+            cand_cols = [c for c in rate_cols]
     if cfg.get("color_schemes"):
         stops_list = cfg["color_schemes"]
     else:
@@ -708,7 +590,7 @@ def make_map(cfg):
         if vals:
             all_win_rates.append(max(vals))
     min_win_rate = min(all_win_rates) if all_win_rates else 0
-    legend_start_tier = int(min_win_rate // 5) * 5
+    legend_start_tier = int(min_win_rate // 10) * 10
 
     # ---- 統計報告 ----
     exact_cnt = int((gdf_nt["match_type"] == "exact").sum())
@@ -736,9 +618,9 @@ def make_map(cfg):
         print(f"  ■ {label}：共 {len(sub)} 個")
         for _, r in sub.head(8).iterrows():
             if key == "variant":
-                print(f"      {r['TOWNNAME']} {r['VILLNAME']}  ↔  {r['match_type'].split(':', 1)[1]}")
+                print(f"      {r['TOWNNAME']} {r['VILLNAME']}  <->  {r['match_type'].split(':', 1)[1]}")
             else:
-                print(f"      {r['TOWNNAME']} {r['VILLNAME']}  ↔  {r['match_type']}")
+                print(f"      {r['TOWNNAME']} {r['VILLNAME']}  <->  {r['match_type']}")
         if len(sub) > 8:
             print(f"      ... 其餘 {len(sub) - 8} 個略")
 
@@ -883,7 +765,7 @@ def make_map(cfg):
     for stops in legend_stops_list:
         col_imgs = []
         for i, (u, _) in enumerate(stops):
-            txt = get_label_text(u, stops[i - 1][0] if i > 0 else legend_start_tier, is_first=(i == 0), is_last=(i == len(stops) - 1))
+            txt = get_label_text(u, stops[i - 1][0] if i > 0 else legend_start_tier)
             col_imgs.append(render_text_image_cached([txt], LEGEND_LABEL_FONT_SIZE))
         label_img_cols.append(col_imgs)
     max_label_w = max([im.width for col in label_img_cols for im in col] or [0])
@@ -894,35 +776,73 @@ def make_map(cfg):
     max_n = max((len(s) for s in legend_stops_list), default=0)
     legend_h = name_h + COLUMN_TITLE_GAP + max_n * (BLOCK_HEIGHT + V_SPACING) - V_SPACING
 
-    # ===================== 畫布佈局（右側面板：標題 → 圖例） =====================
-    group_w = (n_cols - 1) * (col_width + H_SPACING) + BLOCK_WIDTH
-    legend_x = W + 115   # 圖例第一欄從地圖右緣 115px 處開始
-    TITLE_GAP = 70
-    panel_content_h = ((title_img.height + TITLE_GAP) if title_img else 0) + legend_h
+    # ===================== 畫布佈局（整體懸浮右下方：左緣距同高陸地800、下緣距頁底400） =====================
+    TITLE_GAP = 70                # 標題視覺下緣與圖例上緣的間距
+    UNIT_GAP_X = 800              # 整體視覺左緣與其同高附近陸地右緣的間距
+    UNIT_GAP_BOTTOM = 400         # 整體下緣與頁面底緣的間距
+    RECT_GAP_TOP = 400            # 整體上緣與其上（同寬範圍內）陸地的最小間距；不足則向下擴增畫布
 
-    # 標題以圖例群組中心為準置中
-    title_x = legend_x + (group_w - title_img.width) / 2 if title_img else legend_x
-    title_right = title_x + (title_img.width if title_img else group_w)
-
-    # 畫布右界以「標題最右端 + 225px」為基準，並確保圖例完整放入
-    new_W = int(max(title_right + 225, legend_x + group_w + LEGEND_PADDING))
-    right_panel_w = new_W - W
-    new_H = max(H, panel_content_h + 2 * LEGEND_PADDING)
-
-    final_img = Image.new("RGB", (new_W, new_H), (255, 255, 255))
-    final_img.paste(pil_img, (0, (new_H - H) // 2))
-
-    # 右側面板：標題對齊圖例區域（以圖例群組中心為準）置中
-    py = LEGEND_PADDING
+    # 圖例為純色塊+文字（無內部透明留白）；標題影像可能含四周透明留白，
+    # 故以「視覺墨跡」定位，使視覺左緣=同高陸地+800、視覺中心與圖例中心重合
+    title_ink_w, title_ink_h, title_off_x, title_off_y = 0, 0, 0, 0
     if title_img:
-        blit_rgba(final_img, title_img, (title_x, py))
-        py += title_img.height + TITLE_GAP
+        if "A" in title_img.getbands():
+            m = np.asarray(title_img.getchannel("A")) > 0
+        else:
+            m = np.any(np.asarray(title_img.convert("RGB")) != 255, axis=2)
+        if m.any():
+            vy, vx = np.where(m)
+            title_off_x, title_off_y = int(vx.min()), int(vy.min())
+            title_ink_w, title_ink_h = int(vx.max()) - title_off_x + 1, int(vy.max()) - title_off_y + 1
+        else:
+            title_ink_w, title_ink_h = title_img.width, title_img.height
 
-    draw_legend_on(final_img, legend_x, py, cand_names, legend_stops_list, col_width, max_label_w, start_tier=legend_start_tier)
+    unit_w = max(total_legend_w, title_ink_w)
+    unit_h = legend_h + (TITLE_GAP + title_ink_h if title_img else 0)
+
+    # 依「整體所處高度帶」內陸地最右側定位：左緣 = 該陸地右緣 + 800；
+    # 整體下緣固定 = 頁底 - 400；若上緣離上方（同寬範圍內）陸地 < 400，則向下擴增畫布。
+    land_mask = np.any(np.asarray(pil_img) != 255, axis=2)
+
+    new_H = H
+    unit_left = UNIT_GAP_X
+    for _ in range(8):
+        rect_bottom = new_H - UNIT_GAP_BOTTOM
+        rect_top = rect_bottom - unit_h
+        r0, r1 = max(0, rect_top), min(H - 1, rect_bottom)
+        band = land_mask[r0:r1 + 1, :]
+        if band.any():
+            unit_left = int(np.where(band)[1].max()) + UNIT_GAP_X
+        # 上方守則：整體上緣與其上方（同寬範圍內）陸地保持至少 RECT_GAP_TOP
+        c0, c1 = int(min(unit_left, W)), int(min(unit_left + unit_w, W))
+        top = land_mask[:min(H - 1, rect_top) + 1, c0:c1] if c1 > c0 else None
+        if top is not None and top.any():
+            nearest = int(np.where(top)[0].max())
+            if rect_top - nearest < RECT_GAP_TOP:
+                new_H += RECT_GAP_TOP - (rect_top - nearest)
+                continue
+        break
+
+    new_W = max(W, int(unit_left + unit_w + LEGEND_PADDING))
+    final_img = Image.new("RGB", (new_W, new_H), (255, 255, 255))
+    final_img.paste(pil_img, (0, 0))
+
+    # 標題視覺中心 = 圖例群組視覺中心；整體視覺左下角 = (同高陸地+800, 新頁底-400)
+    unit_center = unit_left + unit_w / 2
+    legend_x = int(round(unit_center - total_legend_w / 2))
+    legend_y = int(round(new_H - UNIT_GAP_BOTTOM - legend_h))
+    if title_img:
+        title_x = int(round(unit_center - title_ink_w / 2 - title_off_x))
+        title_y = int(round(legend_y - TITLE_GAP - title_ink_h - title_off_y))
+
+    if title_img:
+        blit_rgba(final_img, title_img, (title_x, title_y))
+
+    draw_legend_on(final_img, legend_x, legend_y, cand_names, legend_stops_list, col_width, max_label_w, start_tier=legend_start_tier)
 
     final_img.save(cfg["out"])
     print(f"  輸出: {cfg['out']}  ({final_img.width}×{final_img.height}px)")
-    print(f"     主圖基於 {len(gdf_with_data)} 個有資料村里繪製；色階從 {legend_start_tier}% 起\n")
+    print(f"     主圖基於 {len(gdf_with_data)} 個有資料村里繪製；色階從 {legend_start_tier}% 起；排除無地名区块 {dropped} 個\n")
 
 # ===================== 主程式 =====================
 if __name__ == "__main__":
