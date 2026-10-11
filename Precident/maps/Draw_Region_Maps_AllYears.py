@@ -19,7 +19,10 @@
 
 比例尺：1px = 20m（與 2020 腳本相同）
 分區：北北基宜 / 桃竹苗 / 中彰投 / 雲嘉南 / 高屏
-輸出：各屆 <year>Precident/maps/<分區><年份>年總統副總統選舉_得票率地圖.png
+輸出：
+  - 地圖：各屆 Precident/maps/<year>/<分區><年份>年總統副總統選舉_得票率地圖.png
+  - 統計：各屆 Precident/maps/<year>/<年份>年總統副總統選舉_五大分區得票統計.md
+          （統計各分區總得票數/得票率，以及其下轄各縣市的得票數/得票率）
 
 執行：
     py Precident\\Draw_Region_Maps_AllYears.py                 # 全部年份 × 全部分區
@@ -37,6 +40,7 @@ import time
 import unicodedata
 import warnings
 import collections
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -59,7 +63,8 @@ plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Microsoft Jheng
 plt.rcParams['axes.unicode_minus'] = False
 
 # ===================== 路徑 / 常數 =====================
-PREC_ROOT = os.path.dirname(os.path.abspath(__file__))          # ...\Precident
+# 本腳本置於 Precident\maps\ 之下，資料（color.txt、各屆 data）在上一層 Precident\
+PREC_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # ...\Precident
 COLOR_TXT = os.path.join(PREC_ROOT, "color.txt")
 SHP_PATH = r"D:\Windows\Documents\村里界歷史圖資_111\村里界歷史圖資_111\VILLAGE_MOI_1111118.shp"
 SHP_ENCODING = "UTF-8"
@@ -317,13 +322,16 @@ def load_vote_data(cfg):
     return by_key, by_town, len(by_key)
 
 
-# ===================== 讀取鄉鎮市區級官方得票率 =====================
+# ===================== 讀取鄉鎮市區級官方得票數 / 得票率 =====================
 _TOWN_SHEET = "鄉鎮市區級別"
 
 
-def load_town_rates(year, cands):
-    """讀 `<年份>總統副總統選舉_縣市鄉鎮村里.xlsx` 的『鄉鎮市區級別』工作表，
-    回傳 {(county_core, town_core): {候選人名: 得票率(%)}}。
+def load_town_votes_and_rates(year, cands):
+    """讀 `<年份>總統副總統選舉_縣市鄉鎮村里.xlsx` 的『鄉鎮市區級別』工作表。
+
+    回傳 (town_rates, town_votes)：
+      town_rates: {(county_core, town_core): {候選人名: 得票率(%)}}
+      town_votes: {(county_core, town_core): {候選人名: 得票數}}
 
     以官方「得票數」加總後重算得票率（＝候選人得票數 / 該區候選人得票數合計），
     因此同一鄉鎮市區若有多列（如 1996/2000 臺南市中區、西區合併為中西區）會自動合併。
@@ -357,12 +365,18 @@ def load_town_rates(year, cands):
             if np.isfinite(v):
                 d[name] += v
 
-    rates = {}
+    rates, votes = {}, {}
     for key, d in acc.items():
         total = sum(d.values())
+        votes[key] = {name: float(d[name]) for name, _ in cands}
         if total <= 0:
             continue
         rates[key] = {name: d[name] / total * 100.0 for name, _ in cands}
+    return rates, votes
+
+
+def load_town_rates(year, cands):
+    rates, _ = load_town_votes_and_rates(year, cands)
     return rates
 
 
@@ -630,6 +644,105 @@ def load_shp():
     return g
 
 
+# ===================== 得票統計 Markdown =====================
+def _fmt_int(v):
+    if v is None or (isinstance(v, float) and (np.isnan(v) or np.isinf(v))):
+        return "0"
+    try:
+        iv = int(round(float(v)))
+    except (ValueError, TypeError):
+        iv = 0
+    return f"{iv:,}"
+
+
+def _fmt_pct(v):
+    if v is None or (isinstance(v, float) and (np.isnan(v) or np.isinf(v))):
+        return "0.00%"
+    try:
+        fv = float(v)
+    except (ValueError, TypeError):
+        fv = 0.0
+    return f"{fv:.2f}%"
+
+
+def write_vote_stats_md(year, regions_order, town_votes, cands, out_dir):
+    """產出該年份之五大分區得票統計 Markdown。
+
+    - 分區層級：各候選人得票數、得票率、有效票合計
+    - 縣市層級：該分區下轄各縣市之各候選人得票數、得票率
+    參數 town_votes: {(county_core, town_core): {候選人名: 得票數}}
+    """
+    os.makedirs(out_dir, exist_ok=True)
+    md_path = os.path.join(out_dir, f"{year}年總統副總統選舉_五大分區得票統計.md")
+    cand_names = [cn for cn, _ in cands]
+
+    # 縣市（正規鍵）→ 分區
+    county_to_region = {}
+    for rn in regions_order:
+        for cc in REGIONS.get(rn, []):
+            county_to_region[canon_county(cc)] = rn
+
+    region_votes = {rn: {cn: 0.0 for cn in cand_names} for rn in regions_order}
+    region_county_votes = {rn: collections.defaultdict(lambda: {cn: 0.0 for cn in cand_names})
+                           for rn in regions_order}
+
+    for (cc, _tc), vdict in town_votes.items():
+        rn = county_to_region.get(cc)
+        if rn not in region_votes:
+            continue
+        rv = region_votes[rn]
+        rcv = region_county_votes[rn][cc]
+        for cn in cand_names:
+            val = float(vdict.get(cn, 0.0) or 0.0)
+            rv[cn] += val
+            rcv[cn] += val
+
+    lines = []
+    lines.append(f"# {year} 年總統副總統選舉－五大分區得票統計")
+    lines.append("")
+    lines.append(f"> 產製時間：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    lines.append("> 資料來源：中選會「縣市鄉鎮村里」得票明細（依鄉鎮市區級別加總、重算得票率）")
+    lines.append("")
+
+    for rn in regions_order:
+        rv = region_votes.get(rn, {cn: 0.0 for cn in cand_names})
+        total_r = sum(rv.values())
+        lines.append(f"## {rn}")
+        lines.append("")
+        lines.append(f"**分區有效票合計：{_fmt_int(total_r)} 票**")
+        lines.append("")
+        lines.append("| 候選人 | 得票數 | 得票率 |")
+        lines.append("|---|---:|---:|")
+        for cn, vv in sorted(((cn, rv.get(cn, 0.0)) for cn in cand_names),
+                             key=lambda x: x[1], reverse=True):
+            rate = (vv / total_r * 100.0) if total_r > 0 else 0.0
+            lines.append(f"| {cn} | {_fmt_int(vv)} | {_fmt_pct(rate)} |")
+        lines.append("")
+
+        rcv_map = region_county_votes.get(rn, {})
+        if rcv_map:
+            lines.append(f"### {rn} 下轄縣市得票統計")
+            lines.append("")
+            lines.append("| 縣市 | 候選人 | 得票數 | 得票率 |")
+            lines.append("|---|---|---:|---:|")
+            for cc in sorted(rcv_map.keys()):
+                cvals = rcv_map[cc]
+                total_c = sum(cvals.values())
+                for j, (cn, vv) in enumerate(sorted(((cn, cvals.get(cn, 0.0)) for cn in cand_names),
+                                                    key=lambda x: x[1], reverse=True)):
+                    rate = (vv / total_c * 100.0) if total_c > 0 else 0.0
+                    county_label = cc if j == 0 else ""
+                    lines.append(f"| {county_label} | {cn} | {_fmt_int(vv)} | {_fmt_pct(rate)} |")
+            lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    with open(md_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+    print(f"    統計 Markdown：{md_path}")
+    return md_path
+
+
 # ===================== 繪製單一（年份 × 分區）=====================
 def build_region_map(year, region_name, counties, shp, cfg, town_rates):
     cands = cfg["candidates"]
@@ -763,9 +876,19 @@ def main():
             print(f"  ⚠️ 無 {y} 設定，略過")
             continue
         cfg = YEAR_CONFIGS[y]
-        town_rates = load_town_rates(y, cfg["candidates"])
+        town_rates, town_votes = load_town_votes_and_rates(y, cfg["candidates"])
         print("=" * 62)
-        print(f"  {y} 鄉鎮市區得票率記錄：{len(town_rates)}")
+        print(f"  {y} 鄉鎮市區得票記錄：{len(town_votes)}（有得票率 {len(town_rates)}）")
+
+        # 產出得票統計 Markdown（每年一份，含全部分區與其下轄縣市）
+        out_dir_y = os.path.join(PREC_ROOT, "maps", str(y))
+        try:
+            write_vote_stats_md(y, want_regions, town_votes, cfg["candidates"], out_dir_y)
+        except Exception as e:
+            import traceback
+            print(f"    ✗ {y} 得票統計 Markdown 失敗：{e}")
+            traceback.print_exc()
+
         for rn in want_regions:
             if rn not in REGIONS:
                 print(f"  ⚠️ 無分區 {rn}，略過")
