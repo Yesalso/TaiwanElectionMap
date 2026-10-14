@@ -25,7 +25,21 @@
        x 直接指定、不依賴日期塊算出來，所以市徽落點固定好驗證。
        hRatio = 市徽高度 ÷ 日期塊高度；寬度依原圖比例換算（市徽原圖 480 × 716）。
        市徽右緣到選舉名稱的距離就是 gap，選舉名稱的實際 x 由市徽寬度推出來。 */
-    seal: { src: 'assets/city_seal.png', x: 72, gap: 34, hRatio: 1.0 },
+    /* 左：頁眉徽章白卡（2026-10-14 起）。
+       一塊白底圓角卡片墊在徽章後面，徽章放在卡片裡：
+         市長選舉  → 臺北市市徽（src，透明 PNG 貼回白卡＝原圖樣貌）
+         總統選舉  → 國旗（srcPresident = ROCFLAG 的透明化成品 roc_flag.png）
+       卡片 = 徽章矩形向外擴 card.pad、圓角 card.radius；
+       選舉名稱的 x 由「卡片右緣」推算（原本是徽章右緣），gap 語意不變。
+       ★ 總統選舉的國旗**填滿卡片**（pad 視為 0，卡片＝國旗＋圓角裁切），
+         不留白邊；市長選舉的市徽是不規則透明圖，保留 card.pad 透氣。
+       srcPresident 由 layers.js 依 meta.office 是否含「總統」擇一使用。 */
+    seal: {
+      src: 'assets/city_seal.png',
+      srcPresident: 'assets/roc_flag.png',
+      x: 72, gap: 34, hRatio: 1.0,
+      card: { pad: 16, radius: 24 }
+    },
     /* 左：選舉名稱（單行）
        早先這裡還有一行小字「TAIWAN, CHINA」，已移除；選舉名稱因此成為左側
        唯一的錨點，直接視覺置中於日期塊的水平軸上（y 由 layers.js 用實際
@@ -121,15 +135,24 @@
        由 tools/build_board.py 的靜態素材透明化產出（只留內切圓、圓外透明；
        配方見 boardlib/assets.py 的 STATIC_RECIPES）。
        讀不到圖時該位置退回原本的抽象色塊（Marks.partyChip），不會開天窗。
-       markRatio 是徽章邊長相對「標籤高度」的比例（不需可調時保持 0.42）。 */
+       markRatio 是徽章邊長相對「標籤高度」的比例。
+       ★ 2026-10-14 晚五：標籤加高、徽章放大（需求：第 1／2 名的政黨徽章
+         「適度大一點」）—— h 76→84、radius 38→42、markRatio 0.42→0.54
+         （徽章邊長 31.9 → 45.4px，約 1.42 倍）；黨名可用的寬度會少一點，
+         labelMax 由 cp.w 扣掉內距與徽章寬自己算出來，不會溢出膠囊。 */
     chip: {
-      w: 452, h: 76, y: 910, radius: 38, nameSize: 40,
-      markRatio: 0.42,
+      w: 452, h: 84, y: 910, radius: 42, nameSize: 40,
+      markRatio: 0.54,
       marks: { kmt: 'assets/party_kmt.png', dpp: 'assets/party_dpp.png' },
       /* 政黨徽章檔名規則：party_<政黨 key>.png（kmt -> assets/party_kmt.png） */
     },
     /* 姓名右側（當選者左側）貼當選標誌：markRatio 為標誌相對姓名字級的比例 */
     name: { y: 1096, size: 104, spacing: 6, markRatio: 0.94, markGap: 34 },
+    /* 副手行（總統／副總統選舉用，參考巴西看板的「Vice: 姓名（政黨）」）：
+       夾在姓名與得票率之間。「副手：」標籤用 dim 色、姓名白字、政黨跟主色。
+       候選人沒有 vice 資料時整行不畫（市長選舉），y 不佔位、版面不變。
+       maxW 為整行可用寬度（超過就 fitText 截斷）。 */
+    vice: { y: 1152, size: 38, labelSize: 30, maxW: 470, gap: 14 },
     /* 姓名 → 得票率 的基線距離（行距） */
     lead: { nameToPct: 186, pctToVotes: 104 },
     /* ★ 得票率降一級（150 → 128）：％ 是配角，數字才是主角。
@@ -144,9 +167,27 @@
   candidateBlock.pct.y = candidateBlock.name.y + candidateBlock.lead.nameToPct;
   candidateBlock.votes.y = candidateBlock.pct.y + candidateBlock.lead.pctToVotes;
 
+  /* 主卡色卡（也就是第 1／2 名的照片框）的長寬比 = 452 : 620 ≈ 0.729。
+     ★ 第 3 名高卡的「照片占位框」吃同一個比例（需求：第 3 名照片長寬比
+       要和第 1、2 名相同）—— 後製合成照片時同一組裁切比例就能通用。
+       只有這一個來源，改主卡尺寸時第 3 名會自己跟著變，不會走鐘。 */
+  var CARD_ASPECT = candidateBlock.card.w / candidateBlock.card.h;
+
   /* 左右只差 cx；card 是純幾何，左右共用同一份（不需要再拷貝一層）。 */
   Layout.left = Object.assign({}, candidateBlock, { cx: 310 });
   Layout.right = Object.assign({}, candidateBlock, { cx: 2250 });
+
+  /* --------------------------- 背景照片 --------------------------- */
+  /* 街景照鋪滿整個畫布（cover：等比例放大到蓋滿、超出部分裁掉），
+     上面再罩一層暗色（dim = 遮罩不透明度），讓前景的白字與色卡一樣讀得清楚。
+     原本的漸層底色、光暈、細格線仍然畫在照片之上（半透明疊加），
+     所以「換掉 src」或「讀不到照片」時畫面會退回純漸層底，不會開天窗。
+     素材：NewSolution/png/share/街景3.png → processed/share/street_bg.png
+     （原樣沿用、不做任何透明化轉換，配方見 boardlib/assets.py 的 CopyRecipe）。 */
+  Layout.background = {
+    src: 'assets/street_bg.png',
+    dim: 0.50
+  };
 
   /* ------------------------------ 地圖 ------------------------------ */
   /* src      地圖圖檔（已預處理好的透明 PNG，預設 assets/vote_map.png）。
@@ -176,6 +217,37 @@
   Layout.map = {
     src: 'assets/map.png',
     x: 560, y: 196, w: 1020, h: 1034,
+    scale: 1.0,
+    anchorX: 0.5, anchorY: 0.5,
+    dx: 0, dy: 0
+  };
+
+  /* --------------------------- 區級圖（第二張圖） ---------------------------
+     ★ 2026-10-14 晚六（需求：總統場把兩張圖放到同一張看板上）。
+     村里的地圖（Layout.map，assets/map.png）仍然是**主要地圖**，
+     尺寸與位置完全不動；這裡放的是**區級版**（assets/map2.png，
+     Converge_to_map_taipei.py 的「只畫區、不畫里」版，同畫布同範圍），
+     補進地圖右側那一整欄空位，讓看板左右不再「左重右空」。
+
+     ★ 什麼時候畫：只有「圖例關掉」的場次（見 layers.js 的 Map2Layer）。
+       市長場的圖例正好佔著這一欄（Layout.legend 1626–1978 × 493–933），
+       硬畫會整張疊上去；總統「北北基宜」場圖例是關的（meta.layout.legend
+       .disabled），那一欄本來就空著，正好拿來放第二張圖。
+       素材不存在（或主圖與區級圖是同一張，例如 -map2 變體看板）時整層跳過，
+       不會開天窗。
+
+     x/y/w/h  contain 進來的框；實際大小依原圖比例置中，不加底板
+              （與 Layout.map 同一套規則）。
+              框刻意不貼齊右主卡：右緣 2004，右主卡左緣 2024，留 20px 淨空；
+              左緣 1440 也避開地圖墨跡（實測右緣 x≈1408）；
+              下緣 1076 在地圖下方那條「沒有墨跡」的帶裡，
+              也在第 3 名高卡上緣（y1102）之上 —— 這三條由
+              tools/verify_layout.py 的 L10–L12 把關。
+     scale / anchorX / anchorY / dx / dy  與 Layout.map 同義，方便微調。 */
+  Layout.map2 = {
+    src: 'assets/map2.png',
+    enabled: true,
+    x: 1440, y: 264, w: 564, h: 812,
     scale: 1.0,
     anchorX: 0.5, anchorY: 0.5,
     dx: 0, dy: 0
@@ -241,7 +313,14 @@
        opacity  圖例圖片的透明度，1 = 完全不透明 */
   Layout.legend = {
     src: 'assets/legend.png',
-    /* 右欄 1580–2024 置中：1580 + (444 − 352) / 2 = 1626 */
+    /* disabled: true → 整個圖例不畫（總統「北北基宜」看板用 meta.layout 覆寫關掉；
+       市長看板維持預設 false）。verify_layout 看到 legendDisabled 會略過 L1–L5。 */
+    disabled: false,
+    /* 右欄 1580–2024 置中：1580 + (444 − 352) / 2 = 1626
+       ★ 高度可用 meta.layout.legend 逐場覆寫（見檔尾的套用程式碼）：
+         總統「北北基宜」看板的圖例最多 4 位候選人直排、圖很瘦高，
+         覆寫 h=717（到小卡上方為止）contain 後字才看得清；
+         市長圖例是「寬度受限」，維持 440 不變、輸出不受影響。 */
     x: 1626, y: 493, w: 352, h: 440,
     title: '',
     titleSize: 24, titleWeight: 900, titleColor: '#ffffff',
@@ -251,25 +330,106 @@
     opacity: 1
   };
 
-  /* --------------------------- 其他候選人 --------------------------- */
-  /* 第三候選人（小卡）刻意做小，避免與兩位主要候選人搶版面。
-     ★ 2026-10-04 調整（需求：向右边移动、適度放大）：
-       cx 1280 → 1620（整張卡右移 340px，落在圖例正下方、地圖框右側的空欄）
-       w 520 → 600、h 138 → 160（整體放大 1.15 倍；內部尺寸全部乘同一個比例，
-       所以卡片內的色塊／姓名／政黨／得票率／得票數的相對位置完全不變）
-     位置被三面夾住，不能再往右／往下推：
-       右緣 1920 ← 右側主卡得票率墨跡左緣（150 級時 1967；降到 128 級後約 2009）
-       下緣 1390 ← 底部票數帶 1396（留 6px）
-       上緣 1230 ← 地圖框底緣 1230（地圖實際墨跡只到 1202，真實淨空 28px）
-     改完請跑 `python tools/verify_layout.py`（它會確認圖例沒被壓到）。 */
-  Layout.minor = {
-    cx: 1620, y: 1230, w: 600, h: 160, radius: 22,
-    /* 小卡的色塊框（同樣不畫照片，只填政黨純色） */
-    card: { w: 110, h: 122, radius: 17, offsetX: 25 },
-    nameX: 161, nameY: 64, nameSize: 46,
-    partyY: 108, partySize: 28,
-    pctRight: -35, pctY: 64, pctSize: 46,
-    votesY: 129, votesSize: 32, votesCjkSize: 18
+  /* --------------------------- 其他候選人（第 3 名起） ---------------------------
+     ★ 2026-10-14 五版規則（需求：1 第 3 名照片比例要和第 1／2 名一樣、
+                              2「其他候選人」改成一行一位、3 第 4 名起靠左排）：
+       1. 第 3 名高卡的**照片占位框比例 = 主卡色卡的 452 : 620**（`CARD_ASPECT`，
+          由 candidateBlock.card 推得，只有一個來源）。
+       2. 「其他候選人」不再是「共 N 位 / 合計票數 / 合計得票率」的摘要格，
+          改成**一行一位候選人的清單**：`- 姓名    1,851票`
+          （★ 不印政黨、不印得票率）。列數多時卡片往上長（上限 = 高卡高度），
+          字級由每列可用高度推得 —— 詳見下面的 others 設定。
+       3. 左群（第 4 名起）改為**從第 3 名高卡的左緣往左排**：
+          第 4 名緊貼高卡左側、第 5 名在其左、清單格在最左。
+          （舊版是從 x0 往右排，第 3 名卡靠右 → 中間留一大段空；而且卡片
+            排得越少空得越多。現在空的是最左邊，貼著地圖下方的那片暗底。）
+
+     ★ 四版規則（第 3 名「長度太長、寬度太窄」）—— 仍然有效：
+       1. 第 3 名＝獨立一張**高卡**（不是橫條）：有自己的高度 big.h（288），
+          **底部與左群同一條線**（m.y + m.h = 1390），往**上**長到 y1102。
+          ── 為什麼可以往上長：地圖框雖然開到 y1230，但地圖圖片是「置中的
+             直式圖」，墨跡右緣只到 x≈1444（2000 總統／2022 市長實測都一樣，
+             見 verify_layout 報告的 map.content）。第 3 名卡右緣貼 x1=1990、
+             寬約 470–500 → 左緣 ≥1478，永遠落在地圖墨跡的**右邊**，
+             所以「往上長」不會壓到地圖（這條由 verify_layout 的 L9 把關）。
+       2. 卡內改成**單欄直排**（照片占位框 + 右側一欄：
+          姓名／副手（或政黨）／得票率／票數）—— 舊版是「姓名群 ↔ 得票群」
+          兩欄並排，卡片被撐成 670–720 長、160 高的橫條（4.2 : 1），
+          看起來又長又扁；收成單欄後約 470–500 × 288（1.7 : 1）。
+          照片面積 ≈ 175×240 = 42,000 px² ≈ 第 4 名以後小卡（92×118）的 3.9 倍。
+       3. **卡寬 = 內容自然寬**（占位框 + 最寬那一行 + 內距 padL/padR），
+          卡內不留多餘空位；空隙只留在「卡與卡之間」（gap / groupGap）。
+       4. 字級動態：堆疊總高由 layers.js 的 bigScale 求係數 k，讓五行
+          **剛好填滿卡內高度**（沒有副手行的場次 k 略大）；塞不下時再由
+          fit 迴圈整條等比縮（下限 minTextScale），不截字、不溢出。
+       ── 排列：第 4、5 名（160 高的窄卡）與「其他候選人」清單格，
+          一律**從 x1 往左排**（右緣貼 bigX − groupGap）；
+          第 3 名高卡右緣貼齊 x1。
+          x1 = 1990：右主卡得票率文字最左約 2008（2022 實測），留約 18px 淨空
+          （舊版 solo 對齊到主卡右緣 2476，會整張疊上去、票數變雙重曝光亂碼）。
+       候選人不足時左群自然消失：只有 3 位候選人 → 第 3 名一張高卡靠右（solo）。
+       每格左側都有圖片占位框（政黨純色 + 亮線，照片由使用者後製）。 */
+  Layout.minors = {
+    y: 1230, h: 160, radius: 16,   /* 左群（第 4 名起）的帶：維持 160 高 */
+    x0: 560, x1: 1990,
+    gap: 12,                 /* 左群「卡與卡」之間的固定空隙 */
+    groupGap: 64,            /* 左群 ↔ 第 3 名高卡 之間的最小淨空 */
+    minGap: 8,               /* 空間不足時 gap 的下限 */
+    padL: 14, padR: 16,      /* 卡內左右留白（固定值，不隨內容變動） */
+    blockGap: 14,            /* 占位框 ↔ 文字列 的間距 */
+    minTextScale: 0.62,      /* 等比縮字級的下限（超過就交給 fitText 收尾） */
+
+    /* 第 4 名以後：小卡（照片區 92×118，文字四行上下堆疊在同一列） */
+    block: { w: 92, h: 118, radius: 10 },
+    nameSize: 27, subSize: 17,
+    pctSize: 32, votesSize: 23, votesCjkSize: 13,
+    maxTextW: 250,           /* 文字列自然寬上限 */
+    /* 卡內絕對 Y（name/sub 走 middle 基線、pct/votes 走 alphabetic 基線） */
+    nameCy: 42, subCy: 78, pctBase: 126, votesBase: 152,
+
+    /* 第 3 名：高卡（單欄直排；底部與左群同線，往上長）
+       ★ 占位框完全由卡片內距與比例推得：高 = h − 2×padV = 240、
+         寬 = 高 × blockAspect（= CARD_ASPECT，與第 1／2 名主卡色卡同比例）。
+         改 h / padV / blockAspect 都會自己跟著長，不必另外維護一組數字。 */
+    big: {
+      h: 288, radius: 18,
+      padL: 18, padR: 22, padV: 24,
+      blockAspect: CARD_ASPECT,           /* 452 : 620 —— 與主卡同比例 */
+      blockRadius: 13,
+      blockGap: 22,                       /* 占位框 ↔ 文字欄 */
+      nameSize: 50, subSize: 22, partySize: 18,
+      lineGap1: 12, lineGap2: 8,          /* 姓名↔副手、副手↔政黨 的行距 */
+      stackGap: 20,                       /* 姓名群 ↔ 得票率 */
+      votesGap: 6,                        /* 得票率 ↔ 票數 */
+      pctSize: 62, votesSize: 38, votesCjkSize: 22,
+      capRatio: 0.72,                     /* alphabetic 基線 = 行頂 + 字級 × 此值 */
+      maxTextW: 300,                      /* 文字欄自然寬上限（超過就整欄縮字級） */
+      scaleMin: 0.8, scaleMax: 1.15       /* 「填滿卡高」的字級係數上下限 */
+    },
+    /* 「其他候選人」清單格（★ 2026-10-14 五版：一行一位，不再合計）
+       ── 內容：`- 姓名 ＋ 票數`（票數右對齊成一欄，像表格）。
+          ★ 依需求**不印政黨、不印得票率**，也沒有照片占位框。
+       ── 高度：由列數自己長（底部與左群同線、往上長），
+          `h = 標題高 + n×rowH + 2×padV`，但**上限 m.big.h**（= 288）——
+          列數多時把每一列壓矮（rowH 下限 minRowH），字級按 rowH 比例縮，
+          整張卡永遠不會長得比第 3 名高卡還高（否則會撞到地圖，見 L9）。
+       ── 寬度：`padL + colW + padR`，colW 由「最寬的姓名 + 最寬的票數」推得
+          （票數欄右緣對齊 → 每列看起來是一張表）。 */
+    others: {
+      /* 2026-10-14 晚五：標題「其他候選人（N 位）」依需求移除 ——
+         清單格直接列候選人（`- 姓名 票數`），不再頂一行標題。
+         空字串 = 不畫（titleH 記 0，卡片高度全部讓給列、每列因此更高）。 */
+      title: '',
+      titleSize: 22,
+      padV: 16, padL: 18, padR: 18,
+      rowH: 36, minRowH: 22,               /* 每一列的首選高／下限 */
+      size: 26,                            /* 姓名與票數的字級（再用 rowH 比例縮放） */
+      dash: '-',                           /* 行首符號：`- 姓名` */
+      dashGap: 12, colGap: 22,             /* 符號↔姓名、姓名↔票數 */
+      rule: true,                          /* 列與列之間畫一條極淡的細線 */
+      ruleColor: 'rgba(255,255,255,0.07)',
+      maxTextW: 300                        /* colW 上限（超過就整張縮字級） */
+    }
   };
 
   /* --------------------------- 底部票數帶 --------------------------- */
@@ -283,5 +443,23 @@
   };
 
   NT.Layout = Layout;
+
+  /* --------------------- 逐場版面覆寫（meta.layout） ---------------------
+     board.js 比 layout.js 先載入（見 index.html），所以在這裡可以把
+     window.BOARD.meta.layout 的欄位淺層併進對應的 Layout 區塊。
+     目前只開放 legend（總統北北基宜看板把 h 覆寫成 717）；
+     要開放其他區塊時照樣加進 LAYOUT_OVERRIDABLE 即可。 */
+  var LAYOUT_OVERRIDABLE = ['legend', 'map2'];
+  try {
+    var overrides = (global.BOARD && global.BOARD.meta &&
+                     global.BOARD.meta.layout) || null;
+    if (overrides) {
+      LAYOUT_OVERRIDABLE.forEach(function (k) {
+        if (overrides[k] && Layout[k]) {
+          Object.assign(Layout[k], overrides[k]);
+        }
+      });
+    }
+  } catch (e) { /* 版面覆寫失敗不該毀掉整塊看板 */ }
 
 })(window);

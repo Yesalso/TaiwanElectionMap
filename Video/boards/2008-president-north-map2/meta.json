@@ -1,0 +1,105 @@
+{
+  "id": "2008-president-north-map2",
+  "meta": {
+    "election": "第十二屆總統副總統選舉",
+    "electionEn": "2008 Presidential Election",
+    "year": 2008,
+    "date": "3月22日",
+    "dateEn": "22 Mar",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "總統副總統",
+    "officeEn": "President & Vice President",
+    "turnout": null,
+    "validVotes": 4310676,
+    "regionLabel": "北北基宜",
+    "header": {
+      "role": "時任總統",
+      "name": "陳水扁",
+      "party": "民主進步黨",
+      "partyShort": "DPP"
+    }
+  },
+  "candidates": [
+    {
+      "key": "ma",
+      "name": "馬英九",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 1,
+      "votes": 2654243,
+      "pct": 61.57,
+      "elected": true,
+      "vice": "蕭萬長",
+      "viceParty": "中國國民黨"
+    },
+    {
+      "key": "hsieh",
+      "name": "謝長廷",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 2,
+      "votes": 1656433,
+      "pct": 38.43,
+      "elected": false,
+      "vice": "蘇貞昌",
+      "viceParty": "民主進步黨"
+    }
+  ],
+  "districts": [
+    {
+      "name": "臺北市",
+      "short": "台北",
+      "votes": {
+        "馬英九": 1011546,
+        "謝長廷": 593256
+      },
+      "pct": {
+        "馬英九": 63.03,
+        "謝長廷": 36.97
+      },
+      "valid": 1604802,
+      "winnerKey": "馬英九",
+      "margin": 26.06
+    },
+    {
+      "name": "基隆市",
+      "short": "基隆",
+      "votes": {
+        "馬英九": 152327,
+        "謝長廷": 72562
+      },
+      "pct": {
+        "馬英九": 67.73,
+        "謝長廷": 32.27
+      },
+      "valid": 224889,
+      "winnerKey": "馬英九",
+      "margin": 35.46
+    },
+    {
+      "name": "宜蘭縣",
+      "short": "宜蘭",
+      "votes": {
+        "馬英九": 130951,
+        "謝長廷": 123700
+      },
+      "pct": {
+        "馬英九": 51.42,
+        "謝長廷": 48.58
+      },
+      "valid": 254651,
+      "winnerKey": "馬英九",
+      "margin": 2.84
+    }
+  ],
+  "layout": {
+    "legend": {
+      "disabled": true
+    }
+  }
+}

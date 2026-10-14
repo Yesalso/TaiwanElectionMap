@@ -73,11 +73,23 @@
     /* 以下為泛化後新增：非兩大黨的政黨也要有色可用 */
     tpp: {
       key: 'tpp',
-      main: '#ff7f27',
-      light: '#ffa45c',
-      dark: '#a84600',
-      accent: '#ffc08f',
-      map: ['#ffc08f', '#ffa264', '#ff8a3d', '#c25a08', '#8a3f04']
+      /* 台灣民眾黨識別色 = 青（與總統地圖 color.txt 第 5 組同源 #00A89C）。
+         原泛化時填的橘色是佔位；2022 黃珊珊走 meta.color 覆寫沒踩到，
+         2024 柯文哲上板前改為正色。 */
+      main: '#00a89c',
+      light: '#00d9ca',
+      dark: '#004c4c',
+      accent: '#5ceee2',
+      map: ['#00d9ca', '#00bfb2', '#00a89c', '#006666', '#004c4c']
+    },
+    pfp: {
+      key: 'pfp',
+      /* 親民黨識別色 = 橘（與總統地圖 color.txt 第 4 組宋楚瑜同源 #FF662B）。 */
+      main: '#ff662b',
+      light: '#ff8456',
+      dark: '#b33000',
+      accent: '#ffa380',
+      map: ['#ffa380', '#ff8456', '#ff662b', '#d93a00', '#b33000']
     },
     nsc: {
       key: 'nsc',

@@ -11,6 +11,8 @@ window.BOARD_FILES = {
     "mark_elected.png": "../../NewSolution/png/processed/share/mark_elected.png",
     "party_dpp.png": "../../NewSolution/png/processed/party/party_dpp.png",
     "party_kmt.png": "../../NewSolution/png/processed/party/party_kmt.png",
-    "party_pfp.png": "../../NewSolution/png/processed/party/party_pfp.png"
+    "party_pfp.png": "../../NewSolution/png/processed/party/party_pfp.png",
+    "roc_flag.png": "../../NewSolution/png/processed/share/roc_flag.png",
+    "street_bg.png": "../../NewSolution/png/processed/share/street_bg.png"
   }
 };

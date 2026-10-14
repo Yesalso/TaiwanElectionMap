@@ -181,6 +181,10 @@ def _normalise_candidates(raw: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             # 未宣告時保持 undefined，不影響既有看板的輸出。
             "color": c.get("color"),
             "slot": c.get("slot"),
+            # 副手（總統／副總統選舉用）：vice = 副手姓名、viceParty = 副手政黨
+            # （可省，省略時跟候選人同一政黨顯示）。市長選舉不填，輸出不變。
+            "vice": c.get("vice"),
+            "viceParty": c.get("viceParty"),
         })
     return out
 

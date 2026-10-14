@@ -186,9 +186,29 @@
   BackgroundLayer.prototype.draw = function (ctx) {
     var W = L.W, H = L.H;
 
-    /* 1. 主底色 */
+    /* 0. 街景背景照（2026-10-14 起）：cover 鋪滿畫布 + 暗色遮罩。
+          cover = 等比例放大到「寬、高都蓋滿」，置中後超出畫布的部分裁掉
+          （素材 4:3、畫布 16:9 → 以寬為準放大，上下各裁一截）。
+          讀不到照片時整段跳過，畫面退回下面的純漸層底，不會開天窗。 */
+    var bgConf = L.background || {};
+    var bg = this.assets.streetBg;
+    if (bg && bg.width) {
+      var k = Math.max(W / bg.width, H / bg.height);
+      var dw = bg.width * k, dh = bg.height * k;
+      ctx.drawImage(bg, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      if (bgConf.dim) {
+        ctx.fillStyle = 'rgba(4,7,16,' + bgConf.dim + ')';
+        ctx.fillRect(0, 0, W, H);
+      }
+    }
+
+    /* 1. 主底色。有照片時整條降不透明度（alpha 0.55 起），讓街景透出來、
+          又保住深藍色調；沒有照片時維持原本的不透明漸層。 */
+    var bgAlpha = (bg && bg.width) ? 0.45 : 1.0;
     ctx.fillStyle = U.gradient(ctx, 0, 0, 0, H, [
-      [0, T.BG.top], [0.42, T.BG.mid], [1, T.BG.bottom]
+      [0, U.alpha(T.BG.top, bgAlpha)],
+      [0.42, U.alpha(T.BG.mid, bgAlpha)],
+      [1, U.alpha(T.BG.bottom, bgAlpha)]
     ]);
     ctx.fillRect(0, 0, W, H);
 
@@ -333,33 +353,80 @@
     var boxX = db.cx - boxW / 2;
     var boxH = discD;
 
-    /* ---------------- 左：新北市市徽（固定貼齊左邊界） ----------------
-       重要：只畫「一次」。早先的寫法是先畫在 x=0 再用 clearRect 擦掉重畫，
-       那一擦連同一區的選舉名稱和頂部漸層帶一起擦掉了（選舉名稱整行消失）。
-       現在先用寬高比算出寬度、決定最終 x，再一次畫到位。 */
+    /* ---------------- 左：頁眉徽章（白底圓角卡片） ----------------
+       2026-10-14 起：徽章不再直接貼在看板上，先畫一塊白底圓角卡片，
+       徽章放在卡片裡 —— 市長選舉放臺北市市徽、總統選舉放國旗
+       （meta.office 含「總統」時改用 seal.srcPresident 的 roc_flag.png）。
+       卡片 = 徽章矩形向外擴 card.pad、圓角 card.radius，帶一點投影；
+       選舉名稱接在「卡片右緣 + gap」之後（原本是徽章右緣，語意一致）。
+       讀不到徽章時退回原本的圈選記號，卡片照畫（不讓這一格開天窗）。 */
     var sealConf = H.seal;
     var sealGap = sealConf.gap || 0;
     var sealH = boxH * (sealConf.hRatio === undefined ? 1 : sealConf.hRatio);
     var sealY = db.y + (boxH - sealH) / 2;
-    var seal = this.assets.citySeal;
+    var isPresident = (meta.office || '').indexOf('總統') >= 0;
+    /* 總統場讀不到國旗時退回市徽（通常不會發生；city_seal 一直都在） */
+    var seal = isPresident ? (this.assets.rocFlag || this.assets.citySeal)
+                           : this.assets.citySeal;
     var sealBox = null;
     if (seal && seal.width) {
-      sealBox = Marks.imageByHeight(ctx, seal, sealConf.x, sealY, sealH);
+      /* 先算徽章矩形（等比例、高 = sealH），畫白卡，再把徽章畫進去。
+         ★ 總統選舉的國旗要「填滿卡片」：卡片內不留白，國旗鋪滿整張卡
+          （pad 壓到 0、圓角就是國旗的外框）。市徽是不規則透明圖，留一點
+          pad 讓它透氣、白底才看得出來。 */
+      var sealW = sealH * seal.width / seal.height;
+      sealBox = { x: sealConf.x, y: sealY, w: sealW, h: sealH };
+      var card = sealConf.card || {};
+      var pad = card.pad === undefined ? 16 : card.pad;
+      if (isPresident) pad = 0;                 /* 國旗填滿卡片 */
+      var rad = card.radius === undefined ? 24 : card.radius;
+      if (pad === 0) {
+        /* 國旗直接畫滿卡片矩形，卡片就是國旗 + 圓角裁切 */
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.45)';
+        ctx.shadowBlur = 18;
+        ctx.shadowOffsetY = 6;
+        U_.roundRectPath(ctx, sealBox.x, sealBox.y, sealBox.w, sealBox.h, rad);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.clip();
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(seal, sealBox.x, sealBox.y, sealBox.w, sealBox.h);
+        ctx.restore();
+      } else {
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.45)';
+        ctx.shadowBlur = 18;
+        ctx.shadowOffsetY = 6;
+        ctx.fillStyle = '#ffffff';
+        U_.roundRectPath(ctx, sealBox.x - pad, sealBox.y - pad,
+          sealBox.w + pad * 2, sealBox.h + pad * 2, rad);
+        ctx.fill();
+        ctx.restore();
+        ctx.save();
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(seal, sealBox.x, sealBox.y, sealBox.w, sealBox.h);
+        ctx.restore();
+      }
     } else {
-      /* 讀不到市徽時退回原本的圈選記號，不讓這一格開天窗 */
+      /* 讀不到徽章時退回原本的圈選記號，不讓這一格開天窗 */
       var r = sealH * 0.30;
       sealBox = { x: sealConf.x, y: sealY, w: sealH, h: sealH };
       Marks.voteMark(ctx, sealBox.x + sealH / 2, sealY + sealH / 2,
         r, 'rgba(255,255,255,0.9)', 6);
     }
-    /* 記下實際落點，供自動化驗證量測 */
+    /* 記下實際落點（含白卡的徽章矩形），供自動化驗證量測 */
     this.assets.sealRect = sealBox;
 
     /* ---------------- 左：選舉名稱（單行，讓開市徽） ----------------
        早先這裡上面還有一行小字「TAIWAN, CHINA」，依需求移除。
        名稱是左側唯一的錨點，用「實際墨跡」視覺置中於日期塊的水平軸，
        讓左／中／右三塊共用同一條中心線。 */
-    var ltX = sealBox ? (sealBox.x + sealBox.w + sealGap) : H.leftText.x;
+    /* 名稱讓開的是「卡片右緣」：徽章矩形 + pad。總統場國旗填滿卡片（pad=0），
+       市長場徽章有 pad。讀不到徽章、沒畫卡時 pad 記 0，行為與舊版一致。 */
+    var sealCardPad = (!isPresident && seal && seal.width &&
+      sealConf.card && sealConf.card.pad) || 0;
+    var ltX = sealBox ? (sealBox.x + sealBox.w + sealCardPad + sealGap) : H.leftText.x;
     var nameM = measureRich(ctx, [{
       text: meta.election, size: H.leftText.size, weight: H.leftText.weight
     }], 0, 0);
@@ -432,10 +499,19 @@
 
     /* ---------------- 投票率 / 有效票：日期塊右側、垂直置中 ----------------
        兩項之間**不放間隔號**（原本是「　·　」），只用兩個全角空格分開；
-       斷開距離與原本的觀感接近（約 2em），但不會再多一個圓點搶眼。 */
+       斷開距離與原本的觀感接近（約 2em），但不會再多一個圓點搶眼。
+       ★ meta.turnout 為 null（總統選舉：分區沒有官方選舉人數，算不出分區
+         投票率）時只印有效票。
+       ★ 2026-10-14 起「（北北基宜）」分區標註依需求移除 —— meta.regionLabel
+         保留在 meta.json 裡不再上板。
+       ★ 有效票後綴補一個「票」字（需求：`有效票 409萬3732 票`）——
+         數字與單位之間留一個半形空格，唸起來才不會黏在一起。 */
     var st = H.stats;
-    U_.text(ctx, '投票率 ' + meta.turnout.toFixed(2) + '%\u3000\u3000有效票 ' +
-      U_.voteWan(meta.validVotes), {
+    var statsText = (meta.turnout == null)
+      ? '有效票 ' + U_.voteWan(meta.validVotes) + ' 票'
+      : '投票率 ' + meta.turnout.toFixed(2) + '%\u3000\u3000有效票 ' +
+        U_.voteWan(meta.validVotes) + ' 票';
+    U_.text(ctx, statsText, {
       x: boxX + boxW + (st.gap || 0), y: db.y + boxH / 2, size: st.size,
       weight: st.weight, color: T.BG.textDim, align: 'left', baseline: 'middle'
     });
@@ -549,6 +625,57 @@
   };
 
   /* =====================================================================
+     Map2Layer —— 區級得票地圖（第二張圖，補進地圖右側的空欄）
+     ===================================================================== */
+  function Map2Layer(slide) { Layer.call(this, slide); }
+  Map2Layer.prototype = Object.create(Layer.prototype);
+  Map2Layer.prototype.constructor = Map2Layer;
+
+  /**
+   * 把「區級版地圖」（assets/map2.png，只畫區、不畫里，與村里版同畫布同範圍）
+   * 擺到地圖右邊那一整條獨立空欄（Layout.map2 的座標）。
+   *
+   * ★ 為什麼要這張圖（2026-10-14 晚六，需求：總統場把兩張圖放到同一張看板）：
+   *   村里的地圖（MapLayer，assets/map.png）仍是主要地圖，尺寸位置完全不動；
+   *   但總統「北北基宜」場把圖例關掉了，地圖右側那一欄（1580–2024）本來整片
+   *   空著，看板看起來「左重右空」。區級圖正好補上那一欄 —— 兩張圖同源同範圍，
+   *   一張看村里、一張看區，擺在一起互相對照。
+   *
+   * ★ 只在「圖例關掉」的場次畫：市長場的圖例就佔著這一欄
+   *   （Layout.legend 1626–1978 × 493–933），硬畫會整張疊上去。
+   *   素材讀不到（或主圖就是這張，例如 -map2 變體看板）時整個跳過，不開天窗。
+   *
+   * 畫法：與 MapLayer 同一套 —— contain 進框 → 乘 scale → 依 anchorX / anchorY
+   *       貼齊 → 不加任何底板（跟主地圖一致）。
+   */
+  Map2Layer.prototype.draw = function (ctx) {
+    var img = this.assets.map2;
+    if (!img) return;                              /* 沒有區級圖就什麼都不畫 */
+    var bx = L.map2;
+    if (!bx || bx.enabled === false) return;       /* 逐場可關（meta.layout.map2） */
+    if (L.legend && !L.legend.disabled) return;    /* 圖例還開著＝這一欄是圖例的 */
+
+    var k = bx.scale === undefined ? 1 : bx.scale;
+    var s = Math.min(bx.w / img.width, bx.h / img.height) * k;
+    var w = img.width * s;
+    var h = img.height * s;
+
+    var ax = bx.anchorX === undefined ? 0.5 : bx.anchorX;
+    var ay = bx.anchorY === undefined ? 0.5 : bx.anchorY;
+    var x = bx.x + (bx.w - w) * ax + (bx.dx || 0);
+    var y = bx.y + (bx.h - h) * ay + (bx.dy || 0);
+
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, x, y, w, h);
+    ctx.restore();
+
+    /* 記下實際落點，供除錯與自動化驗證量測（verify_layout 的 L10–L12） */
+    this.assets.map2Rect = { x: x, y: y, w: w, h: h, scale: k };
+  };
+
+  /* =====================================================================
      LegendLayer —— 得票率圖例（地圖右側空欄，直接貼在看板底色上）
      ===================================================================== */
   function LegendLayer(slide) { Layer.call(this, slide); }
@@ -578,6 +705,7 @@
   LegendLayer.prototype.draw = function (ctx) {
     var img = this.assets.legend;
     if (!img) return;                       /* 沒有圖例就什麼都不畫 */
+    if (L.legend && L.legend.disabled) return;   /* 逐場關閉（總統北北基宜看板） */
 
     var g = L.legend;
     var x = g.x, y = g.y, w = g.w, h = g.h;
@@ -755,6 +883,12 @@
       shadow: { color: 'rgba(0,0,0,0.65)', blur: 22, y: 6 }
     });
 
+    /* ------------------------- 3.5 副手行（有宣告才畫） -------------------------
+       參考樣板的「Vice: 姓名（政黨）」：「副手：」小一級用暗色、姓名白字、
+       政黨跟候選人主色。整組置中於卡片中線，超寬截斷。
+       市長選舉（無 vice 資料）整行跳過，版面與既有輸出完全不變。 */
+    if (c.vice) drawViceLine(ctx, c, cx, conf.vice);
+
     /* ------------------------- 4. 得票率 ------------------------- */
     ctx.save();
     ctx.shadowColor = U.alpha(th.light, 0.5);
@@ -770,6 +904,68 @@
     drawVotes(ctx, c, cx, conf.votes, 'center',
       { color: 'rgba(255,255,255,0.92)' });
   };
+
+  /**
+   * 副手行：「副手：」標籤（暗色、小一級）＋ 副手姓名（白字）＋（政黨）（主色）。
+   * 整行以 cx 置中；政黨省略時跟候選人同一政黨顯示；超過 conf.maxW 截斷。
+   * conf: {y, size, labelSize, maxW, gap}
+   */
+  function drawViceLine(ctx, c, cx, conf) {
+    var party = c.viceParty || c.partyDisplay();
+    var partySeg = party ? '（' + party + '）' : '';
+    var segs = [
+      { text: '副手：', size: conf.labelSize, weight: 700,
+        color: T.BG.textFaint, family: NT.FONT_STACK },
+      { text: c.vice, size: conf.size, weight: 900,
+        color: '#fff', family: NT.FONT_STACK }
+    ];
+    if (partySeg) {
+      segs.push({ text: partySeg, size: conf.labelSize, weight: 700,
+        color: U.alpha(c.theme.light, 0.95), family: NT.FONT_STACK });
+    }
+
+    /* 量總寬，超過 maxW 就從後段截（先保姓名，政黨名最後犧牲） */
+    var total = 0, i;
+    ctx.save();
+    for (i = 0; i < segs.length; i++) {
+      ctx.font = U.font(segs[i].size, segs[i].weight, segs[i].family);
+      total += ctx.measureText(segs[i].text).width +
+        (i < segs.length - 1 ? conf.gap : 0);
+    }
+    ctx.restore();
+    if (total > conf.maxW && partySeg) {
+      ctx.save();
+      ctx.font = U.font(segs[2].size, segs[2].weight, segs[2].family);
+      var avail = conf.maxW - (total - ctx.measureText(partySeg).width);
+      var trimmed = U.fitText(ctx, partySeg, Math.max(avail, 0), 0);
+      segs[2].text = trimmed;
+      ctx.restore();
+    }
+
+    /* 置中：先量最終總寬，再逐段畫 */
+    total = 0;
+    ctx.save();
+    for (i = 0; i < segs.length; i++) {
+      ctx.font = U.font(segs[i].size, segs[i].weight, segs[i].family);
+      total += ctx.measureText(segs[i].text).width +
+        (i < segs.length - 1 ? conf.gap : 0);
+    }
+    ctx.restore();
+
+    var cursor = cx - total / 2;
+    for (i = 0; i < segs.length; i++) {
+      U.text(ctx, segs[i].text, {
+        x: cursor, y: conf.y, size: segs[i].size, weight: segs[i].weight,
+        family: segs[i].family, color: segs[i].color,
+        align: 'left', baseline: 'alphabetic',
+        shadow: { color: 'rgba(0,0,0,0.5)', blur: 12, y: 3 }
+      });
+      ctx.save();
+      ctx.font = U.font(segs[i].size, segs[i].weight, segs[i].family);
+      cursor += ctx.measureText(segs[i].text).width + conf.gap;
+      ctx.restore();
+    }
+  }
 
   /**
    * 得票數：阿拉伯數字用大級、漢字（萬、票）用小級，共用同一條基線。
@@ -795,76 +991,398 @@
   }
 
   /* =====================================================================
-     MinorCandidateLayer —— 第三位候選人（小卡）
+     MinorCandidateLayer —— 其他候選人（第 3 名起）
+     -------------------------------------------------------------------------
+     規則（見 layout.js 的 Layout.minors）：
+       1. 第 3 名＝獨立一張**高卡**：有自己的高度 big.h，底部與左群同線、
+          往上長（地圖墨跡右緣到不了那一欄，所以不會壓到地圖，L9 把關）；
+          卡內是**單欄直排**（照片占位框 + 姓名／副手／政黨／得票率／票數），
+          不再「姓名群 ↔ 得票群」兩欄並排，卡就不會被撐成長橫條。
+          照片占位框的比例 = 主卡色卡（452 : 620，layout.js 的 CARD_ASPECT）。
+       2. 第 4、5 名＝窄卡（160 高）；第 6 名起併成**「其他候選人」清單格**：
+          一行一位（`- 姓名  票數`，票數右對齊成一欄），不印政黨與得票率，
+          列數多時整格往上長（上限 = 高卡高度）。
+       3. 排列：第 3 名高卡右緣貼齊 x1；其餘一律**從高卡左緣往左排** ——
+          第 4 名緊貼高卡左側、第 5 名在其左、清單格在最左。
+       4. **卡寬 = 內容自然寬**：先量好每張卡「占位框 + 文字欄（含字距）+ 內距」，
+          再照這個寬度畫卡 —— 卡內不會有多餘空位；空隙只留在「卡與卡之間」。
+       5. 字級動態：窄卡超過 maxTextW 就整張縮字級；第 3 名高卡的 k 由
+          bigScale 求（五行堆疊剛好填滿卡內高度）；清單格的 k 由每列高度推得；
+          真的還塞不下才整條縮。
+     畫完把每張卡的實際矩形記到 assets.minorCards，供 verify_layout 的
+     L7/L8/L9 比對。
      ===================================================================== */
   function MinorCandidateLayer(slide) { Layer.call(this, slide); }
   MinorCandidateLayer.prototype = Object.create(Layer.prototype);
   MinorCandidateLayer.prototype.constructor = MinorCandidateLayer;
 
-  MinorCandidateLayer.prototype.draw = function (ctx) {
-    var c = this.model.minor, m = L.minor;
-    /* 只有兩位候選人的選舉（例：2002 馬英九 vs 李應元）沒有第三位小卡，
-       直接不畫這一層 —— 泛化後任何候選人數都要能渲染。 */
-    if (!c) return;
-    var x = m.cx - m.w / 2, y = m.y;
-    var th = c.theme;
-
+  /** 量「一行文字」在某字級下的寬度（含字距）。 */
+  function lineWidth(ctx, text, size, weight, spacing, family) {
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.55)';
-    ctx.shadowBlur = 26;
-    ctx.shadowOffsetY = 10;
-    ctx.fillStyle = 'rgba(6,12,26,0.78)';
-    U.roundRectPath(ctx, x, y, m.w, m.h, m.radius);
-    ctx.fill();
+    ctx.font = U.font(size, weight, family);
+    var w = U.measureSpaced(ctx, text, spacing || 0);
     ctx.restore();
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.16)';
-    ctx.lineWidth = 2;
-    U.roundRectPath(ctx, x, y, m.w, m.h, m.radius);
-    ctx.stroke();
-    ctx.restore();
+    return w;
+  }
 
-    /* 頭像框：與主卡同一條規則 —— 不畫照片，只填政黨純色底（見 CandidateLayer） */
-    var px = x + m.card.offsetX;
-    var py = y + (m.h - m.card.h) / 2;
+  /** 得票數那一行的寬度（大級數字 + 小級漢字，與 drawVotes 同一種組法）。 */
+  function votesLineWidth(ctx, c, size, cjkSize) {
+    var parts = U.voteParts(c.votes), w = 0, i;
+    ctx.save();
+    for (i = 0; i < parts.length; i++) {
+      var num = parts[i].num;
+      ctx.font = U.font(num ? size : (cjkSize || size * 0.55),
+                        num ? 900 : 700, NT.FONT_NUM);
+      w += ctx.measureText(parts[i].text).width;
+    }
+    ctx.restore();
+    return w;
+  }
+
+  /** 把一行字塞進 maxW：塞得下原樣回傳，塞不下才逐字刪（極端情況的保險）。 */
+  function fitLine(ctx, text, size, weight, spacing, maxW) {
+    ctx.save();
+    ctx.font = U.font(size, weight);
+    var s = (maxW === null || maxW === undefined
+             || U.measureSpaced(ctx, text, spacing || 0) <= maxW)
+      ? String(text) : U.fitText(ctx, text, maxW, spacing || 0);
+    ctx.restore();
+    return s;
+  }
+
+  /**
+   * 上限係數：一張卡「最寬那一行」的**自然寬**（還原成 fit=1）超過 maxTextW 時，
+   * 回傳要再乘上去的字級係數（下限 0.7）。
+   * 這是「字級動態調整」的第二道閥：不是把長文字截掉，而是整張卡縮字級塞進去。
+   */
+  function capFactor(widest, maxW, fit) {
+    var natural = widest / (fit || 1);
+    if (!maxW || natural <= maxW) return 1;
+    return Math.max(0.7, maxW / natural);
+  }
+
+  /** 圖片占位框：不畫照片，只填政黨純色 + 亮線（照片由使用者後製合成）。 */
+  function minorBlock(ctx, x, y, m, th) {
     ctx.save();
     ctx.fillStyle = th.main;
-    U.roundRectPath(ctx, px, py, m.card.w, m.card.h, m.card.radius);
+    U.roundRectPath(ctx, x, y, m.w, m.h, m.radius);
     ctx.fill();
     ctx.restore();
-
     ctx.save();
     ctx.strokeStyle = 'rgba(255,255,255,0.28)';
     ctx.lineWidth = 2;
-    U.roundRectPath(ctx, px, py, m.card.w, m.card.h, m.card.radius);
+    U.roundRectPath(ctx, x, y, m.w, m.h, m.radius);
     ctx.stroke();
     ctx.restore();
+  }
 
-    var tx = x + m.nameX;
-    var rx = x + m.w + m.pctRight;
-    U.text(ctx, c.name, {
-      x: tx, y: y + m.nameY, size: m.nameSize, weight: 900,
-      color: '#fff', baseline: 'middle', spacing: 3
-    });
-    /* 政黨名：先換成短名（無黨籍及未經政黨推薦 -> 無黨籍），
-       再依實際可用寬度（左側文字起點 → 右側票數區）裁切，
-       免得長黨名壓到右邊的得票數。 */
-    var partyLabel = c.partyDisplay();
-    ctx.save();
-    ctx.font = U.font(m.partySize, 700);
-    partyLabel = U.fitText(ctx, partyLabel, rx - tx - 210, 2);
-    ctx.restore();
-    U.text(ctx, partyLabel, {
-      x: tx, y: y + m.partyY, size: m.partySize, weight: 700,
-      color: T.BG.textFaint, baseline: 'middle', spacing: 2
-    });
+  /** 量一張小卡（第 4 名以後）：占位框 + 單一文字列（四行上下堆疊）。 */
+  MinorCandidateLayer.prototype.specSmall = function (ctx, c, m, fit, depth) {
+    var nS = m.nameSize * fit, sS = m.subSize * fit,
+        pS = m.pctSize * fit, vS = m.votesSize * fit, vC = m.votesCjkSize * fit;
+    var name = c.name;
+    var sub = c.vice ? ('副手：' + c.vice) : c.partyDisplay();
+    var pct = c.pctText() + '%';
+    var wName = lineWidth(ctx, name, nS, 900, 2 * fit);
+    var wSub = lineWidth(ctx, sub, sS, 700, 1 * fit);
+    var wPct = lineWidth(ctx, pct, pS, 900, 0, NT.FONT_NUM);
+    var wVotes = votesLineWidth(ctx, c, vS, vC);
+    var colW = Math.max(wName, wSub, wPct, wVotes);
+    /* 文字自然寬超過上限 → 整張卡縮字級（不截字） */
+    var cap = capFactor(colW, m.maxTextW, fit);
+    if (cap < 1 && (depth || 0) < 3) {
+      return this.specSmall(ctx, c, m, fit * cap, (depth || 0) + 1);
+    }
+    return {
+      kind: 'small', c: c, fit: fit, colW: colW,
+      w: m.padL + m.block.w + m.blockGap + colW + m.padR,
+      name: name, sub: sub, pct: pct,
+      nS: nS, sS: sS, pS: pS, vS: vS, vC: vC,
+      wName: wName, wSub: wSub, wPct: wPct, wVotes: wVotes
+    };
+  };
 
-    U.text(ctx, c.pctText() + '%', {
-      x: rx, y: y + m.pctY, size: m.pctSize, weight: 900, family: NT.FONT_NUM,
-      color: th.light, align: 'right', baseline: 'middle'
+  /** 第 3 名高卡的字級堆疊總高（k = 1 的基準值；實際乘上 fit）。
+      五行：姓名 / 副手 / 政黨（有副手才有）/ 得票率 / 票數 —— 全部直排，
+      所以「堆疊總高」只跟字級與行距有關，跟卡片寬度無關。 */
+  function bigStackHeight(b, k, showParty) {
+    return k * (b.nameSize + b.lineGap1 + b.subSize
+                + (showParty ? b.lineGap2 + b.partySize : 0)
+                + b.stackGap + b.pctSize + b.votesGap + b.votesSize);
+  }
+
+  /** 第 3 名高卡的字級係數 k：讓五行堆疊**剛好填滿卡內高度**（h − 2×padV）。
+      沒有副手行（市長選舉）的場次堆疊較矮 → k 略大，字就自動大一點；
+      夾在 scaleMin..scaleMax 之間，避免某場特別空或特別擠。 */
+  MinorCandidateLayer.prototype.bigScale = function (c, m) {
+    var b = m.big;
+    var inner = b.h - 2 * b.padV;
+    var base = Math.max(1, bigStackHeight(b, 1, !!c.vice));
+    return Math.max(b.scaleMin, Math.min(b.scaleMax, inner / base));
+  };
+
+  /** 量第 3 名高卡：占位框（(h − 2×padV) × blockAspect）+ **單欄**直排文字。
+      fit 為全域縮放係數（整條塞不下才會 < 1）；字級係數 k 由 bigScale 另計。 */
+  MinorCandidateLayer.prototype.specBig = function (ctx, c, m, fit, depth) {
+    var b = m.big;
+    var blkH = b.h - 2 * b.padV, blkW = blkH * b.blockAspect;
+    var nS = b.nameSize * fit, sS = b.subSize * fit, ptS = b.partySize * fit,
+        pS = b.pctSize * fit, vS = b.votesSize * fit, vC = b.votesCjkSize * fit;
+    var sub = c.vice ? ('副手：' + c.vice) : c.partyDisplay();
+    var party = c.partyDisplay();
+    var showParty = !!c.vice;
+    var pct = c.pctText() + '%';
+    var wName = lineWidth(ctx, c.name, nS, 900, 2 * fit);
+    var wSub = lineWidth(ctx, sub, sS, 700, 1 * fit);
+    var wParty = showParty ? lineWidth(ctx, party, ptS, 700, 1 * fit) : 0;
+    var wPct = lineWidth(ctx, pct, pS, 900, 0, NT.FONT_NUM);
+    var wVotes = votesLineWidth(ctx, c, vS, vC);
+    var colW = Math.max(wName, wSub, wParty, wPct, wVotes);
+    var cap = capFactor(colW, b.maxTextW, fit);
+    if (cap < 1 && (depth || 0) < 3) {
+      return this.specBig(ctx, c, m, fit * cap, (depth || 0) + 1);
+    }
+    return {
+      kind: 'big', c: c, fit: fit, colW: colW,
+      blockH: blkH, blockW: blkW,
+      stackH: bigStackHeight(b, fit, showParty),
+      w: b.padL + blkW + b.blockGap + colW + b.padR,
+      name: c.name, sub: sub, party: party, showParty: showParty, pct: pct,
+      nS: nS, sS: sS, ptS: ptS, pS: pS, vS: vS, vC: vC,
+      gap1: b.lineGap1 * fit, gap2: b.lineGap2 * fit,
+      stackGap: b.stackGap * fit, votesGap: b.votesGap * fit,
+      wName: wName, wSub: wSub, wParty: wParty, wPct: wPct, wVotes: wVotes
+    };
+  };
+
+  /** 量「其他候選人」清單格（★ 五版：一行一位候選人，不再合計）。
+      內容＝`- 姓名    1,851票`（票數右對齊成一欄），**不印政黨、不印得票率**。
+      高度由列數自己長（底部與左群同線、往上長），上限 = 第 3 名高卡的 h；
+      列數多時每一列壓矮、字級按 rowH 比例縮，整張卡不會高過高卡（見 L9）。
+      寬度 = padL + colW + padR，colW 由「最寬姓名 + 最寬票數」推得。 */
+  MinorCandidateLayer.prototype.specOthers = function (ctx, list, m, fit, depth) {
+    var o = m.others, i;
+    var n = list.length;
+    if (!n) return null;
+
+    var titleSize = o.titleSize * fit;
+    var titleH = o.title ? titleSize * 1.7 : 0;
+    var want = titleH + n * o.rowH + 2 * o.padV;
+    var h = Math.min(want, m.big.h);             /* 上限 = 第 3 名高卡 */
+    var rowH = (h - titleH - 2 * o.padV) / n;    /* 一定 ≤ o.rowH */
+    h = titleH + rowH * n + 2 * o.padV;          /* 列少 → 卡片自然變矮 */
+
+    var k = rowH / o.rowH;                       /* 字級係數（列多 → < 1） */
+    var size = o.size * fit * k;
+    var dashW = o.dash ? lineWidth(ctx, o.dash, size, 700, 0) : 0;
+
+    var rows = [], maxNameW = 0, maxVotesW = 0;
+    for (i = 0; i < n; i++) {
+      var c = list[i];
+      var votes = U.voteWan(c.votes) + '票';
+      var nw = lineWidth(ctx, c.name, size, 900, 1 * fit);
+      var vw = lineWidth(ctx, votes, size, 700, 0, NT.FONT_NUM);
+      if (nw > maxNameW) maxNameW = nw;
+      if (vw > maxVotesW) maxVotesW = vw;
+      rows.push({ name: c.name, votes: votes });
+    }
+    var colW = dashW + (o.dash ? o.dashGap * fit : 0)
+             + maxNameW + o.colGap * fit + maxVotesW;
+    var cap = capFactor(colW, o.maxTextW, fit);
+    if (cap < 1 && (depth || 0) < 3) {
+      return this.specOthers(ctx, list, m, fit * cap, (depth || 0) + 1);
+    }
+    return {
+      kind: 'others', list: list, fit: fit, rows: rows, n: n,
+      h: h, rowH: rowH, size: size,
+      titleSize: titleSize, titleH: titleH,
+      dashW: dashW, maxNameW: maxNameW, maxVotesW: maxVotesW, colW: colW,
+      w: o.padL + colW + o.padR
+    };
+  };
+
+  MinorCandidateLayer.prototype.draw = function (ctx) {
+    var minors = this.model.minors || [];
+    if (!minors.length) return;            /* 只有兩位候選人：整區不畫 */
+    var m = L.minors;
+    var b = m.big;
+    var y = m.y, i;
+    /* 第 3 名高卡：底部與左群同一條線（m.y + m.h），往上長 b.h */
+    var bigY = m.y + m.h - b.h;
+
+    /* 分群：第 4、5 名（窄卡）＋「其他候選人」清單格；右邊是第 3 名高卡 */
+    var hasOthers = minors.length >= 5;
+    var fixed = minors.slice(1, hasOthers ? 3 : 4);   /* 最多 2 張窄卡 */
+    var hidden = hasOthers ? minors.slice(3) : [];    /* 第 6 名以後 */
+
+    /* ---- 量寬 →（塞不下才）整條等比縮字級 ----
+       窄卡：字級固定（fit=1）；第 3 名高卡：字級係數 k 由「五行剛好填滿卡高」
+       決定（見 bigScale），卡片寬度永遠等於內容自然寬 —— 放大的是字級，不是留白。 */
+    var kBig = this.bigScale(minors[0], m);
+    var fit = 1, specs, big, gap, groupGap, leftW, need, avail = m.x1 - m.x0;
+    for (var pass = 0; pass < 4; pass++) {
+      gap = Math.max(m.minGap, m.gap * fit);
+      groupGap = Math.max(m.minGap * 2, m.groupGap * fit);
+      specs = [];
+      for (i = 0; i < fixed.length; i++) specs.push(this.specSmall(ctx, fixed[i], m, fit));
+      if (hasOthers) {
+        var so = this.specOthers(ctx, hidden, m, fit);
+        if (so) specs.push(so);
+      }
+      leftW = specs.reduce(function (s, x) { return s + x.w; }, 0)
+            + gap * Math.max(0, specs.length - 1);
+
+      big = this.specBig(ctx, minors[0], m, Math.min(fit, 1) * kBig);
+
+      var gapsW = specs.length ? groupGap : 0;      /* 左群內部的 gap 已含在 leftW */
+      need = leftW + gapsW + big.w;
+      if (need <= avail || fit <= m.minTextScale) break;
+      /* 字級與寬度近似線性 → 用「可用內容寬 / 需要內容寬」直接估下一個 fit
+         （leftW 內含的 gap 隨 fit 一起縮，所以比較時只挑出 groupGap） */
+      fit = Math.max(m.minTextScale, fit * ((avail - groupGap) / (leftW + big.w)));
+    }
+
+    /* ---- 畫：第 3 名高卡右緣貼 x1；左群「從它的左緣往左排」 ----
+       順序由近而遠＝第 4 名 → 第 5 名 →（其他候選人清單，最左）。
+       所以由右往左擺：游標先放在 bigX − groupGap，再一張一張往左扣。 */
+    var bigX = Math.max(m.x0, m.x1 - big.w);
+    var rects = [];
+    var x = bigX - (specs.length ? groupGap : 0);
+    for (i = 0; i < specs.length; i++) {
+      var sp = specs[i];
+      x -= sp.w;
+      if (sp.kind === 'small') this.drawSmall(ctx, sp, x, y, m);
+      else this.drawOthers(ctx, sp, x, y, m);
+      rects.push({
+        name: sp.kind === 'others' ? 'others' : 'small:' + sp.c.name,
+        rect: { x: x, y: (sp.kind === 'others' ? y + m.h - sp.h : y),
+                w: sp.w, h: (sp.kind === 'others' ? sp.h : m.h) },
+        scale: sp.fit
+      });
+      x -= gap;
+    }
+    this.drawBig(ctx, big, bigX, bigY, m);
+    rects.push({ name: 'big:' + minors[0].name,
+                 rect: { x: bigX, y: bigY, w: big.w, h: b.h }, scale: big.fit });
+
+    /* 供 verify_layout 用：每張卡的實際矩形（L7 互不相交、L8 都在帶內、L9 不壓地圖） */
+    this.assets.minorCards = rects;
+  };
+
+  /** 畫一張小卡。 */
+  MinorCandidateLayer.prototype.drawSmall = function (ctx, s, x, y, m) {
+    var c = s.c, fit = s.fit;
+    minorBlock(ctx, x + m.padL, y + (m.h - m.block.h) / 2, m.block, c.theme);
+
+    var tx = x + m.padL + m.block.w + m.blockGap;
+    U.text(ctx, fitLine(ctx, s.name, s.nS, 900, 2 * fit, s.colW), {
+      x: tx, y: y + m.nameCy, size: s.nS, weight: 900,
+      color: '#fff', baseline: 'middle', spacing: 2 * fit
     });
-    drawVotes(ctx, c, rx, { y: y + m.votesY, size: m.votesSize, cjkSize: m.votesCjkSize },
-      'right', { color: T.BG.textDim });
+    U.text(ctx, fitLine(ctx, s.sub, s.sS, 700, 1 * fit, s.colW), {
+      x: tx, y: y + m.subCy, size: s.sS, weight: 700,
+      color: c.vice ? T.BG.textDim : T.BG.textFaint, baseline: 'middle', spacing: 1 * fit
+    });
+    U.text(ctx, s.pct, {
+      x: tx, y: y + m.pctBase, size: s.pS, weight: 900, family: NT.FONT_NUM,
+      color: c.theme.light, align: 'left', baseline: 'alphabetic'
+    });
+    drawVotes(ctx, c, tx, { y: y + m.votesBase, size: s.vS, cjkSize: s.vC },
+      'left', { color: T.BG.textDim });
+  };
+
+  /** 畫第 3 名高卡：占位框（吃滿卡高）+ **單欄**直排（姓名／副手／政黨／得票率／
+      票數）。整欄由 s.stackH 推到卡內垂直置中，行距由字級推導 → 任何字級都不疊字。
+      得票率／票數右對齊到文字欄右緣（寬度＝最寬那一行），不另外撐寬卡片。 */
+  MinorCandidateLayer.prototype.drawBig = function (ctx, s, x, y, m) {
+    var b = m.big, c = s.c;
+    minorBlock(ctx, x + b.padL, y + b.padV,
+               { w: s.blockW, h: s.blockH, radius: b.blockRadius }, c.theme);
+
+    var tx = x + b.padL + s.blockW + b.blockGap;
+    var right = x + s.w - b.padR;                 /* 文字欄右緣 = 卡片右緣 − padR */
+    var top = y + (b.h - s.stackH) / 2;           /* 整欄垂直置中 */
+
+    U.text(ctx, fitLine(ctx, s.name, s.nS, 900, 2 * s.fit, s.colW), {
+      x: tx, y: top + s.nS / 2, size: s.nS, weight: 900,
+      color: '#fff', baseline: 'middle', spacing: 2 * s.fit
+    });
+    top += s.nS + s.gap1;
+
+    U.text(ctx, fitLine(ctx, s.sub, s.sS, 700, 1 * s.fit, s.colW), {
+      x: tx, y: top + s.sS / 2, size: s.sS, weight: 700,
+      color: c.vice ? T.BG.textDim : T.BG.textFaint, baseline: 'middle',
+      spacing: 1 * s.fit
+    });
+    top += s.sS;
+
+    if (s.showParty) {
+      top += s.gap2;
+      U.text(ctx, s.party, {
+        x: tx, y: top + s.ptS / 2, size: s.ptS, weight: 700,
+        color: T.BG.textFaint, baseline: 'middle', spacing: 1 * s.fit
+      });
+      top += s.ptS;
+    }
+
+    top += s.stackGap;
+    U.text(ctx, s.pct, {
+      x: right, y: top + s.pS * b.capRatio, size: s.pS, weight: 900,
+      family: NT.FONT_NUM, color: c.theme.light, align: 'right', baseline: 'alphabetic'
+    });
+    top += s.pS + s.votesGap;
+    drawVotes(ctx, c, right, {
+      y: top + s.vS * b.capRatio, size: s.vS, cjkSize: s.vC
+    }, 'right', { color: T.BG.textDim });
+  };
+
+  /** 畫「其他候選人」清單格：標題 + **一行一位**（`- 姓名    1,851票`）。
+      票數右對齊成一欄（看起來是一張表）；不畫照片區、不印政黨與得票率。
+      卡片底部與左群同一條線、往上長（s.h），列與列之間一條極淡細線。 */
+  MinorCandidateLayer.prototype.drawOthers = function (ctx, s, x, y, m) {
+    var o = m.others, fit = s.fit, i;
+    var top = y + m.h - s.h;                   /* 底部同線、往上長 */
+
+    var tx = x + o.padL;
+    var ty = top + o.padV;
+    if (o.title) {
+      U.text(ctx, o.title + '（' + s.n + ' 位）', {
+        x: tx, y: ty + s.titleSize / 2, size: s.titleSize, weight: 900,
+        color: '#fff', baseline: 'middle', spacing: 2 * fit
+      });
+      ty += s.titleH;
+    }
+
+    var lx = tx + (o.dash ? s.dashW + o.dashGap * fit : 0);
+    var rx = tx + s.colW;                      /* 票數欄右緣（表格式對齊） */
+    for (i = 0; i < s.rows.length; i++) {
+      var r = s.rows[i];
+      var cy = ty + s.rowH * (i + 0.5);
+      if (o.dash) {
+        U.text(ctx, o.dash, {
+          x: tx, y: cy, size: s.size, weight: 700,
+          color: T.BG.textFaint, baseline: 'middle'
+        });
+      }
+      U.text(ctx, fitLine(ctx, r.name, s.size, 900, 1 * fit, s.colW), {
+        x: lx, y: cy, size: s.size, weight: 900,
+        color: '#fff', baseline: 'middle', spacing: 1 * fit
+      });
+      U.text(ctx, r.votes, {
+        x: rx, y: cy, size: s.size, weight: 700, family: NT.FONT_NUM,
+        color: T.BG.textDim, baseline: 'middle', align: 'right'
+      });
+      if (o.rule && i < s.rows.length - 1) {
+        ctx.save();
+        ctx.strokeStyle = o.ruleColor;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(tx, Math.round(cy + s.rowH / 2) + 0.5);
+        ctx.lineTo(x + s.w - o.padR, Math.round(cy + s.rowH / 2) + 0.5);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
   };
 
   /* =====================================================================
@@ -906,6 +1424,7 @@
   NT.BackgroundLayer = BackgroundLayer;
   NT.HeaderLayer = HeaderLayer;
   NT.MapLayer = MapLayer;
+  NT.Map2Layer = Map2Layer;
   NT.LegendLayer = LegendLayer;
   NT.CandidateLayer = CandidateLayer;
   NT.MinorCandidateLayer = MinorCandidateLayer;

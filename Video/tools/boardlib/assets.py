@@ -142,6 +142,17 @@ class CircleRecipe(NamedTuple):
     edge_fill: Optional[Tuple[int, int, int]] = None
 
 
+class CopyRecipe(NamedTuple):
+    """原樣複製、不做任何轉換。
+
+    給「本來就不能碰透明度」的素材用：
+      - 國旗（ROCFLAG）：旗面的白日／白邊是圖案本身，過「白 -> 透明」
+        會把太陽整片吃掉；過內切圓更不對。它自己就是 RGBA 成品。
+      - 街景背景照：整張都是內容，沒有要去背的部分。
+    """
+    pass
+
+
 # 沒列在這裡的靜態素材（map.png / legend.png）維持裸複製：它們在 source/
 # 就已經是透明成品（地圖柵格由 NewSolution/Converge_to_map_taipei.py 產生、
 # 再過 make_transparent.py），這裡再轉一次只會把 alpha 重算壞掉。
@@ -156,6 +167,9 @@ STATIC_RECIPES: Dict[str, object] = {
     "party_pfp.png": CircleRecipe(width=PARTY_WIDTH),   # 親民黨徽：橘圓 +「親」，同上
     # 市徽：不規則主體 + 大片純白，縮到 SEAL_WIDTH
     "city_seal.png": WhiteRecipe(soft=30, width=SEAL_WIDTH),
+    # 國旗（總統選舉頁眉白卡用）／街景背景照：原樣沿用，見 CopyRecipe 說明
+    "roc_flag.png": CopyRecipe(),
+    "street_bg.png": CopyRecipe(),
 }
 
 
@@ -178,6 +192,11 @@ def build_static(src: str, dst: str, filename: str) -> Optional[str]:
         return "內切圓 %d×%d，圓外透明%s" % (
             size[0], size[1],
             "（填色 #%02x%02x%02x）" % recipe.edge_fill if recipe.edge_fill else "")
+    if isinstance(recipe, CopyRecipe):
+        import shutil
+        os.makedirs(os.path.dirname(os.path.abspath(dst)) or ".", exist_ok=True)
+        shutil.copyfile(src, dst)
+        return "原樣沿用（不做任何透明化轉換）"
     size = white_to_alpha(src, dst, soft=recipe.soft, width=recipe.width,
                           crop=recipe.crop)
     return "白底轉透明 %d×%d" % (size[0], size[1])

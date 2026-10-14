@@ -1,0 +1,95 @@
+{
+  "generatedAt": "2026-10-14T16:18:28.967Z",
+  "edge": "Edg/155.0.4283.45",
+  "node": "v22.22.2",
+  "scales": [
+    1
+  ],
+  "results": [
+    {
+      "board": "1996-president-north",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\president\\1996-president-north_2560x1440.png",
+      "bytes": 4159311,
+      "sha256": "e0f275369fc224cf62e39beb8cb81cd8140426c218676778ecb7b500c6c27f0a",
+      "ok": true
+    },
+    {
+      "board": "2000-president-north",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\president\\2000-president-north_2560x1440.png",
+      "bytes": 4208822,
+      "sha256": "91eec3fe54926fc21e25a5a764ea7d088fb62eba2d4b7d01a9dea30b5c18fd2d",
+      "ok": true
+    },
+    {
+      "board": "2004-president-north",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\president\\2004-president-north_2560x1440.png",
+      "bytes": 4268275,
+      "sha256": "27e55573839d2fdf7cc6112208ed92686fcd1681039e0888e520125a287ebef7",
+      "ok": true
+    },
+    {
+      "board": "2008-president-north",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\president\\2008-president-north_2560x1440.png",
+      "bytes": 4248096,
+      "sha256": "f74c9aee95d80d8e42c2462bec0e47df3b5de009fb620ff8bf2d890a51a1540b",
+      "ok": true
+    },
+    {
+      "board": "2012-president-north",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\president\\2012-president-north_2560x1440.png",
+      "bytes": 4199690,
+      "sha256": "326adf2ad0f249f61bb8096ac8d5dc2ca7dabb47ccab49924373db801ba83f0f",
+      "ok": true
+    },
+    {
+      "board": "2016-president-north",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\president\\2016-president-north_2560x1440.png",
+      "bytes": 4219948,
+      "sha256": "49aae769ea7b937991d96c47ffb087e3e1391df42db798e716256672521260bf",
+      "ok": true
+    },
+    {
+      "board": "2020-president-north",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\president\\2020-president-north_2560x1440.png",
+      "bytes": 4192087,
+      "sha256": "c694d0cf51e5ce8609fcc49ddee0f66b59b86bbe64bcde3167b85e54a64e8cae",
+      "ok": true
+    },
+    {
+      "board": "2024-president-north",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\president\\2024-president-north_2560x1440.png",
+      "bytes": 4255131,
+      "sha256": "c72fd0189220abb65218a56993380d2cf8fd5a43dc42602de57a6dee9276c4e2",
+      "ok": true
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "ok": 8,
+    "failed": 0
+  }
+}

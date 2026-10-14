@@ -19,42 +19,130 @@
     "1994": {
       "map.png": "map.png",
       "map2.png": "map2.png",
-      "legend.png": { "to": "legend.png", "how": "copy" }
+      "legend.png": {
+        "to": "legend.png",
+        "how": "copy"
+      }
     },
     "1998": {
       "map.png": "map.png",
       "map2.png": "map2.png",
-      "legend.png": { "to": "legend.png", "how": "copy" }
+      "legend.png": {
+        "to": "legend.png",
+        "how": "copy"
+      }
     },
     "2002": {
       "map.png": "map.png",
       "map2.png": "map2.png",
-      "legend.png": { "to": "legend.png", "how": "copy" }
+      "legend.png": {
+        "to": "legend.png",
+        "how": "copy"
+      }
     },
     "2006": {
       "map.png": "map.png",
       "map2.png": "map2.png",
-      "legend.png": { "to": "legend.png", "how": "copy" }
+      "legend.png": {
+        "to": "legend.png",
+        "how": "copy"
+      }
     },
     "2010": {
       "map.png": "map.png",
       "map2.png": "map2.png",
-      "legend.png": { "to": "legend.png", "how": "copy" }
+      "legend.png": {
+        "to": "legend.png",
+        "how": "copy"
+      }
     },
     "2014": {
       "map.png": "map.png",
       "map2.png": "map2.png",
-      "legend.png": { "to": "legend.png", "how": "copy" }
+      "legend.png": {
+        "to": "legend.png",
+        "how": "copy"
+      }
     },
     "2018": {
       "map.png": "map.png",
       "map2.png": "map2.png",
-      "legend.png": { "to": "legend.png", "how": "copy" }
+      "legend.png": {
+        "to": "legend.png",
+        "how": "copy"
+      }
     },
     "2022": {
       "map.png": "map.png",
       "map2.png": "map2.png",
-      "legend.png": { "to": "legend.png", "how": "copy" }
+      "legend.png": {
+        "to": "legend.png",
+        "how": "copy"
+      }
+    },
+    "1996": {
+      "map.png": "map.png",
+      "map2.png": "map2.png",
+      "legend.png": {
+        "to": "legend.png",
+        "how": "copy"
+      }
+    },
+    "2000": {
+      "map.png": "map.png",
+      "map2.png": "map2.png",
+      "legend.png": {
+        "to": "legend.png",
+        "how": "copy"
+      }
+    },
+    "2004": {
+      "map.png": "map.png",
+      "map2.png": "map2.png",
+      "legend.png": {
+        "to": "legend.png",
+        "how": "copy"
+      }
+    },
+    "2008": {
+      "map.png": "map.png",
+      "map2.png": "map2.png",
+      "legend.png": {
+        "to": "legend.png",
+        "how": "copy"
+      }
+    },
+    "2012": {
+      "map.png": "map.png",
+      "map2.png": "map2.png",
+      "legend.png": {
+        "to": "legend.png",
+        "how": "copy"
+      }
+    },
+    "2016": {
+      "map.png": "map.png",
+      "map2.png": "map2.png",
+      "legend.png": {
+        "to": "legend.png",
+        "how": "copy"
+      }
+    },
+    "2020": {
+      "map.png": "map.png",
+      "map2.png": "map2.png",
+      "legend.png": {
+        "to": "legend.png",
+        "how": "copy"
+      }
+    },
+    "2024": {
+      "map.png": "map.png",
+      "map2.png": "map2.png",
+      "legend.png": {
+        "to": "legend.png",
+        "how": "copy"
+      }
     }
   },
   "party": {
@@ -66,6 +154,8 @@
   "share": {
     "台北市市徽.png": "city_seal.png",
     "国徽.png": "emblem.png",
-    "当选标志.png": "mark_elected.png"
+    "当选标志.png": "mark_elected.png",
+    "ROCFLAG.png": "roc_flag.png",
+    "街景3.png": "street_bg.png"
   }
 }

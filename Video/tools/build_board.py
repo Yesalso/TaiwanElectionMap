@@ -220,6 +220,17 @@ def resolve_assets(board):
             resolved[fname] = legacy
             continue
         missing.append(fname)
+
+    # 全域共享素材（roc_flag.png / street_bg.png）：原圖只有 NewSolution/png/
+    # share/ 一份、各場 source/ 不放，這裡只從 processed/ 解析；
+    # 缺了只警告不擋建置 —— 引擎端讀不到會退回後備畫法（背景退純漸層、
+    # 總統頁眉徽章退回市徽）。
+    for fname in naming.shared_filenames():
+        dst = naming.processed_path(fname)
+        if dst and os.path.isfile(dst):
+            resolved[fname] = dst
+        else:
+            print("  [警告] 共享素材缺成品：%s（引擎端會退回後備畫法）" % fname)
     return resolved, missing
 
 

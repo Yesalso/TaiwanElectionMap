@@ -42,6 +42,8 @@ class AssetSpec(NamedTuple):
     filename: str        # source/ 與 assets/ 共用的檔名
     engine_field: str    # window.NT_ASSETS 的欄位名
     required: bool       # 缺了會不會讓看板開天窗
+    shared: bool = False # True = 全域共享素材（只在 NewSolution/png/share/ 有一份
+                         #      原圖，不進各場 source/ 的缺檔檢查）
 
 
 # 順序即為 _template/meta.json 的 assets.required 順序
@@ -51,7 +53,19 @@ ASSETS = (
     AssetSpec("市徽", "city_seal.png", "citySeal", True),
     AssetSpec("日期圓徽", "emblem.png", "emblem", True),
     AssetSpec("當選標誌", "mark_elected.png", "electedMark", True),
+    # 全域共享：原圖只有 NewSolution/png/share/ 那一份，各場 source/ 不放
+    AssetSpec("國旗（總統頁眉白卡）", "roc_flag.png", "rocFlag", False, True),
+    AssetSpec("街景背景照", "street_bg.png", "streetBg", False, True),
 )
+
+# 全域共享素材的檔名（建置端只從 processed/ 解析，缺了只警告、不擋建置：
+# 引擎端讀不到會各自退回後備畫法 —— 背景退回純漸層、總統徽章退回市徽）
+SHARED_FILENAMES = tuple(a.filename for a in ASSETS if a.shared)
+
+
+def shared_filenames() -> List[str]:
+    """全域共享素材檔名清單。"""
+    return list(SHARED_FILENAMES)
 
 # 政黨徽章是動態的，格式另訂
 PARTY_PATTERN = "party_%s.png"          # %s = 政黨 key（小寫）

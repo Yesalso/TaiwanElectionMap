@@ -9,6 +9,8 @@ window.BOARD_FILES = {
     "legend.png": "../../NewSolution/png/processed/map/2014/legend.png",
     "map.png": "../../NewSolution/png/processed/map/2014/map.png",
     "mark_elected.png": "../../NewSolution/png/processed/share/mark_elected.png",
-    "party_kmt.png": "../../NewSolution/png/processed/party/party_kmt.png"
+    "party_kmt.png": "../../NewSolution/png/processed/party/party_kmt.png",
+    "roc_flag.png": "../../NewSolution/png/processed/share/roc_flag.png",
+    "street_bg.png": "../../NewSolution/png/processed/share/street_bg.png"
   }
 };

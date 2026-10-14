@@ -297,6 +297,27 @@
     return files[key] || p;
   };
 
+  /**
+   * 「這張素材這場有沒有？」——board.files.js 的對照表裡有沒有這一項。
+   *
+   * 為什麼不能拿 resolveAsset 的回傳值比字串：找不到時它會**原樣回傳**，
+   * 所以「回傳值 === 輸入值」也可能只是「這場本來就沒這張圖」，
+   * 而不是「路徑還沒被換算」。
+   *
+   * 用途：Layout.map2（區級圖）只在總統場出現（市長場的 board.files.js
+   * 不含 map2.png）。載入前先用這支問一下，沒有就安靜跳過 ——
+   * 不然每張市長看板都會為了讀一張不存在的圖噴一次警告。
+   * 沒掛對照表（file:// 內嵌模式）時一律回 true，交給後續流程自行判斷。
+   */
+  Utils.hasAsset = function (p) {
+    if (!p) return false;
+    if (/^(data:|blob:|https?:|\/\/|\/)/i.test(p)) return true;
+    var files = global.BOARD_FILES && global.BOARD_FILES.files;
+    if (!files) return true;
+    var key = String(p).replace(/^\.?\//, '').replace(/^assets\//, '');
+    return !!files[key];
+  };
+
   /* ------------------------------ 影像 ------------------------------ */
 
   /**

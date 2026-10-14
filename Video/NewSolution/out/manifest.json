@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-04T15:00:31.528Z",
-  "edge": "Edg/154.0.4258.53",
+  "generatedAt": "2026-10-14T14:27:18.009Z",
+  "edge": "Edg/155.0.4283.45",
   "node": "v22.22.2",
   "scales": [
     1
@@ -12,8 +12,8 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\1994-taipei-mayor_2560x1440.png",
-      "bytes": 3510308,
-      "sha256": "f277c6ee5240f6595259d3b12b46cf7176a05bd5587c00bc230dfc03082f30f2",
+      "bytes": 3456606,
+      "sha256": "72290f23231c72aa142aea6bf80804672de3beece3c96865084ab2e6441cf6d5",
       "ok": true
     },
     {
@@ -22,8 +22,28 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\1994-taipei-mayor-map2_2560x1440.png",
-      "bytes": 3337916,
-      "sha256": "3c746b041a2482e6faccd7d9778c8a5c1936517f2bed10679a4d1aa8b8489a20",
+      "bytes": 3283997,
+      "sha256": "a21235c29402ca44769090921dae12a0d4de880f46fb4787418e4fcdfc13226e",
+      "ok": true
+    },
+    {
+      "board": "1996-president-north",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\1996-president-north_2560x1440.png",
+      "bytes": 3423958,
+      "sha256": "d7ea740dc704b0e23658161dbbdfb943264c385ce853381c85874edadc8b88f9",
+      "ok": true
+    },
+    {
+      "board": "1996-president-north-map2",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\1996-president-north-map2_2560x1440.png",
+      "bytes": 3231214,
+      "sha256": "aaf39c13aed89e8e8ff6435e2e916956e494d84a76bd6b2ca943032df95a89a8",
       "ok": true
     },
     {
@@ -32,8 +52,8 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\1998-taipei-mayor_2560x1440.png",
-      "bytes": 3471954,
-      "sha256": "64af3ec4b2b1a73898433dc013332ab786d9c0c16ef776b5d7c9c1a2226a6190",
+      "bytes": 3447826,
+      "sha256": "e954c439cb5e5f0e2a1d3d24d2f9b895e7f33c9124da036e3151bf1d5360ce89",
       "ok": true
     },
     {
@@ -42,8 +62,28 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\1998-taipei-mayor-map2_2560x1440.png",
-      "bytes": 3317132,
-      "sha256": "2e52c5fcb507672cfc7c1dc01c1659416889a77c2a556cb20afc7e962de0b9d9",
+      "bytes": 3292609,
+      "sha256": "adf5b32d21190a78d8cb3b617d962ecc532b155a7e8ad9df2a8e4b9aaf489f02",
+      "ok": true
+    },
+    {
+      "board": "2000-president-north",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2000-president-north_2560x1440.png",
+      "bytes": 3450360,
+      "sha256": "4b40e198eb8aa927d23a47b548fa4f2d1654d1481b7eac68cf3768033f552a7f",
+      "ok": true
+    },
+    {
+      "board": "2000-president-north-map2",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2000-president-north-map2_2560x1440.png",
+      "bytes": 3230559,
+      "sha256": "64a88086c8060c37c8c13afa6676ce7e60f159061a3805b37fa4b998cdd7d46c",
       "ok": true
     },
     {
@@ -67,13 +107,33 @@
       "ok": true
     },
     {
+      "board": "2004-president-north",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2004-president-north_2560x1440.png",
+      "bytes": 3531037,
+      "sha256": "4c68d1d029a083f5c42397512927185dbbc376e4b2b13137ae0e16aa9339e4e1",
+      "ok": true
+    },
+    {
+      "board": "2004-president-north-map2",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2004-president-north-map2_2560x1440.png",
+      "bytes": 3315951,
+      "sha256": "832f81e926b637133c21ba89d7761976aeff0a1891aacaf769284db94e8823e3",
+      "ok": true
+    },
+    {
       "board": "2006-taipei-mayor",
       "scale": 1,
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2006-taipei-mayor_2560x1440.png",
-      "bytes": 3482294,
-      "sha256": "f19b09920b97c58963c0c333f1a480fa47ac715b9b6db009f513463f09387378",
+      "bytes": 3382804,
+      "sha256": "50712da5af87dc0bef5b14828c7795482355b0fb7fa6b7b6f8765bf03c5c85a1",
       "ok": true
     },
     {
@@ -82,8 +142,28 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2006-taipei-mayor-map2_2560x1440.png",
-      "bytes": 3326099,
-      "sha256": "21993cce2bcbafeea50c8db5333d96269bb6c42a33bf426a79d1f6ffdd2a9a7f",
+      "bytes": 3225686,
+      "sha256": "aaac3174c163f3c6f89b1fe83f784bb362241310d1f28ba90846ae39b8424653",
+      "ok": true
+    },
+    {
+      "board": "2008-president-north",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2008-president-north_2560x1440.png",
+      "bytes": 3521237,
+      "sha256": "74c19d8ad5a4819f2a91bd63224f7fd41c590075b1f6106aeb537abc8d802ace",
+      "ok": true
+    },
+    {
+      "board": "2008-president-north-map2",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2008-president-north-map2_2560x1440.png",
+      "bytes": 3314073,
+      "sha256": "076ee3af9052c606704c54009664720c086e4a6260568360ec38df091b195e38",
       "ok": true
     },
     {
@@ -92,8 +172,8 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2010-taipei-mayor_2560x1440.png",
-      "bytes": 3472641,
-      "sha256": "a065cf985fb71dc7e12f31730619060c7f0642901d69054ec296ed703360519d",
+      "bytes": 3400460,
+      "sha256": "cfd8e9c996f8e9ac0feebe6063dac5b3d4b666d59b1d4836cf47f152c8ca2a04",
       "ok": true
     },
     {
@@ -102,8 +182,28 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2010-taipei-mayor-map2_2560x1440.png",
-      "bytes": 3314151,
-      "sha256": "384dac4e2e5e490b4dd5746aec170caf82de72e3b247147df8a5075ab2fd58cc",
+      "bytes": 3241909,
+      "sha256": "c12b70f67ff6befff6451ba7f06584836e989ecc1dd1b9d95ef0421de17d0a5f",
+      "ok": true
+    },
+    {
+      "board": "2012-president-north",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2012-president-north_2560x1440.png",
+      "bytes": 3477288,
+      "sha256": "6e9f3bb2cb410ae579f5c4079b2630b5f48e0f746eb2970f3a84d213ef17a641",
+      "ok": true
+    },
+    {
+      "board": "2012-president-north-map2",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2012-president-north-map2_2560x1440.png",
+      "bytes": 3255986,
+      "sha256": "6cdc32882b0f7b49f65e619216db447ea2dd70c3eafd6aca261a8da653c07167",
       "ok": true
     },
     {
@@ -112,8 +212,8 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2014-taipei-mayor_2560x1440.png",
-      "bytes": 3461607,
-      "sha256": "4c05635d8e0ffe643552aa6d4b4f3768e6532e2e3016e2a67420690ce71d22b3",
+      "bytes": 3370155,
+      "sha256": "5e513df8bc7adeebe5c672ea82369224c6458aa47ddade82306db5b18f6928f5",
       "ok": true
     },
     {
@@ -122,8 +222,28 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2014-taipei-mayor-map2_2560x1440.png",
-      "bytes": 3320087,
-      "sha256": "ec51f4883e33e2a0f72b5f598c41249aae29dab8473319dd5b60d3128b4d7847",
+      "bytes": 3227524,
+      "sha256": "86e50e219d0102e44ad59be0cfb3429f1b424315ce1d5fbd431fa2766ba389c9",
+      "ok": true
+    },
+    {
+      "board": "2016-president-north",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2016-president-north_2560x1440.png",
+      "bytes": 3482233,
+      "sha256": "902a2d506e78686da16364bf077902ab63be042da3b4f255dad6477a2b787f27",
+      "ok": true
+    },
+    {
+      "board": "2016-president-north-map2",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2016-president-north-map2_2560x1440.png",
+      "bytes": 3269651,
+      "sha256": "e49f691349511c369eb41e302400261d01f204b6d1f9926d5fc507acca32a781",
       "ok": true
     },
     {
@@ -132,8 +252,8 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2018-taipei-mayor_2560x1440.png",
-      "bytes": 3488733,
-      "sha256": "0425f31434562683215cd0ee5a33d4cf1b0b43f558a290468ea884e9b0981f33",
+      "bytes": 3404485,
+      "sha256": "488d962b660d64c37c3360b309e8dabf806decab7b4ae3da830ef61c760ef998",
       "ok": true
     },
     {
@@ -142,8 +262,28 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2018-taipei-mayor-map2_2560x1440.png",
-      "bytes": 3319699,
-      "sha256": "edb33ae37b78e1221c37e1f1d3883364ef78f45368ffd9fb6697ce803c63b954",
+      "bytes": 3235996,
+      "sha256": "9df1b7986baf641cab63bebb71d17d84652e507f8e8f6d6ea055bb7ab506badf",
+      "ok": true
+    },
+    {
+      "board": "2020-president-north",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2020-president-north_2560x1440.png",
+      "bytes": 3475424,
+      "sha256": "0979d13fab422fc4064ca2d06c50d7c48ee2f1093b278b6404c3ecf6028fa39f",
+      "ok": true
+    },
+    {
+      "board": "2020-president-north-map2",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2020-president-north-map2_2560x1440.png",
+      "bytes": 3273255,
+      "sha256": "91070275bd719bb540624a20ab47a4ba40cc314eb3d4301e0561976a876c532a",
       "ok": true
     },
     {
@@ -152,8 +292,8 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2022-taipei-mayor_2560x1440.png",
-      "bytes": 3515453,
-      "sha256": "d8711020ed0b3807d156416b09810ae0090031817395c1271a1f156a483c9fcd",
+      "bytes": 3419824,
+      "sha256": "a216a78b5f54a81ff15b195e0cff3337fe54d25fefa16574221c1a88160aeba8",
       "ok": true
     },
     {
@@ -162,14 +302,34 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2022-taipei-mayor-map2_2560x1440.png",
-      "bytes": 3331414,
-      "sha256": "467f36c29fa54ac8eff513086cd60d0b55664b8102c3ac1d2f879fd5aade8770",
+      "bytes": 3235661,
+      "sha256": "e2dfa0e80e7a9cbe976d4a72fc1431106d61589e2705553fd9cf59e1d48c0998",
+      "ok": true
+    },
+    {
+      "board": "2024-president-north",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2024-president-north_2560x1440.png",
+      "bytes": 3514835,
+      "sha256": "c031268c4db0da1e198228303fd3cd3d486d277073e52239e4780e4513376eb1",
+      "ok": true
+    },
+    {
+      "board": "2024-president-north-map2",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\2024-president-north-map2_2560x1440.png",
+      "bytes": 3279940,
+      "sha256": "58b7fb28a1050cccce48be9c7a5dcc4bce55dc795fc5593a2f103016e650020a",
       "ok": true
     }
   ],
   "summary": {
-    "total": 16,
-    "ok": 16,
+    "total": 32,
+    "ok": 32,
     "failed": 0
   }
 }

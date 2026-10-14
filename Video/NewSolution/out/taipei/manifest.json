@@ -1,0 +1,95 @@
+{
+  "generatedAt": "2026-10-14T16:15:46.473Z",
+  "edge": "Edg/155.0.4283.45",
+  "node": "v22.22.2",
+  "scales": [
+    1
+  ],
+  "results": [
+    {
+      "board": "1994-taipei-mayor",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\taipei\\1994-taipei-mayor_2560x1440.png",
+      "bytes": 4513963,
+      "sha256": "87ba20a02afe6a1ed5ed7172280bca979415c57b853ae4c9778577948abbcad5",
+      "ok": true
+    },
+    {
+      "board": "1998-taipei-mayor",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\taipei\\1998-taipei-mayor_2560x1440.png",
+      "bytes": 4490086,
+      "sha256": "cfd1b06060ff2ef7d9867a5ea3b53dd351213195367295e1d0a3667d2ac21090",
+      "ok": true
+    },
+    {
+      "board": "2002-taipei-mayor",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\taipei\\2002-taipei-mayor_2560x1440.png",
+      "bytes": 4543828,
+      "sha256": "212631ce639a86e0ae779d3847fa6218c8bcb9a0ae5f0e42db49649a02309b3f",
+      "ok": true
+    },
+    {
+      "board": "2006-taipei-mayor",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\taipei\\2006-taipei-mayor_2560x1440.png",
+      "bytes": 4451682,
+      "sha256": "9873b1e1a72521fc35a4c1004bb9381aac1d2e3adeaf39f9f5e0f43190c82118",
+      "ok": true
+    },
+    {
+      "board": "2010-taipei-mayor",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\taipei\\2010-taipei-mayor_2560x1440.png",
+      "bytes": 4459180,
+      "sha256": "3341b555c086c922e88cd55637591657be98e5950b9e55c3d9b4d7f8e7f70a28",
+      "ok": true
+    },
+    {
+      "board": "2014-taipei-mayor",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\taipei\\2014-taipei-mayor_2560x1440.png",
+      "bytes": 4451285,
+      "sha256": "a7361e42b256a0e4943a4e0e310e94d90402471bccae1c0202d67e0901ce51e0",
+      "ok": true
+    },
+    {
+      "board": "2018-taipei-mayor",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\taipei\\2018-taipei-mayor_2560x1440.png",
+      "bytes": 4483937,
+      "sha256": "ef1acd5fe17bffbaed974fe18cf8e057d0bcb631d4222a280a37373869667b31",
+      "ok": true
+    },
+    {
+      "board": "2022-taipei-mayor",
+      "scale": 1,
+      "width": 2560,
+      "height": 1440,
+      "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\taipei\\2022-taipei-mayor_2560x1440.png",
+      "bytes": 4528516,
+      "sha256": "f272badc501503f05e142d2799895568fece01362ff01ac0ccabae25dcfce8fb",
+      "ok": true
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "ok": 8,
+    "failed": 0
+  }
+}

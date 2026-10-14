@@ -35,6 +35,7 @@
       new NT.BackgroundLayer(this),
       new NT.HeaderLayer(this),
       new NT.MapLayer(this),
+      new NT.Map2Layer(this),
       new NT.LegendLayer(this),
       new NT.CandidateLayer(this),
       new NT.MinorCandidateLayer(this),
@@ -113,6 +114,34 @@
     }).catch(function () {
       return useEmbedded('讀不到 ' + src);
     });
+  };
+
+  /**
+   * 載入「區級得票地圖」（assets/map2.png，Layout.map2）—— 看板右欄的第二張圖。
+   *
+   * ★ 2026-10-14 晚六（需求：總統場把兩張圖放到同一張看板）：
+   *   村里的主地圖（_loadVoteMap）完全不動，這裡只多載一張區級圖，
+   *   由 render/layers.js 的 Map2Layer 擺到地圖右側空欄。
+   *
+   * ★ 主圖與區級圖指向同一個檔案時直接回 null（-map2 變體看板的 map.png
+   *   本來就指到 map2.png，再畫一次只是同一張圖疊兩遍）。
+   *
+   * 其餘規則與市徽／圖例一致：http(s) 吃實體檔並加時間戳，file:// 吃內嵌備援
+   * （總統場沒有 board.assets.js，此時回 null，Map2Layer 直接跳過）。
+   *
+   * @returns {Promise<HTMLImageElement|null>}
+   */
+  Slide.prototype._loadMap2 = function () {
+    var src = (L.map2 && L.map2.src) || '';
+    var main = (L.map && L.map.src) || '';
+    if (!src) return Promise.resolve(null);
+    /* 這場的 board.files.js 沒有這一項 → 直接跳過（市長場不產區級圖；
+       硬去讀一個不存在的檔只會在每張市長看板上噴一次警告）。 */
+    if (!U.hasAsset(src)) return Promise.resolve(null);
+    if (U.resolveAsset(src) === U.resolveAsset(main)) {
+      return Promise.resolve(null);   /* 主圖就是這張，不重複畫 */
+    }
+    return this._loadNamedImage('voteMap2', src, 'map2Source', '區級地圖');
   };
 
   /**
@@ -314,6 +343,45 @@
     }).catch(function () { return giveUp('讀不到 ' + src); });
   };
 
+  /**
+   * 泛用素材載入器：與市徽／圓徽／圖例同一套規則 ——
+   * http(s) 下以實體檔（resolveAsset 後的路徑）為準並加時間戳，
+   * file:// 下改用內嵌副本（實體檔會汙染 canvas）。
+   * 兩邊都讀不到時回 null 並記 assets[<sourceField>] = 'none'。
+   *
+   * @param {string} engineKey  window.NT_ASSETS 的欄位名
+   * @param {string} src        邏輯素材路徑（assets/xxx.png）
+   * @param {string} sourceField 記錄來源用的 assets 欄位名
+   * @param {string} label      警告訊息裡的素材名
+   */
+  Slide.prototype._loadNamedImage = function (engineKey, src, sourceField, label) {
+    var self = this;
+    var A = global.NT_ASSETS || {};
+    src = U.resolveAsset(src);
+
+    function giveUp(reason) {
+      console.warn('[Slide] 讀不到' + label + '（' + reason + '）。');
+      self.assets[sourceField] = 'none';
+      return null;
+    }
+
+    if (useEmbeddedUnderFile()) {
+      if (!A[engineKey]) return Promise.resolve(giveUp('data/local-assets.js 沒有內嵌'));
+      return U.loadImage(A[engineKey]).then(function (img) {
+        self.assets[sourceField] = 'embedded';
+        return img;
+      }).catch(function () { return giveUp('內嵌解碼失敗'); });
+    }
+
+    if (!src) return Promise.resolve(giveUp('未設定路徑'));
+
+    var url = src.indexOf('?') < 0 ? src + '?t=' + Date.now() : src;
+    return U.loadImage(url).then(function (img) {
+      self.assets[sourceField] = 'file';
+      return img;
+    }).catch(function () { return giveUp('讀不到 ' + src); });
+  };
+
   /** 非同步載入影像、建立投影器 */
   Slide.prototype.load = function () {
     if (this._loaded) return Promise.resolve(this);
@@ -332,15 +400,28 @@
       this._loadCitySeal(),
       this._loadEmblem(),
       this._loadPartyMarks(),
-      this._loadLegend()
+      this._loadLegend(),
+      /* 國旗（總統選舉頁眉白卡用）＋ 街景背景照（Layout.background.src）
+         ＋ 區級地圖（Layout.map2，擺在地圖右側空欄的第二張圖） */
+      this._loadNamedImage('rocFlag',
+        (L.header.seal && L.header.seal.srcPresident) || '',
+        'flagSource', '國旗'),
+      this._loadNamedImage('streetBg',
+        (L.background && L.background.src) || '',
+        'bgSource', '街景背景'),
+      this._loadMap2()
     ]).then(function (res) {
-      /* 當選印記 ＋ 得票率地圖 + 左上角市徽 + 日期圓徽 + 政黨徽章 + 圖例 */
+      /* 當選印記 ＋ 得票率地圖 + 左上角市徽 + 日期圓徽 + 政黨徽章 + 圖例
+         ＋ 國旗 + 街景背景 + 區級地圖 */
       self.assets.electedMark = res[0];
       self.assets.voteMap = res[1];
       self.assets.citySeal = res[2];
       self.assets.emblem = res[3];
       self.assets.partyMarks = res[4];
       self.assets.legend = res[5];
+      self.assets.rocFlag = res[6];
+      self.assets.streetBg = res[7];
+      self.assets.map2 = res[8];
 
       /* 地圖若帶海報自帶的標題／圖例（Layout.map.crop），擦掉並裁到地圖本體；
          正常情況下不會有 crop —— 素材已由 imagelab / build_vote_map 預處理成

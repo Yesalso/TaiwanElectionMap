@@ -41,6 +41,10 @@
        其餘亮暗階與地圖色階由 Theme.fromColor 推導。
        沒有宣告的人完全不受影響（走原本的政黨色表）。 */
     this.color = raw.color || raw.colorHex || null;
+    /* 副手（總統／副總統選舉用）：vice = 副手姓名、viceParty = 副手政黨全稱。
+       沒宣告（市長選舉）時為 null，繪製層就不畫副手行，既有輸出不變。 */
+    this.vice = raw.vice || raw.viceName || null;
+    this.viceParty = raw.viceParty || null;
     this.theme = this.color ? NT.Theme.fromColor(this.color, this.partyKey)
                             : NT.Theme.party(this.partyKey);
   }

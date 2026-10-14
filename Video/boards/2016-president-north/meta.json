@@ -1,0 +1,142 @@
+{
+  "id": "2016-president-north",
+  "meta": {
+    "election": "第十四屆總統副總統選舉",
+    "electionEn": "2016 Presidential Election",
+    "year": 2016,
+    "date": "1月16日",
+    "dateEn": "16 Jan",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "總統副總統",
+    "officeEn": "President & Vice President",
+    "turnout": null,
+    "validVotes": 4012442,
+    "regionLabel": "北北基宜",
+    "header": {
+      "role": "時任總統",
+      "name": "馬英九",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "tsai",
+      "name": "蔡英文",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 1,
+      "votes": 2161471,
+      "pct": 53.87,
+      "elected": true,
+      "vice": "陳建仁",
+      "viceParty": "民主進步黨"
+    },
+    {
+      "key": "chu",
+      "name": "朱立倫",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 2,
+      "votes": 1383438,
+      "pct": 34.48,
+      "elected": false,
+      "vice": "王如玄",
+      "viceParty": "中國國民黨"
+    },
+    {
+      "key": "song",
+      "name": "宋楚瑜",
+      "nameEn": "",
+      "party": "親民黨",
+      "partyShort": "PFP",
+      "partyEn": "People First Party",
+      "number": 3,
+      "votes": 467533,
+      "pct": 11.65,
+      "elected": false,
+      "vice": "徐欣瑩",
+      "viceParty": "民國黨"
+    }
+  ],
+  "districts": [
+    {
+      "name": "臺北市",
+      "short": "台北",
+      "votes": {
+        "蔡英文": 757383,
+        "朱立倫": 546491,
+        "宋楚瑜": 153804
+      },
+      "pct": {
+        "蔡英文": 51.96,
+        "朱立倫": 37.49,
+        "宋楚瑜": 10.55
+      },
+      "valid": 1457678,
+      "winnerKey": "蔡英文",
+      "margin": 14.47
+    },
+    {
+      "name": "新北市",
+      "short": "新北",
+      "votes": {
+        "蔡英文": 1165888,
+        "朱立倫": 709374,
+        "宋楚瑜": 252486
+      },
+      "pct": {
+        "蔡英文": 54.79,
+        "朱立倫": 33.34,
+        "宋楚瑜": 11.87
+      },
+      "valid": 2127748,
+      "winnerKey": "蔡英文",
+      "margin": 21.45
+    },
+    {
+      "name": "基隆市",
+      "short": "基隆",
+      "votes": {
+        "蔡英文": 93402,
+        "朱立倫": 68357,
+        "宋楚瑜": 31955
+      },
+      "pct": {
+        "蔡英文": 48.22,
+        "朱立倫": 35.29,
+        "宋楚瑜": 16.5
+      },
+      "valid": 193714,
+      "winnerKey": "蔡英文",
+      "margin": 12.93
+    },
+    {
+      "name": "宜蘭縣",
+      "short": "宜蘭",
+      "votes": {
+        "蔡英文": 144798,
+        "朱立倫": 59216,
+        "宋楚瑜": 29288
+      },
+      "pct": {
+        "蔡英文": 62.06,
+        "朱立倫": 25.38,
+        "宋楚瑜": 12.55
+      },
+      "valid": 233302,
+      "winnerKey": "蔡英文",
+      "margin": 36.68
+    }
+  ],
+  "layout": {
+    "legend": {
+      "disabled": true
+    }
+  }
+}

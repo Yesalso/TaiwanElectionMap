@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>開票看板</title>
+<link rel="stylesheet" href="../_engine/css/base.css">
+<link rel="stylesheet" href="../_engine/css/app.css">
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <aside class="rail">
+    <div class="rail__head">
+      <span class="rail__dot"></span>
+      <h1 class="rail__title">開票看板</h1>
+    </div>
+    <p class="rail__sub">以網頁取代 PPT，每一張都是 2560 × 1440 的看板圖。</p>
+    <ul class="rail__list" id="slideList"></ul>
+    <div class="rail__foot">
+      <span id="railMeta">—</span>
+    </div>
+  </aside>
+
+  <main class="stageWrap">
+
+    <header class="toolbar">
+      <div class="toolbar__left">
+        <span class="badge" id="badgeSize">2560 × 1440</span>
+        <span class="toolbar__hint" id="hintText">載入中…</span>
+      </div>
+      <div class="toolbar__right">
+        <label class="zoom">
+          <span class="zoom__label">縮放</span>
+          <input type="range" id="zoomRange" min="10" max="100" value="100" step="1">
+          <span class="zoom__value" id="zoomValue">—</span>
+        </label>
+        <label class="zoom">
+          <span class="zoom__label">地圖</span>
+          <input type="range" id="mapRange" min="30" max="100" value="100" step="1">
+          <span class="zoom__value" id="mapValue">—</span>
+        </label>
+        <button class="btn" id="btnFit" type="button">符合視窗</button>
+        <button class="btn btn--ghost" id="btnActual" type="button">100%</button>
+        <button class="btn btn--primary" id="btnPng" type="button">下載 PNG</button>
+        <button class="btn btn--ghost" id="btnPng2x" type="button">下載 2× PNG</button>
+      </div>
+    </header>
+
+    <div class="stage" id="stage">
+      <div class="stage__scaler" id="stageScaler">
+        <canvas class="slideCanvas" id="slideCanvas" width="2560" height="1440"></canvas>
+      </div>
+    </div>
+
+    <footer class="statusbar">
+      <span id="statusLeft">就緒</span>
+      <span class="statusbar__sep">|</span>
+      <span id="statusRight">資料來源：中央選舉委員會 · 村里得票檔</span>
+    </footer>
+  </main>
+</div>
+
+<!-- ============================================================
+     資料層：board.js 由 tools/build_board.py 產生，
+     內容是 canonical 格式（meta / candidates / districts / geojson），
+     直接掛成 window.BOARD。引擎只認這一份，不再需要轉接層。
+     ============================================================ -->
+<script src="./board.js"></script>
+
+<!-- ============================================================
+     素材路徑：board.files.js 由 tools/build_board.py 產生。
+     引擎內部用邏輯名（assets/map.png、candidate/ko.png…），
+     這張表把它們指到實際檔案 —— 透明化成品集中在
+     NewSolution/png/processed/，不散落到本場的 assets/。
+     （相對路徑，所以要用 http:// 開；靜態伺服器根目錄 = Video/）
+     ============================================================ -->
+<script src="./board.files.js"></script>
+
+<!-- ============================================================
+     核心層：工具 / 主題 / 版式（共用 _engine，全場同一份）
+     ============================================================ -->
+<script src="../_engine/js/core/utils.js"></script>
+<script src="../_engine/js/core/theme.js"></script>
+<script src="../_engine/js/core/layout.js"></script>
+
+<!-- 模型層 -->
+<script src="../_engine/js/model/election-model.js"></script>
+
+<!-- 繪製層 -->
+<script src="../_engine/js/render/geo-projector.js"></script>
+<script src="../_engine/js/render/layers.js"></script>
+<script src="../_engine/js/slide.js"></script>
+
+<!-- 應用層：匯出（匯出鈕需要）；無頭模式改載 headless hook，不建 UI -->
+<script src="../_engine/js/exporter.js"></script>
+<script>
+  var HEADLESS = location.search.indexOf('headless=1') >= 0;
+  if (HEADLESS) {
+    document.write('<script src="../_engine/js/headless.js"><\/script>');
+  } else {
+    document.write('<script src="../_engine/js/app.js"><\/script>');
+  }
+</script>
+</body>
+</html>

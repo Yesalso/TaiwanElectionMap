@@ -105,7 +105,7 @@ REGIONS = collections.OrderedDict([
 
 # ===================== 各屆資料與候選人 → color.txt 色階組別 =====================
 # 色階組別索引＝ color.txt 由上而下的順序：
-#   0 無黨籍(灰) / 1 中國國民黨(藍) / 2 民主進步黨(綠) / 3 新黨(黃)
+#   0 無黨籍(灰)〔2000 宋楚瑜歸此組〕 / 1 中國國民黨(藍) / 2 民主進步黨(綠) / 3 新黨(黃)
 #   4 宋楚瑜無黨籍(橘) / 5 台灣民眾黨(青綠)
 _RATE_SHEET = "各里彙總"
 _RATE_COLS = dict(county_col="選舉區別", town_col="鄉(鎮、市、區)別", vill_col="村里別")
@@ -116,7 +116,7 @@ YEAR_CONFIGS = collections.OrderedDict([
                 candidates=[("陳履安", 0), ("李登輝", 1), ("彭明敏", 2), ("林洋港", 3)])),
     (2000, dict(dir="2000Precident", file="2000總統副總統選舉_得票率.xlsx",
                 **_RATE_COLS,
-                candidates=[("宋楚瑜", 4), ("連戰", 1), ("李敖", 3), ("許信良", 5), ("陳水扁", 2)])),
+                candidates=[("宋楚瑜", 0), ("連戰", 1), ("李敖", 3), ("許信良", 0), ("陳水扁", 2)])),
     (2004, dict(dir="2004Precident", file="2004總統副總統選舉_得票率.xlsx",
                 **_RATE_COLS,
                 candidates=[("陳水扁", 2), ("連戰", 1)])),

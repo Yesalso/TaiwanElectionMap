@@ -10,6 +10,8 @@ window.BOARD_FILES = {
     "map.png": "../../NewSolution/png/processed/map/2002/map.png",
     "mark_elected.png": "../../NewSolution/png/processed/share/mark_elected.png",
     "party_dpp.png": "../../NewSolution/png/processed/party/party_dpp.png",
-    "party_kmt.png": "../../NewSolution/png/processed/party/party_kmt.png"
+    "party_kmt.png": "../../NewSolution/png/processed/party/party_kmt.png",
+    "roc_flag.png": "../../NewSolution/png/processed/share/roc_flag.png",
+    "street_bg.png": "../../NewSolution/png/processed/share/street_bg.png"
   }
 };
