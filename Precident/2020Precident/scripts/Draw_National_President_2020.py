@@ -1,24 +1,30 @@
 # -*- coding: utf-8 -*-
 """
-將「村里界歷史圖資_111」SHP 與 2024 總統副總統選舉全臺各村(里)得票率 Excel 結合，
+將「村里界歷史圖資_111」SHP 與 2020 總統副總統選舉全臺各村(里)得票率 Excel 結合，
 繪製全臺灣候選人得票率地圖（以村里為填色單位）。
 
-資料來源：2024Precident/data/2024總統副總統選舉_得票率.xlsx（工作表「各里彙總」）
-    選舉區別 | 鄉(鎮、市、區)別 | 村里別 | 侯友宜得票率 | 賴清德得票率 | 柯文哲得票率
+資料來源：2020Precident/data/2020總統副總統選舉_縣市鄉鎮村里.xlsx（工作表「村里層級明細」）
+    縣市 | 鄉鎮市區 | 村里 | 宋楚瑜（01）_得票數 | 宋楚瑜（01）_得票率
+       | 韓國瑜（02）_得票數 | 韓國瑜（02）_得票率
+       | 蔡英文（03）_得票數 | 蔡英文（03）_得票率
 
-繪圖邏輯：沿用 Empty_Map/DrawMap.py 之全臺地圖配置：
+繪圖邏輯：沿用 Empty_Map/DrawMap.py 之全臺地圖配置與 Draw_National_President_2024.py 之填色/圖例：
     - 臺灣本島 + 澎湖為主題；金門、連江(馬祖)為左上角 1:1 附圖（金門框在上、連江框在下，上下緊貼）
     - 高雄市無資料(未編定村里/代管)區域、基隆離岸島嶼(彭佳嶼等)、宜蘭釣魚台列嶼不繪製
     - 村里界 1px、鄉鎮市區界 2px、縣市地界 3px；金門/連江/澎湖等面積小之縣市海岸線 1px、僅畫內部鄉鎮界
     - 金門/連江附圖外框 6px、烏坵以同比例尺置入金門空餘角落(1px 框)
 
-填色邏輯：沿用 scripts/20/Converge_to_map.py：
+填色邏輯：油漆桶／洪水填充（同 Draw_NewTaipei_President_2020.py，共用 flood_fill_layer）：
     - 每村里取三候選人得票率最高者為該村里獲勝候選人，以其色階(5% 間距、35% 起)填色
-    - SHP 有地名但無資料者填白色；VILLNAME 為空值(多為荒島)者填灰色
+    - 源資料若將多村里併為一列（以 、 分隔），拆解成各村(里)並填入相同顏色
+    - SHP 有地名但無資料者、空白/水域地區一律填純白
+    - 先畫完所有黑線（村里界/鄉鎮市區界/縣市地界/附圖框），再以線稿為封閉堤壩，
+      對堤壩以外每一塊 4-連通區域整塊填單色；顏色取區域內像素幾何所屬村里的眾數
+      → 顏色永不跨越黑線，全臺密集村里區不再有孤立錯色斑點
     - 右側圖例顯示候選人色階（自全臺最低領先得票率向下取 5 的倍數起）
 
 執行：
-    py Draw_National_President_2024.py
+    py Draw_National_President_2020.py
 """
 import os
 import re
@@ -44,27 +50,28 @@ plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Microsoft Jheng
 plt.rcParams['axes.unicode_minus'] = False
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_DIR = os.path.dirname(os.path.dirname(BASE_DIR))   # 2024Precident（scripts/ 的上一層）
-DATA_DIR = os.path.join(PROJECT_DIR, "data")
-OUT_DIR = os.path.join(PROJECT_DIR, "maps")
-VOTE_XLSX = os.path.join(DATA_DIR, "2024總統副總統選舉_得票率.xlsx")
-VOTE_SHEET = "各里彙總"
+PROJECT_DIR = os.path.dirname(os.path.dirname(BASE_DIR))
+DATA_DIR = os.path.join(PROJECT_DIR, "2020Precident", "data")
+OUT_DIR = os.path.join(PROJECT_DIR, "2020Precident", "maps")
 
 SHP_CANDIDATE_PATHS = [
-    r"D:\Windows\Documents\村里界歷史圖資_111\村里界歷史圖資_111\VILLAGE_MOI_1111118.shp",
-    r"D:\Windows\Documents\村里界歷史圖資_111\VILLAGE_MOI_1111118.shp",
+    r"D:\Windows\Documents\村里界歷史圖資_111\108\VILLAGE_MOI_1081121.shp",
 ]
-SHP_ENCODING = "UTF-8"
+# 不同年份村里界圖資 .dbf 編碼不一：108(2019) 為 UTF-8、106(2018) 為 Big5，依內容自動嘗試
+SHP_ENCODINGS = ["utf-8", "cp950"]
+SHP_KNOWN_COUNTIES = {"新北市", "臺北市", "桃園市", "臺中市", "臺南市", "高雄市",
+                      "基隆市", "新竹市", "嘉義市", "新竹縣", "苗栗縣", "彰化縣",
+                      "南投縣", "雲林縣", "嘉義縣", "屏東縣", "宜蘭縣", "花蓮縣",
+                      "臺東縣", "澎湖縣", "金門縣", "連江縣"}
 
 # ---------------------- 候選人與資料欄位 ----------------------
-# 三組候選人：圖例名稱（順序與色階、RATE_HEADERS 一致）
-CAND_NAMES = ["侯友宜", "賴清德", "柯文哲"]
-# 得票率欄位名（形如「侯友宜得票率」）
-RATE_HEADERS = [f"{c}得票率" for c in CAND_NAMES]
+# 2020 三組候選人：圖例順序 韓國瑜(藍) → 蔡英文(綠) → 宋楚瑜(橘)，與政黨常用色系對應
+CAND_NAMES = ["韓國瑜", "蔡英文", "宋楚瑜"]
+CAND_RATE_SUFFIX = "得票率"          # 欄位名形如「韓國瑜（02）_得票率」
 
-TITLE_LINES = ["中華民國第十六屆總統副總統選舉",
+TITLE_LINES = ["中華民國第十五屆總統副總統選舉",
                "在全國各村（里）得票領先之候選人得票比例圖"]
-OUT_PNG = os.path.join(OUT_DIR, "全臺灣2024年總統副總統選舉_得票率地圖.png")
+OUT_PNG = os.path.join(OUT_DIR, "全臺灣2020年總統副總統選舉_得票率地圖.png")
 
 # ---------------------- 全臺地圖配置（對應 DrawMap.py） ----------------------
 EXCLUDE_COUNTIES = {"金門縣", "連江縣"}
@@ -81,24 +88,30 @@ METERS_PER_PIXEL = 12       # 目標比例尺（若超出上限會自動放大�
 MAX_PX = 11000              # 長寬上限
 SCALE_UP = 1.10             # 比例放大 10%
 
-# ---------------------- 繪圖與圖例參數（對應 scripts/20） ----------------------
+# ---------------------- 繪圖與圖例參數（對應 Draw_National_President_2024.py） ----------------------
 NO_DATA_COLOR = "#FFFFFF"   # 無資料/空白地區一律純白
 DPI = 100
 PX2PT = 72.0 / DPI
 
+# 平票規則：某村里第 1 名與第 2 名得票率差 ≤ 此值 → 疊加雙色斜線紋
+TIE_RATE_EPS = 1e-9
+# 平票斜線紋每條寬度（px）
+TIE_STRIPE_PX = 8
+
+# 候選人色階順序與 CAND_NAMES 一致：韓國瑜(藍)、蔡英文(綠)、宋楚瑜(橘)
 RATE_COLOR_STOPS = [
-    # 第 1 组：中國國民黨 侯友宜（藍色系）
+    # 第 1 組：中國國民黨 韓國瑜（藍色系，同 2024 侯友宜）
     [(35, "#EAF6FF"), (40, "#B8E2FF"), (45, "#7CC8FF"), (50, "#3AA8FF"),
      (55, "#0088F0"), (60, "#006FCC"), (65, "#0059A8"), (70, "#004684"),
      (75, "#003563"), (80, "#002647"), (85, "#001A31"), (100, "#000D1F")],
-    # 第 2 组：民主進步黨 賴清德（綠色系）
+    # 第 2 組：民主進步黨 蔡英文（綠色系，同 2024 賴清德）
     [(35, "#E8FFE0"), (40, "#CEFFC2"), (45, "#C0FFB1"), (50, "#A4FF90"),
      (55, "#78FF4F"), (60, "#68DE45"), (65, "#54B337"), (70, "#3C8027"),
      (75, "#2B5C1C"), (80, "#1D3D13"), (85, "#0F210A"), (100, "#071A09")],
-    # 第 3 组：台灣民眾黨 柯文哲（青綠色系）
-    [(35, "#00D9CA"), (40, "#00BFB2"), (45, "#00A89C"), (50, "#008080"),
-     (55, "#006666"), (60, "#004C4C"), (65, "#003838"), (70, "#003030"),
-     (75, "#002626"), (80, "#021F1F"), (85, "#001919"), (100, "#000808")],
+    # 第 3 組：親民黨 宋楚瑜（橘色系）
+    [(35, "#FFF3E0"), (40, "#FFE0B2"), (45, "#FFCC80"), (50, "#FFB74D"),
+     (55, "#FFA726"), (60, "#FF9800"), (65, "#FB8C00"), (70, "#F57C00"),
+     (75, "#E65100"), (80, "#C24500"), (85, "#9C3A00"), (100, "#6E2600")],
 ]
 
 BLOCK_WIDTH, BLOCK_HEIGHT = 170, 105
@@ -112,21 +125,83 @@ LEGEND_LABEL_FONT_SIZE = 56
 MIN_SIMILARITY = 0.5
 
 # ---------------------- 異體字正規化 ----------------------
+# 2020 源資料用字（含中選會常用異體/簡筆）與 SHP 圖資用字不同，統一對照後再比對
 VARIANT_CHAR_MAP = str.maketrans({
     '濓': '濂',
     '曹': '槽',
-    '\U00025562': '槽',   # 坪林區石𕢥里（2024 源資料） / 石槽
+    '\U00025562': '槽',   # 坪林區石𕢥里 / 石槽
     '磘': '窯',
     '獇': '羌',
     '舘': '館',
     '廍': '部',
     '峯': '峰',
     '脚': '腳',
-    '\ue006': '塭',      # 臺南安南區 塭南里 / 公(塭)里（中選會資料以私用區字形 U+E006 表示「塭」）
+    '\ue006': '塭',      # 臺南安南區 塭南里 / 公(塭)里
     '\U00026c21': '那',  # 臺南新化區 𦰡拔里 / 那拔里
     '売': '壳',           # 臺中大安區 龜売里 / 龜壳里
-    '欍': '春',           # 雲林水林鄉 欍埔村 / 春埔村
+    # ---- 2020 資料新增異體/通用字對照（SHP → 源資料）----
+    '台': '臺',           # 富台/台西/臺子/霧台/丁台
+    '双': '雙',           # 双溪/双福/双湖/双潭/双龍
+    '豊': '豐',           # 和豊/豊崙/上豊/內豊/豊稠/豊收
+    '塩': '鹽',           # 塩田/塩埕/塩行/塩洲/塩舘
+    '硦': '弄',           # 中埔鄉 石硦 / 石弄
+    '瑶': '瑤',           # 彰化市 南瑶 / 南瑤
+    '凉': '涼',           # 瑪家鄉 凉山 / 涼山
+    '壠': '壟',           # 關山鎮 里壠 / 里壟
+    '菓': '果',           # 湖西 菓葉/大園 菓林 / 果葉/果林
+    '壳': '殼',           # 大安區 龜[壳] / 龜殼
+    '鷄': '雞',           # 竹東 鷄林 / 雞林
+    '晋': '晉',           # 麻豆 晋江 / 晉江
+    '厦': '廈',           # 萬丹 厦北/厦南 / 廈北/廈南
+    '响': '響',           # 滿州 响林 / 響林
+    '槺': '康',           # 清水/新屋 槺榔 / 康榔
+    '嵵': '時',           # 馬公 [嵵]裡 / 時裡
+    '萡': '箔',           # 四湖 [萡]子/[萡]東 / 箔子/箔東
+    '坂': '板',           # 達仁 台坂/土坂 / 台板/土板
+    '磜': '祭',           # 北埔 水磜 / 水祭
+    '蘆': '盧',           # 蘆竹 蘆興 / 盧興
 })
+
+# 106 年村里界圖資（107 年 2 月版）以方括號內「同音字」代替 Big5 無法表示的罕見字，
+# 此表將「含方括號之原名」還原成源資料/官方所用正字（僅影響含 '[' 的 SHP 名稱）。
+BRACKET_HOMONYM = {
+    '[回][瑤]里': '硘磘里',    # 南投竹山（原 硘磘里）
+    '磚[瑤]里': '磚窯里',      # 彰化市、嘉義市西區
+    '瓦[瑤]村': '瓦窯村',      # 埔鹽、麥寮、元長、新園
+    '瓦[瑤]里': '瓦窯里',      # 新北中和
+    '灰[瑤]里': '灰窯里',      # 新北中和
+    '[柏]子村': '箔子村',      # 雲林四湖
+    '[柏]東村': '箔東村',      # 雲林四湖
+    '[舊]埔村': '欍埔村',      # 雲林水林
+    '[慷]榔里': '康榔里',      # 臺中清水、桃園新屋
+    '[槍]寮里': '羌寮里',      # 新北樹林
+    '[帝]埔里': '坔埔里',      # 高雄鳥松
+    '水[砌]村': '水祭村',      # 新竹北埔
+    '里[龍]里': '里壟里',      # 臺東關山（原 里壠里）
+}
+
+# 多村里合併共用一組得票率（2020 資料以合併後之名稱代表，例如連江縣 22 村→9 村）。
+# 每組第一個為源資料所用之名稱(錨點)，其餘為 SHP 中隸屬同一合併單位的村里，
+# 填入與錨點相同之顏色。此表亦可視「、」分隔之 2024 資料整合後反推。
+MERGE_GROUPS = {
+    ("連江縣", "南竿"): [
+        ["介壽村"],
+        ["復興村", "福沃村"],
+        ["清水村", "珠螺村"],
+        ["仁愛村", "津沙村", "馬祖村", "四維村"],
+    ],
+    ("連江縣", "北竿"): [
+        ["塘岐村", "后沃村"],
+        ["橋仔村", "芹壁村", "坂里村", "白沙村"],
+    ],
+    ("連江縣", "莒光"): [
+        ["青帆村", "田沃村", "西坵村"],
+        ["福正村", "大坪村"],
+    ],
+    ("連江縣", "東引"): [
+        ["中柳村", "樂華村"],
+    ],
+}
 
 VARIANT_FUZZY_GROUPS = [
     {"峯", "峰"}, {"舘", "館"}, {"磘", "窯"}, {"獇", "羌"}, {"曹", "槽"}, {"脚", "腳"},
@@ -137,6 +212,8 @@ def normalize_text(s):
     if pd.isna(s):
         return ""
     s = str(s).strip()
+    if "[" in s and s in BRACKET_HOMONYM:
+        s = BRACKET_HOMONYM[s]
     s = unicodedata.normalize('NFKC', s)
     s = ''.join(c for c in s if unicodedata.category(c)[0] != 'M')
     s = re.sub(r'[\uFE00-\uFE0F\U000E0100-\U000E01EF]', '', s)
@@ -326,49 +403,69 @@ def get_label_text(upper, prev=None, is_first=False, is_last=False):
     return f"{prev}~{upper}%"
 
 
-# ===================== 讀取得票率 Excel（全臺單一檔） =====================
+# ===================== 讀取得票率 Excel =====================
 def load_vote_data(data_dir):
-    """讀取 2024 全臺單一 Excel（工作表「各里彙總」）。
+    """讀取 2020 全臺單一 Excel（工作表「村里層級明細」）。
 
-    得票率欄位依 CAND_NAMES 順序：侯友宜得票率、賴清德得票率、柯文哲得票率。
-    源資料有時將多村里合併為一列（以 、 分隔，如連江縣「復興村、福沃村」），
+    得票率欄位：{候選人}（{號次}）_得票率，依 CAND_NAMES 順序擷取（字尾 % 移除）。
+    源資料若將多村里併為一列（以 、 分隔，如連江縣「復興村、福沃村」），
     拆解成各村(里)並共用同一組得票率，使多村合併地區能填入相同顏色。
     """
     by_key, by_town = {}, {}
     n_total, n_rows = 0, 0
-    xlsx = os.path.join(data_dir, os.path.basename(VOTE_XLSX))
-    df = pd.read_excel(xlsx, sheet_name=VOTE_SHEET, dtype=str)
-    df.columns = [str(c) for c in df.columns]
-    rate_cols = []
-    for h in RATE_HEADERS:
-        if h not in df.columns:
-            raise ValueError(f"{os.path.basename(xlsx)} 缺少得票率欄位：{h}")
-        rate_cols.append(h)
-    for _, r in df.iterrows():
-        county = normalize_text(r.get("選舉區別"))
-        town = strip_town_suffix(r.get("鄉(鎮、市、區)別"))
-        vill_raw = normalize_text(r.get("村里別"))
-        if not county or not town or not vill_raw:
-            continue
-        try:
-            vals = tuple(float(str(r[c]).strip().replace("%", "").replace("\u00a0", ""))
-                         for c in rate_cols)
-        except (TypeError, ValueError):
-            continue
-        if not all(np.isfinite(v) for v in vals):
-            continue
-        n_total += 1
-        parts = [p for p in re.split(r"[、，,]", vill_raw) if p.strip()]
-        for part in parts:
-            part_core = strip_village_suffix(part.strip())
-            if not part_core:
+    rate_cols_by_cand = {}
+    files = sorted(glob.glob(os.path.join(data_dir, "2020*縣市鄉鎮村里.xlsx")))
+    for f in files:
+        df = pd.read_excel(f, sheet_name="村里層級明細", dtype=str)
+        df.columns = [str(c) for c in df.columns]
+        for cand in CAND_NAMES:
+            cols = [c for c in df.columns if c.startswith(cand) and c.endswith(f"_{CAND_RATE_SUFFIX}")]
+            if len(cols) != 1:
+                raise ValueError(f"{os.path.basename(f)} 找不到 {cand} 得票率欄位：{CAND_RATE_SUFFIX}")
+            rate_cols_by_cand[cand] = cols[0]
+        rate_cols = [rate_cols_by_cand[c] for c in CAND_NAMES]
+        for _, r in df.iterrows():
+            county = normalize_text(r.get("縣市"))
+            town = strip_town_suffix(r.get("鄉鎮市區"))
+            vill_raw = normalize_text(r.get("村里"))
+            if not county or not town or not vill_raw:
                 continue
-            key = (county, town, part_core)
-            if key in by_key:
+            try:
+                vals = tuple(float(str(r[c]).strip().replace("%", "").replace("\u00a0", "")) for c in rate_cols)
+            except (TypeError, ValueError):
                 continue
-            by_key[key] = vals
-            by_town.setdefault((county, town), []).append((part_core, vals))
-            n_rows += 1
+            if not all(np.isfinite(v) for v in vals):
+                continue
+            n_total += 1
+            parts = [p for p in re.split(r"[、，,]", vill_raw) if p.strip()]
+            for part in parts:
+                part_core = strip_village_suffix(part.strip())
+                if not part_core:
+                    continue
+                key = (county, town, part_core)
+                if key in by_key:
+                    continue
+                by_key[key] = vals
+                by_town.setdefault((county, town), []).append((part_core, vals))
+                n_rows += 1
+    # ---- 多村里合併單位：非錨點村里沿用同組得票率（如連江縣 22 村→9 村） ----
+    for (m_county, m_town), groups in MERGE_GROUPS.items():
+        for group in groups:
+            anchor = strip_village_suffix(normalize_text(group[0]))
+            akey = (m_county, m_town, anchor)
+            if akey not in by_key:
+                continue
+            a_vals = by_key[akey]
+            for alias in group[1:]:
+                a_part = strip_village_suffix(normalize_text(alias))
+                if not a_part:
+                    continue
+                key = (m_county, m_town, a_part)
+                if key in by_key:
+                    continue
+                by_key[key] = a_vals
+                by_town.setdefault((m_county, m_town), []).append((a_part, a_vals))
+                n_rows += 1
     return by_key, by_town, n_rows, n_total
 
 
@@ -376,22 +473,30 @@ def load_vote_data(data_dir):
 def flood_fill_layer(records, lines_mask, w_px, h_px, minx, maxy, sx, sy):
     """油漆桶式填色（畫圖軟體「填充／洪水填充」規則），單一縣市與全臺地圖共用。
 
-    1) 堤壩 = 線稿 lines_mask（村里界 1px、鄉鎮市區界、縣市地界、附圖外框 …）。
+    1) 堤壩 = 線稿 lines_mask（村里界 1px、鄉鎮市區界 2px、縣市地界 3px、
+       金門/連江附圖外框 6px …）。線稿由同一組 matplotlib 繪線指令產生。
     2) 對堤壩以外的像素做 4-連通標記：1px 斜線也能阻斷 8 連通的斜向滲漏，
        故顏色不可能跨越任何一條黑線。
     3) 每個區域整塊填單色，顏色 = 區域內像素「中心點幾何所屬圖斑 id」的眾數。
+       界線上 1px 的渲染/幾何落差會被眾數吸收，密集村里區（如永和）不再出現
+       孤立錯色斑點或色塊滲透（單一取樣點則可能恰好落在落差像素而選錯圖斑）。
+
+    為支援全臺圖（>1 億像素、上萬個圖斑），眾數不用 ncomp×nlab 的計數矩陣，
+    而是「每區域散佈取樣 id → 一致度驗證 → 少數不一致的區域才精算」，記憶體 O(N)。
 
     回傳 (arr, ncomp, comp)：arr 為填色後 RGB uint8 陣列（尚未畫黑線）；
     ncomp/comp 為非線像素的 4-連通標記，供自檢重用避免重算。"""
     from rasterio.features import rasterize
     from affine import Affine
 
+    # 顏色查找表：id 0 = 無資料（白），id i+1 = 第 i 個圖斑的填色
     lut = np.vstack([
         np.array([[255, 255, 255]], dtype=np.uint8),
         np.array([[int(round(v * 255)) for v in hex2rgb(hx)]
                   for hx in records["fill_hex"]], dtype=np.uint8),
     ])
 
+    # 逐像素幾何判定（GDAL/rasterio 像素中心規則）：id = 圖斑序號 + 1，0 = 無圖斑
     ids = rasterize(((g, i + 1) for i, g in enumerate(records.geometry)),
                     out_shape=(h_px, w_px),
                     transform=Affine(1.0 / sx, 0, minx, 0, -1.0 / sy, maxy),
@@ -401,14 +506,14 @@ def flood_fill_layer(records, lines_mask, w_px, h_px, minx, maxy, sx, sy):
     ncomp, comp = cv2.connectedComponents(free.astype(np.uint8), connectivity=4)
 
     seed = np.zeros(ncomp, dtype=np.int32)
-    seed[comp.ravel()] = ids.ravel()
+    seed[comp.ravel()] = ids.ravel()          # 每區域代表 id（散佈賦值，O(N)）
     reps = seed[comp]
     agree = (ids == reps)
     cnt_all = np.bincount(comp.ravel(), minlength=ncomp)
     cnt_ok = np.bincount(comp.ravel(), weights=agree.ravel(), minlength=ncomp)
     del reps, agree
     bad = np.nonzero(cnt_ok < 0.5 * cnt_all)[0]
-    for b in bad:
+    for b in bad:                              # 正常情形 bad 為 0 個
         m = (comp == b)
         seed[b] = int(np.bincount(ids[m].ravel()).argmax())
     if len(bad):
@@ -430,7 +535,48 @@ def check_region_single_color(arr, ncomp, comp):
     return ncomp - 1, int((mn != mx).sum())
 
 
-def full_geom_check(img, records, w_px, h_px, minx, maxy, sx, sy):
+def apply_tie_stripes(arr, records, w_px, h_px, minx, maxy, sx, sy,
+                      lines_mask=None, stripe_px=TIE_STRIPE_PX):
+    """平票圖斑：把「第 2 名應填色」以 45° 對角斜線紋疊在基底色上。
+
+    條紋方向 45°（右下→左上），每條寬 stripe_px；只覆寫 records["tie_hex"]
+    非空的圖斑。村里界線一律保留、不被斜線覆蓋，故界線維持完整：
+    有 lines_mask（權威界線掩碼）時以 ~lines_mask 排除，否則退回純黑像素判斷。
+    records 無 tie_hex 欄（或全空）時不動作，回傳處理的圖斑數。"""
+    if "tie_hex" not in records.columns:
+        return 0
+    from rasterio.features import rasterize
+    from affine import Affine
+    tie = records[records["tie_hex"].notna()]
+    if len(tie) == 0:
+        return 0
+    tids = rasterize(((g, i + 1) for i, g in enumerate(tie.geometry)),
+                     out_shape=(h_px, w_px),
+                     transform=Affine(1.0 / sx, 0, minx, 0, -1.0 / sy, maxy),
+                     fill=0, dtype="int32", all_touched=False)
+    yy, xx = np.indices((h_px, w_px))
+    stripe = ((xx + yy) // stripe_px) % 2 == 1
+
+    if lines_mask is not None:
+        # 權威界線掩碼：界線像素一律不畫斜線
+        fillable = ~np.asarray(lines_mask, dtype=bool)
+    else:
+        # 退回方案：純黑像素視為界線（arr 為 RGB）
+        fillable = arr.any(axis=2)
+
+    m = (tids > 0) & stripe & fillable
+    lut = {}
+    for hx in tie["tie_hex"]:
+        if hx not in lut:
+            lut[hx] = [int(round(v * 255)) for v in hex2rgb(hx)]
+    vals = np.array([lut[hx] for hx in tie["tie_hex"]], dtype=np.uint8)
+    arr[m] = vals[tids[m] - 1]
+    print(f"    平票斜線紋：{len(tie)} 個村里圖斑")
+    return len(tie)
+
+
+def full_geom_check(img, records, w_px, h_px, minx, maxy, sx, sy,
+                    lines_mask=None):
     """全圖逐像素幾何參考比對（獨立方法：GDAL/rasterio 像素中心規則）。
 
     黑線像素不計。回傳 (與幾何參考不同色的像素數, 無圖斑處非白的像素數)。"""
@@ -445,6 +591,24 @@ def full_geom_check(img, records, w_px, h_px, minx, maxy, sx, sy):
     exp = np.full((h_px, w_px, 3), 255, dtype=np.uint8)
     inside = ids > 0
     exp[inside] = fill[ids[inside] - 1]
+    # 平票斜線紋：期望圖同步疊加（與 apply_tie_stripes 同一套條紋規則）
+    if "tie_hex" in records.columns:
+        tie = records[records["tie_hex"].notna()]
+        if len(tie):
+            tids = rasterize(((g, i + 1) for i, g in enumerate(tie.geometry)),
+                             out_shape=(h_px, w_px),
+                             transform=Affine(1.0 / sx, 0, minx, 0, -1.0 / sy, maxy),
+                             fill=0, dtype="int32", all_touched=False)
+            yy, xx = np.indices((h_px, w_px))
+            m = (tids > 0) & (((xx + yy) // TIE_STRIPE_PX) % 2 == 1)
+            if lines_mask is not None:
+                m &= ~np.asarray(lines_mask, dtype=bool)
+            tl = {}
+            for hx in tie["tie_hex"]:
+                if hx not in tl:
+                    tl[hx] = [int(round(v * 255)) for v in hex2rgb(hx)]
+            tvals = np.array([tl[hx] for hx in tie["tie_hex"]], dtype=np.uint8)
+            exp[m] = tvals[tids[m] - 1]
     black = img.sum(axis=2) == 0
     wrong = (img != exp).any(axis=2) & ~black
     return int(wrong.sum()), int((wrong & ~inside).sum())
@@ -455,12 +619,20 @@ def main():
     os.makedirs(OUT_DIR, exist_ok=True)
 
     print("=" * 62)
-    print("  2024 總統副總統選舉 全臺灣各村（里）得票率地圖")
+    print("  2020 總統副總統選舉 全臺灣各村（里）得票率地圖")
     print("=" * 62)
 
-    # ---- 讀 SHP ----
+    # ---- 讀 SHP（依內容自動判斷 .dbf 編碼：UTF-8 或 Big5）----
     shp_path = resolve_shp()
-    gdf_all = gpd.read_file(shp_path, encoding=SHP_ENCODING)
+    gdf_all = None
+    for enc in SHP_ENCODINGS:
+        g = gpd.read_file(shp_path, encoding=enc)
+        names = set(g["COUNTYNAME"].dropna().astype(str))
+        if len(names & SHP_KNOWN_COUNTIES) >= 15:
+            gdf_all = g
+            break
+    if gdf_all is None:
+        gdf_all = g
     if gdf_all.crs is None:
         gdf_all.crs = "EPSG:4326"
     gdf_all = gdf_all.to_crs(epsg=3826)
@@ -484,7 +656,7 @@ def main():
             return pd.Series([np.nan, np.nan, np.nan, "none"])
         return pd.Series(list(vals) + [mt])
 
-    rate_cols = [f"rate{i}" for i in range(len(RATE_HEADERS))]
+    rate_cols = [f"rate{i}" for i in range(len(CAND_NAMES))]
     gdf_all[rate_cols + ["match_type"]] = gdf_all.apply(process_row, axis=1)
 
     # ---- 統計匹配 ----
@@ -644,13 +816,10 @@ def main():
     ax = fig.add_axes([0, 0, 1, 1])
     ax.set_xlim(minx, maxx)
     ax.set_ylim(miny, maxy)
-    ax.set_facecolor("#FFFFFF")
+    ax.set_facecolor(NO_DATA_COLOR)
 
-    # ① 村里填色（無邊）
-    records.plot(
-        ax=ax, facecolor=records["fill_hex"].tolist(),
-        edgecolor='none', linewidth=0, antialiased=False, legend=False
-    )
+    # ① 這裡「不」先填色：改成先把所有黑線畫完，再以線稿為堤壩做油漆桶洪水填充
+    #    （見下方「顏色量化」段；顏色永不跨越黑線，密集村里區不再有孤立錯色斑點）
     # ② 村里黑線（1px）
     gdf_plot_border = gpd.GeoDataFrame(records, geometry="geometry", crs=gdf_all.crs)
     gdf_plot_border.plot(
@@ -703,36 +872,37 @@ def main():
     ax.axis("off")
 
     buf = BytesIO()
-    plt.savefig(buf, format="png", dpi=DPI, pad_inches=0, bbox_inches=None, facecolor="#FFFFFF")
+    plt.savefig(buf, format="png", dpi=DPI, pad_inches=0, bbox_inches=None, facecolor=NO_DATA_COLOR)
     plt.close(fig)
     buf.seek(0)
 
     img_bgr = cv2.imdecode(np.frombuffer(buf.getvalue(), np.uint8), cv2.IMREAD_COLOR)
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    del img_bgr
+    gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
 
-    # ===================== 顏色量化（分塊處理） =====================
-    allowed_hex = {"#FFFFFF", "#000000"}
-    for stops in RATE_COLOR_STOPS:
-        allowed_hex.update(hx for _, hx in stops)
-    allowed_rgb_255 = np.array([hex2rgb(hx) for hx in allowed_hex]).astype(np.float32) * 255
+    # ===================== 填色：油漆桶／洪水填充 =====================
+    # 線稿（純黑線）即封閉堤壩；對堤壩以外每一塊 4-連通區域整塊填單色，
+    # 顏色取該區域內像素幾何所屬村里的眾數 → 顏色永不跨越任何一條黑線。
+    print("  填色（洪水填充／油漆桶規則，4-連通區域整塊上色）...")
+    lines_mask = np.zeros((img_h_px, img_w_px), dtype=bool)
+    h2 = min(img_h_px, gray.shape[0]); w2 = min(img_w_px, gray.shape[1])
+    lines_mask[:h2, :w2] = gray[:h2, :w2] < 128
+    del gray
+    sx = img_w_px / (maxx - minx)
+    sy = img_h_px / (maxy - miny)
+    arr, ncomp, comp = flood_fill_layer(records, lines_mask, img_w_px, img_h_px,
+                                        minx, maxy, sx, sy)
+    arr[lines_mask] = 0
+    print(f"  黑像素合計：{int(lines_mask.sum())}  非線連通區域：{ncomp - 1} 塊")
 
-    pixels = img_rgb.reshape(-1, 3).astype(np.float32)
-    n_pixels = pixels.shape[0]
-    CHUNK_SIZE = 500_000
-    quantized_flat = np.empty((n_pixels, 3), dtype=np.uint8)
-    for start in range(0, n_pixels, CHUNK_SIZE):
-        end = min(start + CHUNK_SIZE, n_pixels)
-        chunk = pixels[start:end]
-        min_dist = np.full(chunk.shape[0], np.inf, dtype=np.float32)
-        min_idx = np.zeros(chunk.shape[0], dtype=np.int32)
-        for i in range(allowed_rgb_255.shape[0]):
-            diff = chunk - allowed_rgb_255[i]
-            d = np.sqrt((diff * diff).sum(axis=1))
-            mask = d < min_dist
-            min_dist[mask] = d[mask]
-            min_idx[mask] = i
-        quantized_flat[start:end] = allowed_rgb_255[min_idx].astype(np.uint8)
-    quantized = quantized_flat.reshape(img_rgb.shape)
+    _nc, _nbad = check_region_single_color(arr, ncomp, comp)
+    print(f"  油漆桶不變式：非線區域 {_nc} 塊，非單色區域 {_nbad} 塊（應為 0）")
+    _nw, _nout = full_geom_check(arr, records, img_w_px, img_h_px, minx, maxy, sx, sy)
+    print(f"  與逐像素幾何參考差異：{_nw} px、無圖斑處非白 {_nout} px（皆應 ≈0）")
+    del lines_mask, comp
+    quantized = arr
+    del img_rgb
 
     # ===================== 文字與圖例 =====================
     pil_img = Image.fromarray(quantized)

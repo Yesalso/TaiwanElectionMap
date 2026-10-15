@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-14T16:18:28.967Z",
+  "generatedAt": "2026-10-15T13:56:58.383Z",
   "edge": "Edg/155.0.4283.45",
   "node": "v22.22.2",
   "scales": [
@@ -22,8 +22,8 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\president\\2000-president-north_2560x1440.png",
-      "bytes": 4208822,
-      "sha256": "91eec3fe54926fc21e25a5a764ea7d088fb62eba2d4b7d01a9dea30b5c18fd2d",
+      "bytes": 4215400,
+      "sha256": "c562c14600736b07a08fcdffbf49a69d89c211480acbb1492935d65ab34cf957",
       "ok": true
     },
     {
@@ -42,8 +42,8 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\president\\2008-president-north_2560x1440.png",
-      "bytes": 4248096,
-      "sha256": "f74c9aee95d80d8e42c2462bec0e47df3b5de009fb620ff8bf2d890a51a1540b",
+      "bytes": 4250203,
+      "sha256": "9b1157b9f4ee5c28ad5fcee32043c91b8250e977b6919020e7fb198cbd31898c",
       "ok": true
     },
     {
@@ -52,8 +52,8 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\president\\2012-president-north_2560x1440.png",
-      "bytes": 4199690,
-      "sha256": "326adf2ad0f249f61bb8096ac8d5dc2ca7dabb47ccab49924373db801ba83f0f",
+      "bytes": 4200018,
+      "sha256": "f027f9c0ed799ff5676fad1784181ecdc426994831e59a9034b568ceb3d7c506",
       "ok": true
     },
     {
@@ -62,8 +62,8 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\president\\2016-president-north_2560x1440.png",
-      "bytes": 4219948,
-      "sha256": "49aae769ea7b937991d96c47ffb087e3e1391df42db798e716256672521260bf",
+      "bytes": 4220499,
+      "sha256": "756267345077585d942068bcddae0db904425527980d8534f14545856544e454",
       "ok": true
     },
     {
@@ -82,8 +82,8 @@
       "width": 2560,
       "height": 1440,
       "file": "D:\\Windows\\TaiwanElection\\Video\\NewSolution\\out\\president\\2024-president-north_2560x1440.png",
-      "bytes": 4255131,
-      "sha256": "c72fd0189220abb65218a56993380d2cf8fd5a43dc42602de57a6dee9276c4e2",
+      "bytes": 4299172,
+      "sha256": "a47f6ba19e4df8770359e7f0d24e37064e98ef283a9b1f8e2a055d31581be9e9",
       "ok": true
     }
   ],

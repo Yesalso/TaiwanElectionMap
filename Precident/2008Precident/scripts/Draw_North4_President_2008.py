@@ -534,6 +534,7 @@ def main():
 
     # 得票率（2008 各里彙總 Excel，異體字/模糊匹配沿用全臺腳本）
     vote_dict, vote_by_town, cnt_dict, n_rows, n_total = load_vote_data()
+    cnt_by_key = cnt_dict
     print(f"  Excel 得票率記錄 : {n_total} 筆（去重後 {n_rows} 筆）")
     print(f"  得票數明細       : {len(cnt_dict)} 筆（供跨里合併重算）")
 
@@ -626,6 +627,29 @@ def main():
         nat.NO_DATA_COLOR,
     )
     gdf_all["fill_hex"] = gdf_all["fill_hex"].fillna(nat.NO_DATA_COLOR)
+
+    # 平票規則：第 1、2 名得票率同至小數點後 3 位、或得票數相同 → 疊加第 2 名顏色的對角斜線紋
+    def pick_tie_color(row):
+        vals = [row[c] if not np.isnan(row[c]) else 0.0 for c in rate_cols]
+        order = sorted(range(len(vals)), key=lambda i: vals[i], reverse=True)
+        if len(order) <= 1:
+            return np.nan
+        # 平票：第 1、2 名得票率同至小數點後 3 位，或得票數相同
+        cnts = cnt_by_key.get((row["county_core"], row["town_core"], row["matched_vill"]))
+        tied = (round(vals[order[0]], 3) == round(vals[order[1]], 3)) or (
+            cnts is not None and float(cnts[order[0]]) == float(cnts[order[1]]))
+        if tied:
+            c1 = nat.get_color_by_value(vals[order[0]], RATE_COLOR_STOPS[order[0]])
+            c2 = nat.get_color_by_value(vals[order[1]], RATE_COLOR_STOPS[order[1]])
+            if c1 is not None and c2 is not None and c2.upper() != c1.upper():
+                return c2
+        return np.nan
+
+    gdf_all["tie_hex"] = np.where(
+        gdf_all[rate_cols].notna().any(axis=1),
+        gdf_all.apply(pick_tie_color, axis=1),
+        np.nan,
+    )
 
     has_data = gdf_all[rate_cols].notna().any(axis=1)
     print(f"  JSON 要素數      : {len(gdf_all)}")
@@ -740,8 +764,13 @@ def main():
     _nc, _nbad = check_region_single_color(arr, ncomp, comp)
     print(f"  油漆桶不變式：非線區域 {_nc} 塊，非單色區域 {_nbad} 塊（應為 0）")
 
+    # 平票斜線紋須在「單色不變式」自檢之後疊加（斜線紋會刻意讓該區出現兩色）
+    nat.apply_tie_stripes(arr, records, w_px, h_px, minx, maxy, sx, sy, lines_mask=lines_mask)
+    _line_kept = int((arr[lines_mask] == 0).all(axis=1).sum())
+    print(f"  平票後村里界線：{_line_kept}/{int(lines_mask.sum())} 線像素仍為黑（應相等，界線完整）")
+
     # 自檢 B：與逐像素幾何參考的差異
-    _nw, _nout = full_geom_check(arr, records, w_px, h_px, minx, maxy, sx, sy)
+    _nw, _nout = full_geom_check(arr, records, w_px, h_px, minx, maxy, sx, sy, lines_mask=lines_mask)
     _tot = w_px * h_px
     print(f"  與逐像素幾何參考差異：{_nw} px（{_nw / _tot * 100:.4f}%；"
           f"村外非白 {_nout}；皆應 ≈0）")
@@ -778,7 +807,7 @@ def main():
     _u2, _c2 = np.unique(_re_map.reshape(-1, 3), axis=0, return_counts=True)
     _bad2 = [(tuple(int(x) for x in c), int(n)) for c, n in zip(_u2, _c2)
              if tuple(int(x) for x in c) not in allowed]
-    _nw2, _nout2 = full_geom_check(_re_map, records, w_px, h_px, minx, maxy, sx, sy)
+    _nw2, _nout2 = full_geom_check(_re_map, records, w_px, h_px, minx, maxy, sx, sy, lines_mask=lines_mask)
     _tol2 = 0.0002 * w_px * h_px
     print(f"  存檔自檢：非允許色 {sum(n for _, n in _bad2)} px、"
           f"幾何參考差異 {_nw2} px（容差 {_tol2:.0f}）、村外非白 {_nout2} px（皆應 ≈0）")
@@ -1056,8 +1085,8 @@ def check_region_single_color(*a, **k):
     return nat.check_region_single_color(*a, **k)
 
 
-def full_geom_check(img, records, w_px, h_px, minx, maxy, sx, sy):
-    return nat.full_geom_check(img, records, w_px, h_px, minx, maxy, sx, sy)
+def full_geom_check(img, records, w_px, h_px, minx, maxy, sx, sy, lines_mask=None):
+    return nat.full_geom_check(img, records, w_px, h_px, minx, maxy, sx, sy, lines_mask=lines_mask)
 
 
 if __name__ == "__main__":

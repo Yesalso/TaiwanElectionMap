@@ -36,14 +36,24 @@ for rg, counties in dm.REGIONS.items():
         if (ww, hh) != (W, H):
             summary[(y, rg)] = (f"尺寸不符{ww}x{hh}", 0, 0); continue
         rates = dm.load_town_rates(y, cfg["candidates"])
-        bad = miss = 0; det = []
+        bad = miss = tie_n = 0; det = []
         for _, r in towns.iterrows():
             rt = rates.get((r["county_core"], r["town_core"]))
             if not rt:
                 miss += 1; continue
-            name = max(rt, key=rt.get)
+            ranked = sorted(rt.items(), key=lambda kv: kv[1], reverse=True)
+            name = ranked[0][0]
             gi = next(gg for cn, gg in cfg["candidates"] if cn == name)
-            exp = tuple(int(round(v * 255)) for v in dm.hex2rgb(dm.get_color_by_value(rt[name], dm.RATE_COLOR_STOPS[gi])))
+            exp_colors = {tuple(int(round(v * 255)) for v in dm.hex2rgb(
+                dm.get_color_by_value(rt[name], dm.RATE_COLOR_STOPS[gi])))}
+            tie = len(ranked) > 1 and abs(ranked[0][1] - ranked[1][1]) <= dm.TIE_RATE_EPS
+            tie2 = None
+            if tie:
+                tie2 = ranked[1][0]
+                gi2 = next(gg for cn, gg in cfg["candidates"] if cn == tie2)
+                c2 = dm.get_color_by_value(rt[tie2], dm.RATE_COLOR_STOPS[gi2])
+                if c2:
+                    exp_colors.add(tuple(int(round(v * 255)) for v in dm.hex2rgb(c2)))
             pt = r.geometry.representative_point()
             px = min(max(int((pt.x - minx) * sx), 0), W - 1); py = min(max(int((maxy - pt.y) * sy), 0), H - 1)
             win = im[max(0, py - 3):py + 4, max(0, px - 3):px + 4].reshape(-1, 3)
@@ -51,13 +61,16 @@ for rg, counties in dm.REGIONS.items():
             for o in np.argsort(-cnts):
                 c = tuple(int(v) for v in cols[o])
                 if c != (0, 0, 0): got = c; break
-            if got != exp:
+            if got not in exp_colors:
                 bad += 1
-                det.append(f"{r['county_core']}/{r['town_core']} 應#{exp[0]:02X}{exp[1]:02X}{exp[2]:02X} "
+                det.append(f"{r['county_core']}/{r['town_core']} 應{'/'.join('#%02X%02X%02X'%c for c in exp_colors)} "
                            f"實{('#'+''.join('%02X'%v for v in got)) if got else '無'} ({name} {rt[name]:.2f}%)")
+            elif tie and got is not None:
+                tie_n += 1
         summary[(y, rg)] = ("", bad, len(towns) - miss)
         mark = "OK" if bad == 0 else "!!"
-        print(f"{mark} {y} {rg}: 比對 {len(towns)-miss}/{len(towns)} 鄉鎮，不符 {bad}")
+        print(f"{mark} {y} {rg}: 比對 {len(towns)-miss}/{len(towns)} 鄉鎮，不符 {bad}"
+              + (f"（含平票 {tie_n}，雙色任一即視為符合）" if tie_n else ""))
         for d in det[:15]:
             print("      ", d)
 

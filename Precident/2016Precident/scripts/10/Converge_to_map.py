@@ -176,6 +176,10 @@ BUF_RES, BUF_JOIN, BUF_CAP = 1, 2, 2
 
 GRAY_COLOR = "#CCCCCC"
 
+# ===================== 平票規則 =====================
+TIE_RATE_EPS = 1e-9          # 第 1、2 名得票率差 ≤ 此值視為平票
+TIE_STRIPE_PX = 8            # 平票斜線紋寬（像素），45° 對角（右下→左上）
+
 # ===================== 色階（0% 起，10% 間距）=====================
 RATE_COLOR_STOPS = [
     # 國民黨
@@ -249,6 +253,37 @@ def get_color_by_value(val, stops):
 def hex2rgb(hx):
     h = hx.lstrip("#")
     return (int(h[0:2], 16) / 255.0, int(h[2:4], 16) / 255.0, int(h[4:6], 16) / 255.0)
+
+
+def apply_tie_stripes(arr, records, w_px, h_px, minx, maxy, sx, sy,
+                      stripe_px=TIE_STRIPE_PX):
+    """平票圖斑：把「第 2 名應填色」以 45° 對角斜線紋疊在基底色上。
+
+    只覆寫 records["tie_hex"] 非空的圖斑；保留黑色界線像素（arr 為 RGB，黑線 = 純黑）。
+    records 無 tie_hex 欄（或全空）時不動作，回傳處理的圖斑數。"""
+    if "tie_hex" not in records.columns:
+        return 0
+    from rasterio.features import rasterize
+    from affine import Affine
+    tie = records[records["tie_hex"].notna()]
+    if len(tie) == 0:
+        return 0
+    tids = rasterize(((g, i + 1) for i, g in enumerate(tie.geometry)),
+                     out_shape=(h_px, w_px),
+                     transform=Affine(1.0 / sx, 0, minx, 0, -1.0 / sy, maxy),
+                     fill=0, dtype="int32", all_touched=False)
+    yy, xx = np.indices((h_px, w_px))
+    stripe = ((xx + yy) // stripe_px) % 2 == 1
+    not_line = arr.sum(axis=2) > 0
+    m = (tids > 0) & stripe & not_line
+    lut = {}
+    for hx in tie["tie_hex"]:
+        if hx not in lut:
+            lut[hx] = [int(round(v * 255)) for v in hex2rgb(hx)]
+    vals = np.array([lut[hx] for hx in tie["tie_hex"]], dtype=np.uint8)
+    arr[m] = vals[tids[m] - 1]
+    print(f"    平票斜線紋：{len(tie)} 個村里圖斑")
+    return len(tie)
 
 def text_width(font, txt):
     try:
@@ -394,7 +429,7 @@ def load_rates(cfg):
         df["區里"] = parsed.apply(lambda t: t[2])
         df["town_core"] = df["鄉鎮市區"].apply(strip_town_suffix)
         df["vill_core"] = df["區里"].apply(strip_village_suffix)
-        return df, cand_names, rnames
+        return df, cand_names, rnames, None
 
     # 支援三種來源（原有邏輯）：
     #  ① 得票率專用檔：欄位直接是「<政黨>得票率」
@@ -429,13 +464,14 @@ def load_rates(cfg):
     else:
         raise ValueError(f"{excel_path} 找不到『得票率』或『得票數』欄位")
 
+    count_cols = list(cand_cols) if vote_cols and cand_cols == vote_cols else None
     df["縣市"] = df[cfg.get("col_city", "選舉區別")].apply(_norm_text)
     df["鄉鎮市區"] = df[cfg.get("col_town", "鄉(鎮、市、區)別")].apply(_norm_text)
     df["區里"] = df[cfg.get("col_vill", "村里別")].apply(_norm_text)
 
     df["town_core"] = df["鄉鎮市區"].apply(strip_town_suffix)
     df["vill_core"] = df["區里"].apply(strip_village_suffix)
-    return df, cand_cols, rate_cols
+    return df, cand_cols, rate_cols, count_cols
 
 # ===================== 精确 + 同乡镇最相似模糊匹配 =====================
 MIN_SIMILARITY = 0.5
@@ -539,7 +575,7 @@ def make_map(cfg):
     gdf_nt["town_core"] = gdf_nt["TOWNNAME"].apply(strip_town_suffix)
     gdf_nt["vill_core"] = gdf_nt["VILLNAME"].apply(strip_village_suffix)
 
-    df_vote, cand_cols, rate_cols = load_rates(cfg)
+    df_vote, cand_cols, rate_cols, count_cols = load_rates(cfg)
     # 納入 {city} 資料；縣市欄缺失(NaN / 'nan' 不區分大小寫)者視為同屬該縣市，一併納入
     # Excel 中的縣市名稱可能與 SHP 不同（如 SHP 為新北市、舊檔為臺北縣），用 excel_city 指定
     excel_city = cfg.get("excel_city", cfg["city"])
@@ -564,21 +600,29 @@ def make_map(cfg):
         vote_by_town.setdefault(t, []).append((v, vals))
     for _, r in df_vote.iterrows():
         raw_vote_by_town.setdefault(r["town_core"], {})[r["vill_core"]] = r["區里"]
+    if count_cols:
+        counts_by_key = {
+            (r["town_core"], r["vill_core"]): tuple(
+                (float(r[c]) if pd.notna(r[c]) else np.nan) for c in count_cols)
+            for _, r in df_vote.iterrows()
+        }
+    else:
+        counts_by_key = {}
 
     def process_row(r):
         town, vill = r["town_core"], r["vill_core"]
         matched_vill, vals, excel_mt = fuzzy_lookup(town, vill, vote_dict, vote_by_town)
         if vals is None:
             vals = tuple(np.nan for _ in range(n_cand))
-            return pd.Series(list(vals) + ["none"])
+            return pd.Series(list(vals) + ["none", ""])
         if excel_mt == "exact":
             raw_excel = raw_vote_by_town.get(town, {}).get(matched_vill)
             raw_shp = str(r["VILLNAME"])
             if raw_shp != raw_excel:
                 excel_mt = f"variant:{raw_excel}"
-        return pd.Series(list(vals) + [excel_mt])
+        return pd.Series(list(vals) + [excel_mt, matched_vill])
 
-    assign_cols = rate_cols + ["match_type"]
+    assign_cols = rate_cols + ["match_type", "matched_vill"]
     gdf_nt[assign_cols] = gdf_nt.apply(process_row, axis=1)
 
     # 有任一候選人得票率可計算，即納入（NaN 以 0 計，不影響其餘候選人） 
@@ -596,6 +640,22 @@ def make_map(cfg):
 
     gdf_with_data["fill_hex"] = gdf_with_data.apply(pick_fill_color, axis=1)
     gdf_with_data["fill_hex"] = gdf_with_data["fill_hex"].fillna(GRAY_COLOR)
+
+    # 平票規則：第 1、2 名得票率相等（|差| ≤ TIE_RATE_EPS）→ 疊加第 2 名顏色的對角斜線紋
+    def pick_tie_color(row):
+        vals = [row[c] if not np.isnan(row[c]) else 0.0 for c in rate_cols]
+        order = sorted(range(len(vals)), key=lambda i: vals[i], reverse=True)
+        cnts = counts_by_key.get((row["town_core"], row["matched_vill"]))
+        tied = (round(vals[order[0]], 3) == round(vals[order[1]], 3)) or (
+            cnts is not None and float(cnts[order[0]]) == float(cnts[order[1]]))
+        if len(order) > 1 and tied:
+            c1 = get_color_by_value(vals[order[0]], stops_list[order[0]])
+            c2 = get_color_by_value(vals[order[1]], stops_list[order[1]])
+            if c1 is not None and c2 is not None and c2.upper() != c1.upper():
+                return c2
+        return np.nan
+
+    gdf_with_data["tie_hex"] = gdf_with_data.apply(pick_tie_color, axis=1)
 
     # ---- 計算圖例起點（所有村里中最低的領先者得票率，向下取整到 10 的倍數） ----
     all_win_rates = []
@@ -731,6 +791,12 @@ def make_map(cfg):
 
     img_bgr = cv2.imdecode(np.frombuffer(buf.getvalue(), np.uint8), cv2.IMREAD_COLOR)
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+    # 平票斜線紋（於顏色量化前疊加；座標＝xlim/ylim → 像素，黑線不覆蓋）
+    _sx = img_rgb.shape[1] / (xlim[1] - xlim[0])
+    _sy = img_rgb.shape[0] / (ylim[1] - ylim[0])
+    apply_tie_stripes(img_rgb, gdf_plot, img_rgb.shape[1], img_rgb.shape[0],
+                      xlim[0], ylim[1], _sx, _sy)
 
     # ===================== 顏色量化（分塊處理）=====================
     allowed_hex = {"#FFFFFF", "#000000", GRAY_COLOR}

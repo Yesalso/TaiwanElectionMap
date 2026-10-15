@@ -12,6 +12,9 @@
   微孔洞清理 clean_tiny_holes、迴針清理 remove_ring_slits
   填色：直接讀各屆『鄉鎮市區級別』官方得票率（得票數加總重算）
         （勝選候選人＝該區得票率最高者；色階深淺＝其官方得票率）
+        平票規則：第 1 名與第 2 名得票率相等（|差| ≤ TIE_RATE_EPS）時，
+        該鄉鎮市區改以「雙色對角斜線紋」填塗——底色＝第 1 名原定顏色、
+        斜線＝第 2 名原定顏色（兩色皆取自各自候選人的色階表）
         洪水填充：黑線為封閉堤壩，每塊鄉鎮市區整塊填單色 → 顏色永不跨越黑線
   版面：**不畫標題、不畫圖例**，只輸出純地圖
   留白：DROP_NAN_COUNTIES 列出的縣市，其「無村里名」圖斑整筆不畫（港區、機場、軍港、
@@ -84,6 +87,11 @@ HOLE_MIN_AREA_M2 = 10000.0
 
 NO_DATA_COLOR = "#FFFFFF"
 DPI = 100
+
+# 平票規則：鄉鎮市區內第 1 名與第 2 名得票率差 ≤ 此值 → 雙色斜線紋
+TIE_RATE_EPS = 1e-9
+# 平票斜線紋每條寬度（px）；1px = 20m → 8px ≈ 160m，於鄉鎮尺度清晰可見
+TIE_STRIPE_PX = 8
 
 DROP_NAN_COUNTIES = ["基隆市", "臺中市", "雲林縣", "高雄市"]
 # ↑ 這些縣市「無村里名」的圖斑（港區水域、機場、軍港、海埔新生地等）整筆不畫，
@@ -613,6 +621,35 @@ def check_region_single_color(arr, ncomp, comp):
     return ncomp - 1, int((mn != mx).sum())
 
 
+def apply_tie_stripes(arr, records, w_px, h_px, minx, maxy, sx, sy,
+                      stripe_px=TIE_STRIPE_PX):
+    """平票鄉鎮市區：把「第2名應填色」以對角斜線紋畫在基底色上。
+
+    條紋方向 45°（右下→左上），每條寬 stripe_px；只覆寫 tie_hex 非空的圖斑。"""
+    from rasterio.features import rasterize
+    from affine import Affine
+    tie = records[records["tie_hex"].notna()]
+    if len(tie) == 0:
+        return 0
+    tids = rasterize(((g, i + 1) for i, g in enumerate(tie.geometry)),
+                     out_shape=(h_px, w_px),
+                     transform=Affine(1.0 / sx, 0, minx, 0, -1.0 / sy, maxy),
+                     fill=0, dtype="int32", all_touched=False)
+    yy, xx = np.indices((h_px, w_px))
+    stripe = ((xx + yy) // stripe_px) % 2 == 1
+    m = (tids > 0) & stripe
+    lut = {}
+    for i, hx in enumerate(tie["tie_hex"]):
+        if hx not in lut:
+            lut[hx] = [int(round(v * 255)) for v in hex2rgb(hx)]
+    vals = np.array([lut[hx] for hx in tie["tie_hex"]], dtype=np.uint8)
+    arr[m] = vals[tids[m] - 1]
+    towns = tie[["COUNTYNAME", "TOWNNAME"]].drop_duplicates()
+    print(f"    平票斜線紋：{len(towns)} 個鄉鎮市區"
+          f"（{'、'.join(sorted(set(towns['TOWNNAME'])))}）")
+    return len(towns)
+
+
 def full_geom_check(img, records, w_px, h_px, minx, maxy, sx, sy):
     from rasterio.features import rasterize
     from affine import Affine
@@ -625,6 +662,21 @@ def full_geom_check(img, records, w_px, h_px, minx, maxy, sx, sy):
     exp = np.full((h_px, w_px, 3), 255, dtype=np.uint8)
     inside = ids > 0
     exp[inside] = fill[ids[inside] - 1]
+    # 平票斜線紋：期望圖同步疊加（與 apply_tie_stripes 同一套條紋規則）
+    tie = records[records["tie_hex"].notna()]
+    if len(tie):
+        tids = rasterize(((g, i + 1) for i, g in enumerate(tie.geometry)),
+                         out_shape=(h_px, w_px),
+                         transform=Affine(1.0 / sx, 0, minx, 0, -1.0 / sy, maxy),
+                         fill=0, dtype="int32", all_touched=False)
+        yy, xx = np.indices((h_px, w_px))
+        m = (tids > 0) & (((xx + yy) // TIE_STRIPE_PX) % 2 == 1)
+        lut = {}
+        for i, hx in enumerate(tie["tie_hex"]):
+            if hx not in lut:
+                lut[hx] = [int(round(v * 255)) for v in hex2rgb(hx)]
+        vals = np.array([lut[hx] for hx in tie["tie_hex"]], dtype=np.uint8)
+        exp[m] = vals[tids[m] - 1]
     black = img.sum(axis=2) == 0
     wrong = (img != exp).any(axis=2) & ~black
     return int(wrong.sum()), int((wrong & ~inside).sum())
@@ -744,7 +796,7 @@ def write_vote_stats_md(year, regions_order, town_votes, cands, out_dir):
 
 
 # ===================== 繪製單一（年份 × 分區）=====================
-def build_region_map(year, region_name, counties, shp, cfg, town_rates):
+def build_region_map(year, region_name, counties, shp, cfg, town_rates, town_votes):
     cands = cfg["candidates"]
     region_canon = {canon_county(c) for c in counties}
 
@@ -778,13 +830,29 @@ def build_region_map(year, region_name, counties, shp, cfg, town_rates):
     n = len(gdf)
 
     # 每個鄉鎮市區：勝選候選人＝官方得票率最高者；色階深淺＝其官方得票率
+    # 平票（第1、2名得票率相等）→ 基底＝第1名色 + 對角斜線＝第2名色
     town_color = {}
+    town_tie = {}      # (county, town) -> 第2名候選人的應填色（斜線色）
     for (cc, tc), rates in town_rates.items():
         if cc not in region_canon or not rates:
             continue
-        name = max(rates, key=rates.get)
+        ranked = sorted(rates.items(), key=lambda kv: kv[1], reverse=True)
+        name = ranked[0][0]
         gi = next(g for cn, g in cands if cn == name)
-        town_color[(cc, tc)] = get_color_by_value(rates[name], RATE_COLOR_STOPS[gi])
+        c1 = get_color_by_value(rates[name], RATE_COLOR_STOPS[gi])
+        town_color[(cc, tc)] = c1
+        tv = town_votes.get((cc, tc), {})
+        if len(ranked) > 1:
+            v1, v2 = tv.get(ranked[0][0]), tv.get(ranked[1][0])
+            # 平票：第 1、2 名得票率同至小數點後 3 位，或得票數相同
+            tied = (round(ranked[0][1], 3) == round(ranked[1][1], 3)) or (
+                v1 is not None and v2 is not None and float(v1) == float(v2))
+            if tied:
+                name2 = ranked[1][0]
+                gi2 = next(g for cn, g in cands if cn == name2)
+                c2 = get_color_by_value(rates[name2], RATE_COLOR_STOPS[gi2])
+                if c2 is not None and c1 is not None and c2.upper() != c1.upper():
+                    town_tie[(cc, tc)] = c2
 
     fill_hex = np.array([NO_DATA_COLOR] * n, dtype=object)
     for i in range(n):
@@ -793,13 +861,17 @@ def build_region_map(year, region_name, counties, shp, cfg, town_rates):
             fill_hex[i] = c
     gdf["fill_hex"] = fill_hex
 
+    # 平票斜線紋的第二色（非平票為 None）
+    gdf["tie_hex"] = [town_tie.get((gdf["county_core"].iat[i], gdf["town_core"].iat[i]))
+                      for i in range(n)]
+
     shp_towns = set(zip(gdf["county_core"], gdf["town_core"]))
     blank = shp_towns - set(town_color)
     print(f"    鄉鎮市區 {len(shp_towns)}｜對到官方資料 {len(shp_towns) - len(blank)}｜留白 {len(blank)}")
     if blank:
         print(f"    ⚠️ 無資料：{'、'.join(sorted(f'{c}/{t}' for c, t in blank))}")
 
-    records = gdf[["COUNTYNAME", "TOWNNAME", "VILLNAME", "geometry", "fill_hex"]].copy()
+    records = gdf[["COUNTYNAME", "TOWNNAME", "VILLNAME", "geometry", "fill_hex", "tie_hex"]].copy()
     villages = records[records["VILLNAME"].notna()].copy()
     if len(villages) == 0:
         print("    ⚠️ 無村里層，略過")
@@ -827,10 +899,13 @@ def build_region_map(year, region_name, counties, shp, cfg, town_rates):
 
     # ---- 填色 ----
     arr, ncomp, comp = flood_fill_layer(records, lines_mask, w_px, h_px, minx, maxy, sx, sy)
+    # 單色區自檢須在疊加平票斜線紋之前（斜線紋會刻意讓該區出現兩色）
+    _nc, _nbad = check_region_single_color(arr, ncomp, comp)
+    if town_tie:
+        apply_tie_stripes(arr, records, w_px, h_px, minx, maxy, sx, sy)
     arr[lines_mask] = 0
 
     # ---- 自檢 ----
-    _nc, _nbad = check_region_single_color(arr, ncomp, comp)
     _nw, _nout = full_geom_check(arr, records, w_px, h_px, minx, maxy, sx, sy)
     _tot = w_px * h_px
     allowed = {(255, 255, 255), (0, 0, 0)}
@@ -894,7 +969,7 @@ def main():
                 print(f"  ⚠️ 無分區 {rn}，略過")
                 continue
             try:
-                build_region_map(y, rn, REGIONS[rn], shp, cfg, town_rates)
+                build_region_map(y, rn, REGIONS[rn], shp, cfg, town_rates, town_votes)
             except Exception as e:
                 import traceback
                 print(f"    ✗ {y} {rn} 失敗：{e}")

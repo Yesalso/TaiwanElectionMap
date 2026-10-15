@@ -1,0 +1,186 @@
+平票斜線紋（不侵占邊界線）通用程式碼片段
+================================================================
+用途：把「平票圖斑疊加 45° 斜線紋，且不覆蓋邊界線」的邏輯，
+      快速複製到其他年份／區域的總統（或縣市）得票率地圖腳本。
+
+三段式流程：洪水填充/油漆桶填色 → arr[lines_mask]=0 疊黑線 → apply_tie_stripes 疊斜線紋
+核心原則：用「權威界線掩碼 lines_mask」排除邊界線，不要用 arr.any(axis=2) 顏色反推。
+
+適用檔案（本次）：
+  - 共用模組：Draw_National_President_2020.py（2016 / 2020 區域腳本共用的 nat）
+  - 5 個區域腳本：Draw_North4 / South2 / TCM4 / TCN3 / YCT4 _President_XXXX.py
+    （2024 版共用模組為 Draw_National_President_2024.py）
+
+
+================================================================
+【片段 1】模組常數（放在 NO_DATA_COLOR / DPI / PX2PT 之後）
+================================================================
+
+# 平票規則：某村里第 1 名與第 2 名得票率差 ≤ 此值 → 疊加雙色斜線紋
+TIE_RATE_EPS = 1e-9
+# 平票斜線紋每條寬度（px）
+TIE_STRIPE_PX = 8
+
+
+================================================================
+【片段 2】apply_tie_stripes（共用模組；重點：lines_mask 參數）
+================================================================
+
+def apply_tie_stripes(arr, records, w_px, h_px, minx, maxy, sx, sy,
+                      lines_mask=None, stripe_px=TIE_STRIPE_PX):
+    """平票圖斑：把「第 2 名應填色」以 45° 對角斜線紋疊在基底色上。
+
+    條紋方向 45°（右下→左上），每條寬 stripe_px；只覆寫 records["tie_hex"]
+    非空的圖斑。村里界線一律保留、不被斜線覆蓋，故界線維持完整：
+    有 lines_mask（權威界線掩碼）時以 ~lines_mask 排除，否則退回純黑像素判斷。
+    records 無 tie_hex 欄（或全空）時不動作，回傳處理的圖斑數。"""
+    if "tie_hex" not in records.columns:
+        return 0
+    from rasterio.features import rasterize
+    from affine import Affine
+    tie = records[records["tie_hex"].notna()]
+    if len(tie) == 0:
+        return 0
+    tids = rasterize(((g, i + 1) for i, g in enumerate(tie.geometry)),
+                     out_shape=(h_px, w_px),
+                     transform=Affine(1.0 / sx, 0, minx, 0, -1.0 / sy, maxy),
+                     fill=0, dtype="int32", all_touched=False)
+    yy, xx = np.indices((h_px, w_px))
+    stripe = ((xx + yy) // stripe_px) % 2 == 1
+
+    if lines_mask is not None:
+        # 權威界線掩碼：界線像素一律不畫斜線
+        fillable = ~np.asarray(lines_mask, dtype=bool)
+    else:
+        # 退回方案：純黑像素視為界線（arr 為 RGB）
+        fillable = arr.any(axis=2)
+
+    m = (tids > 0) & stripe & fillable
+    lut = {}
+    for hx in tie["tie_hex"]:
+        if hx not in lut:
+            lut[hx] = [int(round(v * 255)) for v in hex2rgb(hx)]
+    vals = np.array([lut[hx] for hx in tie["tie_hex"]], dtype=np.uint8)
+    arr[m] = vals[tids[m] - 1]
+    print(f"    平票斜線紋：{len(tie)} 個村里圖斑")
+    return len(tie)
+
+
+================================================================
+【片段 3】full_geom_check（共用模組；重點：lines_mask 參數 + 期望圖同步）
+================================================================
+
+def full_geom_check(img, records, w_px, h_px, minx, maxy, sx, sy,
+                    lines_mask=None):
+    """全圖逐像素幾何參考比對（獨立方法：GDAL/rasterio 像素中心規則）。
+
+    黑線像素不計。回傳 (與幾何參考不同色的像素數, 無圖斑處非白的像素數)。"""
+    from rasterio.features import rasterize
+    from affine import Affine
+    ids = rasterize(((g, i + 1) for i, g in enumerate(records.geometry)),
+                    out_shape=(h_px, w_px),
+                    transform=Affine(1.0 / sx, 0, minx, 0, -1.0 / sy, maxy),
+                    fill=0, dtype="int32", all_touched=False)
+    fill = np.array([[int(round(v * 255)) for v in hex2rgb(hx)]
+                     for hx in records["fill_hex"]], dtype=np.uint8)
+    exp = np.full((h_px, w_px, 3), 255, dtype=np.uint8)
+    inside = ids > 0
+    exp[inside] = fill[ids[inside] - 1]
+    # 平票斜線紋：期望圖同步疊加（與 apply_tie_stripes 同一套條紋規則，
+    # 並用同一份 lines_mask 排除界線，避免自檢誤報）
+    if "tie_hex" in records.columns:
+        tie = records[records["tie_hex"].notna()]
+        if len(tie):
+            tids = rasterize(((g, i + 1) for i, g in enumerate(tie.geometry)),
+                             out_shape=(h_px, w_px),
+                             transform=Affine(1.0 / sx, 0, minx, 0, -1.0 / sy, maxy),
+                             fill=0, dtype="int32", all_touched=False)
+            yy, xx = np.indices((h_px, w_px))
+            m = (tids > 0) & (((xx + yy) // TIE_STRIPE_PX) % 2 == 1)
+            if lines_mask is not None:
+                m &= ~np.asarray(lines_mask, dtype=bool)
+            tl = {}
+            for hx in tie["tie_hex"]:
+                if hx not in tl:
+                    tl[hx] = [int(round(v * 255)) for v in hex2rgb(hx)]
+            tvals = np.array([tl[hx] for hx in tie["tie_hex"]], dtype=np.uint8)
+            exp[m] = tvals[tids[m] - 1]
+    black = img.sum(axis=2) == 0
+    wrong = (img != exp).any(axis=2) & ~black
+    return int(wrong.sum()), int((wrong & ~inside).sum())
+
+
+================================================================
+【片段 4】區域腳本－平票偵測（在 gdf_all["fill_hex"] 算完之後插入）
+      ※ 2016/2020/2024 區域腳本已有此段；若某年份缺此段才需複製。
+================================================================
+
+    # 平票規則：第 1、2 名得票率同至小數點後 3 位、或得票數相同 → 疊加第 2 名顏色的對角斜線紋
+    def pick_tie_color(row):
+        vals = [row[c] if not np.isnan(row[c]) else 0.0 for c in rate_cols]
+        order = sorted(range(len(vals)), key=lambda i: vals[i], reverse=True)
+        if len(order) <= 1:
+            return np.nan
+        # 平票：第 1、2 名得票率同至小數點後 3 位，或得票數相同
+        cnts = cnt_by_key.get((row["county_core"], row["town_core"], row["matched_vill"]))
+        tied = (round(vals[order[0]], 3) == round(vals[order[1]], 3)) or (
+            cnts is not None and float(cnts[order[0]]) == float(cnts[order[1]]))
+        tied = tied or (vals[order[0]] - vals[order[1]] <= TIE_RATE_EPS)
+        if tied:
+            c1 = get_color_by_value(vals[order[0]], RATE_COLOR_STOPS[order[0]])
+            c2 = get_color_by_value(vals[order[1]], RATE_COLOR_STOPS[order[1]])
+            if c1 is not None and c2 is not None and c2 != c1:
+                return c2
+        return np.nan
+
+    gdf_all["tie_hex"] = np.where(
+        gdf_all[rate_cols].notna().any(axis=1),
+        gdf_all.apply(pick_tie_color, axis=1),
+        np.nan,
+    )
+    # （若腳本以 nat. 前綴呼叫：matched_vill 由 nat.fuzzy_lookup 回傳；
+    #   get_color_by_value / RATE_COLORS_STOPS 等改寫成 nat.xxx）
+
+
+================================================================
+【片段 5】區域腳本－三個呼叫點 + 本地包裝函式（重點：全部傳 lines_mask）
+================================================================
+
+# (A) 疊斜線紋：必須在 arr[lines_mask]=0 與「單色不變式」自檢之後
+    # 平票斜線紋須在「單色不變式」自檢之後疊加（斜線紋會刻意讓該區出現兩色）
+    nat.apply_tie_stripes(arr, records, w_px, h_px, minx, maxy, sx, sy,
+                          lines_mask=lines_mask)
+    _line_kept = int((arr[lines_mask] == 0).all(axis=1).sum())
+    print(f"  平票後村里界線：{_line_kept}/{int(lines_mask.sum())} 線像素仍為黑（應相等，界線完整）")
+
+    # 自檢 B：與逐像素幾何參考的差異
+    _nw, _nout = full_geom_check(arr, records, w_px, h_px, minx, maxy, sx, sy,
+                                 lines_mask=lines_mask)
+
+# 存檔後復讀自檢
+    _nw2, _nout2 = full_geom_check(_re_map, records, w_px, h_px, minx, maxy, sx, sy,
+                                   lines_mask=lines_mask)
+
+# 檔尾的本地包裝函式
+def full_geom_check(img, records, w_px, h_px, minx, maxy, sx, sy, lines_mask=None):
+    return nat.full_geom_check(img, records, w_px, h_px, minx, maxy, sx, sy,
+                               lines_mask=lines_mask)
+
+
+================================================================
+【驗證口徑】
+================================================================
+執行腳本時應看到（分子＝分母 才算過關）：
+    平票後村里界線：469280/469280 線像素仍為黑（應相等，界線完整）
+若分子 < 分母 → lines_mask 未正確傳入 / 與 arr 尺寸不符 / 在 arr[lines_mask]=0 之前就疊了斜線。
+
+
+================================================================
+【注意事項】
+================================================================
+1. lines_mask 必須與 arr 同尺寸 (h_px, w_px) 的布林陣列，True = 邊界線像素。
+2. apply_tie_stripes 必須在 arr[lines_mask]=0 之後、且在「油漆桶單色不變式」自檢之後呼叫。
+3. 不要改 45° 週期 ((xx+yy)//stripe_px) 與 tids 的 all_touched=False 規則。
+4. matplotlib 分層畫線、沒有 lines_mask 的舊路徑（如 scripts/10、scripts/20 的
+   Converge_to_map.py）維持 lines_mask=None 退回分支即可。
+5. 語法檢查：python -m py_compile 腳本.py
