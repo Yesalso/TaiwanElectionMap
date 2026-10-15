@@ -32,9 +32,15 @@ __pycache__/
 # 看板建置產物與來源素材（由 tool/build_assets.py 產生，大體積）
 /Video/boards/*/assets/
 /Video/boards/*/source/
+/Video/boards/*/board.js
+/Video/boards/*/board.files.js
+/Video/boards/*/board.assets.js
+/Video/boards/*/.cache/
 
 # 影片／看板輸出圖（2560x1440 以上，每張數 MB）
 /Video/NewSolution/out/*.png
+/Video/NewSolution/out/taipei/
+/Video/NewSolution/out/president/
 /Video/NewSolution/out/final/
 /Video/out/*.png
 /Video/out/_*/
@@ -45,11 +51,11 @@ __pycache__/
 
 # Empty_Map 產出的大圖
 /Empty_Map/Taipei/*.png
-# �����c��ݙn
+# �����c��ݙn
 *.bak_flood
 *.myflood_variant
 _tmp*.txt
-# �����c��ݙn
+# �����c��ݙn
 *.bak_flood
 *.myflood_variant
 _tmp*.txt
