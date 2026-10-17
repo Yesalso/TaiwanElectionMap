@@ -98,6 +98,7 @@ shp_path = r"D:\Windows\Documents\村里界歷史圖資_111\108\VILLAGE_MOI_1081
 OUT_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), "maps")
 DATA_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), "data")   # 2020 得票率 Excel 所在
 OUT_PNG = os.path.join(OUT_DIR, "雲嘉南2020年總統副總統選舉_得票率地圖.png")
+MISSING_MD = os.path.join(OUT_DIR, "雲嘉南2020_無資料與未匹配村里.md")
 layer_name = "layer_yct4_district_3px.png"   # ② 層單獨輸出（核對用）
 TARGET_COUNTIES = ["雲林縣", "嘉義縣", "嘉義市", "臺南市"]
 encoding = "UTF-8"       # 108 版 .dbf 為 UTF-8；若失效可改 "cp950"
@@ -196,6 +197,14 @@ def main():
 
     exact_cnt = int((gdf_all["match_type"] == "exact").sum())
     fuzzy_cnt = int((gdf_all["match_type"].str.startswith("fuzzy", na=False)).sum())
+
+    # ③ 無資料／未匹配村里清單（Markdown，供人工核對；不影響地圖）
+    nat.write_missing_report(
+        gdf_all, vote_dict, MISSING_MD, TARGET_COUNTIES,
+        "# 雲嘉南 2020 總統副總統選舉 各村（里）得票率地圖 — 無資料與未匹配村里",
+        base_label=os.path.basename(shp_path),
+        vote_label="2020總統副總統選舉_縣市鄉鎮村里.xlsx（工作表「村里層級明細」）",
+    )
 
     # 三候選人取最高者填色；無資料(含 VILLNAME 空值)一律純白
     def pick_fill_color(row):

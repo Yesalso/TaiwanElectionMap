@@ -37,10 +37,12 @@ __pycache__/
 /Video/boards/*/board.assets.js
 /Video/boards/*/.cache/
 
+# 重構後的建置產物與失效資料（大體積，本機保留，不入庫）
+/Video/dist/
+/Video/invaild/
+
 # 影片／看板輸出圖（2560x1440 以上，每張數 MB）
-/Video/NewSolution/out/*.png
-/Video/NewSolution/out/taipei/
-/Video/NewSolution/out/president/
+/Video/NewSolution/out/
 /Video/NewSolution/out/final/
 /Video/out/*.png
 /Video/out/_*/

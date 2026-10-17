@@ -28,9 +28,11 @@
 """
 import os
 import re
+import ast
 import glob
 import unicodedata
 import warnings
+import time
 
 import numpy as np
 import pandas as pd
@@ -53,6 +55,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(os.path.dirname(BASE_DIR))
 DATA_DIR = os.path.join(PROJECT_DIR, "2020Precident", "data")
 OUT_DIR = os.path.join(PROJECT_DIR, "2020Precident", "maps")
+# 共用色階表（Precident\color.txt，6 組政黨色階）
+COLOR_TXT = os.path.join(PROJECT_DIR, "color.txt")
 
 SHP_CANDIDATE_PATHS = [
     r"D:\Windows\Documents\村里界歷史圖資_111\108\VILLAGE_MOI_1081121.shp",
@@ -98,21 +102,24 @@ TIE_RATE_EPS = 1e-9
 # 平票斜線紋每條寬度（px）
 TIE_STRIPE_PX = 8
 
+# ---------------------- 讀 color.txt（共用色階表） ----------------------
+def load_color_stops(path):
+    """讀 color.txt（Python 串列字面）。忽略整行註解，取 '=' 之後做 literal_eval。
+
+    回傳 6 組政黨色階；組別索引＝由上而下：0 無黨籍(灰) / 1 中國國民黨(藍) /
+    2 民主進步黨(綠) / 3 新黨(黃) / 4 宋楚瑜(橘) / 5 台灣民眾黨(青綠)。"""
+    with open(path, "r", encoding="utf-8") as f:
+        text = f.read()
+    lines = [ln for ln in text.splitlines() if not ln.strip().startswith("#")]
+    rhs = "\n".join(lines).split("=", 1)[1]
+    return ast.literal_eval(rhs)
+
+
+_ALL_STOPS = load_color_stops(COLOR_TXT)
+# 候選人 → color.txt 組別（依政黨）：韓國瑜 國民黨(1)、蔡英文 民進黨(2)、宋楚瑜(4)
+CAND_COLOR_GROUP = {"韓國瑜": 1, "蔡英文": 2, "宋楚瑜": 4}
 # 候選人色階順序與 CAND_NAMES 一致：韓國瑜(藍)、蔡英文(綠)、宋楚瑜(橘)
-RATE_COLOR_STOPS = [
-    # 第 1 組：中國國民黨 韓國瑜（藍色系，同 2024 侯友宜）
-    [(35, "#EAF6FF"), (40, "#B8E2FF"), (45, "#7CC8FF"), (50, "#3AA8FF"),
-     (55, "#0088F0"), (60, "#006FCC"), (65, "#0059A8"), (70, "#004684"),
-     (75, "#003563"), (80, "#002647"), (85, "#001A31"), (100, "#000D1F")],
-    # 第 2 組：民主進步黨 蔡英文（綠色系，同 2024 賴清德）
-    [(35, "#E8FFE0"), (40, "#CEFFC2"), (45, "#C0FFB1"), (50, "#A4FF90"),
-     (55, "#78FF4F"), (60, "#68DE45"), (65, "#54B337"), (70, "#3C8027"),
-     (75, "#2B5C1C"), (80, "#1D3D13"), (85, "#0F210A"), (100, "#071A09")],
-    # 第 3 組：親民黨 宋楚瑜（橘色系）
-    [(35, "#FFF3E0"), (40, "#FFE0B2"), (45, "#FFCC80"), (50, "#FFB74D"),
-     (55, "#FFA726"), (60, "#FF9800"), (65, "#FB8C00"), (70, "#F57C00"),
-     (75, "#E65100"), (80, "#C24500"), (85, "#9C3A00"), (100, "#6E2600")],
-]
+RATE_COLOR_STOPS = [_ALL_STOPS[CAND_COLOR_GROUP[nm]] for nm in CAND_NAMES]
 
 BLOCK_WIDTH, BLOCK_HEIGHT = 170, 105
 V_SPACING, H_SPACING = 38, 150
@@ -968,6 +975,94 @@ def main():
     final_img.save(OUT_PNG)
     print(f"\n  Saved: {OUT_PNG}  ({final_img.width}×{final_img.height}px)")
     print("  均已完成。")
+
+
+# ===================== 無資料/未匹配村里清單（Markdown 稽核報告） =====================
+def write_missing_report(gdf_all, vote_dict, out_path, target_counties,
+                         title, base_label="", vote_label=""):
+    """把「村里圖斑 ↔ 得票資料」比對結果寫成 Markdown（供人工核對）。
+
+    內容對應 2012 版 Draw_*_2012 的稽核段落（去除 2012 專屬的名稱修復／沿革合併）：
+      ① 地圖上有村里圖斑、卻對不上得票資料者（圖上留白）
+      ② 模糊匹配（異體字／近似）
+      ③ 得票資料有、底圖卻無對應村里圖斑者（反向缺漏）
+      ④ 各縣市比對統計
+
+    gdf_all 需含 COUNTYNAME/TOWNNAME/VILLNAME、county_core/town_core/vill_core、
+    match_type；②③ 段另需 matched_vill（缺欄位時自動略過對應內容）。
+    vote_dict 鍵為 (county_core, town_core, vill_core)。
+    """
+    mt = gdf_all["match_type"].fillna("none").astype(str)
+    mv = (gdf_all["matched_vill"].fillna("").astype(str)
+          if "matched_vill" in gdf_all.columns
+          else pd.Series([""] * len(gdf_all), index=gdf_all.index))
+    exact_n = int((mt == "exact").sum())
+    none_df = gdf_all[mt == "none"].sort_values(["COUNTYNAME", "TOWNNAME", "VILLNAME"])
+    fuzzy_df = gdf_all[mt.str.startswith("fuzzy")].sort_values(
+        ["COUNTYNAME", "TOWNNAME", "VILLNAME"])
+
+    # 反向缺漏：本區縣市的得票資料、卻沒有任何圖斑配對到它
+    used = {(c, t, v) for c, t, v in
+            zip(gdf_all["county_core"], gdf_all["town_core"], mv) if v}
+    tgt = set(target_counties)
+    orphan = sorted(k for k in vote_dict if k[0] in tgt and k not in used)
+
+    L = [title, ""]
+    L.append(f"- 產生時間：{time.strftime('%Y-%m-%d %H:%M:%S')}")
+    if base_label:
+        L.append(f"- 底圖：{base_label} → 本區 {len(gdf_all)} 個村里圖斑")
+    else:
+        L.append(f"- 本區村里圖斑：{len(gdf_all)} 個")
+    if vote_label:
+        L.append(f"- 得票資料：{vote_label}")
+    L.append(f"- 匹配結果：精確 **{exact_n}**、模糊 **{len(fuzzy_df)}**、"
+             f"無資料 **{len(none_df)}**（圖上留白）")
+
+    L += ["", "## 1. 地圖上有村里圖斑、但對不上得票資料", ""]
+    if len(none_df):
+        L += [f"共 **{len(none_df)}** 筆 → 地圖上留白。", "",
+              "| # | 縣市 | 鄉鎮市區 | 村里 |", "|---:|---|---|---|"]
+        L += [f"| {i} | {r['COUNTYNAME']} | {r['TOWNNAME']} | {r['VILLNAME']} |"
+              for i, (_, r) in enumerate(none_df.iterrows(), 1)]
+        L += ["", "### 依縣市統計", "", "| 縣市 | 無資料村里數 |", "|---|---:|"]
+        L += [f"| {c} | {int(n)} |"
+              for c, n in none_df.groupby("COUNTYNAME").size().items()]
+    else:
+        L.append("（無）")
+
+    L += ["", "## 2. 模糊匹配（異體字／近似）", ""]
+    if len(fuzzy_df):
+        L += ["| # | 縣市 | 鄉鎮市區 | 底圖村里 | 對應得票資料村里 | 匹配方式 |",
+              "|---:|---|---|---|---|---|"]
+        for i, (idx, r) in enumerate(fuzzy_df.iterrows(), 1):
+            L.append(f"| {i} | {r['COUNTYNAME']} | {r['TOWNNAME']} | {r['VILLNAME']} | "
+                     f"{mv.loc[idx]} | {r['match_type']} |")
+    else:
+        L.append("（無）")
+
+    L += ["", "## 3. 得票資料有、底圖卻無對應村里圖斑", ""]
+    if orphan:
+        L += [f"共 **{len(orphan)}** 筆（本區縣市的得票資料未被任何圖斑配對到）。", "",
+              "| # | 縣市 | 鄉鎮市區 | 村里（得票資料） |", "|---:|---|---|---|"]
+        L += [f"| {i} | {c} | {t} | {v} |" for i, (c, t, v) in enumerate(orphan, 1)]
+    else:
+        L.append("（無）")
+
+    L += ["", "## 4. 各縣市比對統計", "",
+          "| 縣市 | 村里圖斑 | 精確 | 模糊 | 無資料 |", "|---|---:|---:|---:|---:|"]
+    for c in target_counties:
+        s = gdf_all[gdf_all["COUNTYNAME"] == c]
+        if not len(s):
+            continue
+        smt = s["match_type"].fillna("none").astype(str)
+        L.append(f"| {c} | {len(s)} | {int((smt == 'exact').sum())} | "
+                 f"{int(smt.str.startswith('fuzzy').sum())} | {int((smt == 'none').sum())} |")
+    L.append("")
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(L) + "\n")
+    print(f"  ③ 無資料/未匹配清單：{out_path}")
+    print(f"     無資料 {len(none_df)}、模糊 {len(fuzzy_df)}、反向缺漏 {len(orphan)}")
 
 
 if __name__ == "__main__":

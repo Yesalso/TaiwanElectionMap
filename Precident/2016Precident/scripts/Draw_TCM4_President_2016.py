@@ -6,7 +6,7 @@
 資料來源：2016Precident/data/2016總統副總統選舉_得票率.xlsx（工作表「各里彙總」）
     選舉區別 | 鄉(鎮、市、區)別 | 村里別 | 朱立倫得票率 | 蔡英文得票率 | 宋楚瑜得票率
     → 候選人（號次）：朱立倫(01) → 蔡英文(02) → 宋楚瑜(03)，與 2020 版色階順序一致
-      （藍／綠／橘），故 RATE_COLOR_STOPS 沿用 Draw_National_President_2020。
+      （藍／綠／橘），色階寫死於 President2016_Common.RATE_COLOR_STOPS（取自 color.txt）。
 村里界圖資：107 年 2 月 5 日版 VILLAGE_MOI_1070205.shp（.dbf 為 Big5/cp950），
     與 2016 選舉最為接近之歷史圖資（次新者為 108 年版）。
 
@@ -79,11 +79,12 @@ SHARED_SCRIPTS = os.path.join(
 if SHARED_SCRIPTS not in sys.path:
     sys.path.insert(0, SHARED_SCRIPTS)
 import Draw_National_President_2020 as nat
+import President2016_Common as col
 
 # ===================== 配置 =====================
 # 2016 總統副總統選舉三組候選人（號次 01/02/03）：
-# 色階沿用 nat.RATE_COLOR_STOPS —— 第 1 組藍(國民黨 朱立倫)、第 2 組綠(民進黨 蔡英文)、
-# 第 3 組橘(親民黨 宋楚瑜)，與 2020 版順序一致，不需另建色表
+# 色階改用 President2016_Common.RATE_COLOR_STOPS（寫死於該模組，值取自 Precident\color.txt）——
+# 第 1 組藍(國民黨 朱立倫)、第 2 組綠(民進黨 蔡英文)、第 3 組橘(親民黨 宋楚瑜)
 CAND_NAMES = ["朱立倫", "蔡英文", "宋楚瑜"]
 CAND_RATE_COLS = [f"{n}得票率" for n in CAND_NAMES]
 
@@ -96,6 +97,7 @@ shp_path = (r"D:\Windows\Documents\村里界歷史圖資_111\村里界歷史圖�
             r"\村里界歷史圖資_106\VILLAGE_MOI_1070205.shp")
 OUT_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), "maps")
 OUT_PNG = os.path.join(OUT_DIR, "桃竹苗2016年總統副總統選舉_得票率地圖.png")
+MISSING_MD = os.path.join(OUT_DIR, "桃竹苗2016_無資料與未匹配村里.md")
 layer_name = "layer_tcm4_district_3px.png"   # ② 層單獨輸出（核對用）
 TARGET_COUNTIES = ["桃園市", "新竹縣", "新竹市", "苗栗縣"]
 encoding = "cp950"       # 107 版 .dbf 為 Big5/cp950；若失效可改 "UTF-8"
@@ -237,11 +239,19 @@ def main():
     exact_cnt = int((gdf_all["match_type"] == "exact").sum())
     fuzzy_cnt = int((gdf_all["match_type"].str.startswith("fuzzy", na=False)).sum())
 
+    # ③ 無資料／未匹配村里清單（Markdown，供人工核對；不影響地圖）
+    nat.write_missing_report(
+        gdf_all, vote_dict, MISSING_MD, TARGET_COUNTIES,
+        "# 桃竹苗 2016 總統副總統選舉 各村（里）得票率地圖 — 無資料與未匹配村里",
+        base_label=os.path.basename(shp_path),
+        vote_label="2016總統副總統選舉_得票率.xlsx（工作表「各里彙總」）",
+    )
+
     # 三候選人取最高者填色；無資料(含 VILLNAME 空值)一律純白
     def pick_fill_color(row):
         vals = [row[c] if not np.isnan(row[c]) else 0.0 for c in rate_cols]
         i = int(np.argmax(vals))
-        return nat.get_color_by_value(vals[i], nat.RATE_COLOR_STOPS[i])
+        return nat.get_color_by_value(vals[i], col.RATE_COLOR_STOPS[i])
 
     gdf_all["fill_hex"] = np.where(
         gdf_all[rate_cols].notna().any(axis=1),
@@ -261,8 +271,8 @@ def main():
         tied = (round(vals[order[0]], 3) == round(vals[order[1]], 3)) or (
             cnts is not None and float(cnts[order[0]]) == float(cnts[order[1]]))
         if tied:
-            c1 = nat.get_color_by_value(vals[order[0]], nat.RATE_COLOR_STOPS[order[0]])
-            c2 = nat.get_color_by_value(vals[order[1]], nat.RATE_COLOR_STOPS[order[1]])
+            c1 = nat.get_color_by_value(vals[order[0]], col.RATE_COLOR_STOPS[order[0]])
+            c2 = nat.get_color_by_value(vals[order[1]], col.RATE_COLOR_STOPS[order[1]])
             if c1 is not None and c2 is not None and c2.upper() != c1.upper():
                 return c2
         return np.nan
@@ -280,22 +290,19 @@ def main():
     print(f"  有資料填色       : {int(has_data.sum())}")
     print(f"  無資料（純白）    : {int((~has_data).sum())}")
 
-    # 各候選人領先村里數：完全沒人領先的候選人不畫圖例欄
+    # 各候選人領先村里數（僅供統計；不畫圖例）
     _win = np.argmax(gdf_all.loc[has_data, rate_cols].fillna(0.0).to_numpy(dtype=float), axis=1)
     active_idx = [i for i in range(len(CAND_NAMES)) if int((_win == i).sum()) > 0]
     for i, nm in enumerate(CAND_NAMES):
-        print(f"    領先村里：{nm} {int((_win == i).sum())} 村"
-              + ("" if i in active_idx else " → 不畫圖例"))
+        print(f"    領先村里：{nm} {int((_win == i).sum())} 村")
     assert active_idx, "無任何候選人領先村里"
 
-    # 圖例起點：全部村里中最低領先得票率向下取 5 的倍數
     min_win_rate = 100.0
     for _, row in gdf_all[has_data].iterrows():
         win = max(row[c] for c in rate_cols)
         if win < min_win_rate:
             min_win_rate = win
-    legend_start_tier = int(min_win_rate // 5) * 5
-    print(f"  最低領先得票率   : {min_win_rate:.2f}% → 圖例自 {legend_start_tier}% 起")
+    print(f"  最低領先得票率   : {min_win_rate:.2f}%")
 
     records = gdf_all.copy()
     villages = records[records["VILLNAME"].notna()].copy()   # ① 村里層
@@ -393,7 +400,7 @@ def main():
 
     # 顏色驗證：全圖只應含允許色（填色 + 純白底 + 純黑線）
     allowed = {(255, 255, 255), (0, 0, 0)}
-    for stops in nat.RATE_COLOR_STOPS:
+    for stops in col.RATE_COLOR_STOPS:
         for _, hx in stops:
             allowed.add(tuple(int(round(v * 255)) for v in nat.hex2rgb(hx)))
     _uniq, _cnt = np.unique(arr.reshape(-1, 3), axis=0, return_counts=True)
@@ -407,76 +414,19 @@ def main():
     pil_img = Image.fromarray(arr, mode="RGB")
     del arr
 
-    # ----------------------版面：圖例置於右上角（不畫標題）----------------------
+    # ----------------------不畫標題、不畫圖例：直接輸出純地圖----------------------
     if SAVE_LAYER:
         _la = np.full((h_px, w_px, 3), 255, dtype=np.uint8)
         _la[town_layer] = 0
         Image.fromarray(_la, mode="RGB").save(os.path.join(OUT_DIR, layer_name))
 
-    print("  圖例（右上角；不畫標題）...")
     W, H = pil_img.size
-
-    legend_stops_list = [
-        [(u, c) for u, c in nat.RATE_COLOR_STOPS[i] if u > legend_start_tier]
-        for i in active_idx
-    ]
-    name_imgs = [nat.render_text_image_cached([CAND_NAMES[i]], nat.CAND_NAME_FONT_SIZE)
-                 for i in active_idx]
-    name_h = max((im.height for im in name_imgs), default=0)
-
-    label_img_cols = []
-    for stops in legend_stops_list:
-        col_imgs = []
-        for i, (u, _) in enumerate(stops):
-            txt = nat.get_label_text(u, stops[i - 1][0] if i > 0 else legend_start_tier,
-                                     is_first=(i == 0), is_last=(i == len(stops) - 1))
-            col_imgs.append(nat.render_text_image_cached([txt], nat.LEGEND_LABEL_FONT_SIZE))
-        label_img_cols.append(col_imgs)
-    max_label_w = max([im.width for col in label_img_cols for im in col] or [0])
-
-    col_width = nat.BLOCK_WIDTH + 8 + max_label_w
-    n_cols = len(legend_stops_list)
-    # 群組寬度須含「最後一欄的標籤」（無標題時 content_w 就等於它，否則會被裁掉）
-    group_w = (n_cols - 1) * (col_width + nat.H_SPACING) + col_width
-    max_n = max((len(s) for s in legend_stops_list), default=0)
-    legend_h = name_h + nat.COLUMN_TITLE_GAP + max_n * (nat.BLOCK_HEIGHT + nat.V_SPACING) - nat.V_SPACING
-
-    LEGEND_X_MARGIN = 80
-    panel_x = W + LEGEND_X_MARGIN
-    content_w = int(group_w)
-    legend_x = panel_x + (content_w - group_w) / 2
-    new_W = int(panel_x + content_w + nat.LEGEND_PADDING)
-    panel_content_h = legend_h
-    new_H = int(max(H, panel_content_h + 2 * nat.LEGEND_PADDING))
-    print(f"  版型：地圖 {W}x{H}，圖例寬 {int(group_w)}px，"
-          f"面板 x={int(panel_x)}、內容寬 {content_w}px（圖例置於右上角）")
-
-    final_img = Image.new("RGB", (new_W, new_H), (255, 255, 255))
-    final_img.paste(pil_img, (0, (new_H - H) // 2))
+    pil_img.save(OUT_PNG)
     del pil_img
-
-    py = nat.LEGEND_PADDING
-    draw_obj = ImageDraw.Draw(final_img)
-    col_positions = [legend_x + i * (col_width + nat.H_SPACING) for i in range(n_cols)]
-    for col_idx, stops in enumerate(legend_stops_list):
-        x_start = col_positions[col_idx]
-        nm_img = name_imgs[col_idx]
-        nat.blit_rgba(final_img, nm_img, (x_start + (nat.BLOCK_WIDTH - nm_img.width) / 2, py))
-        for i, (upper, color_hex) in enumerate(stops):
-            y = py + name_h + nat.COLUMN_TITLE_GAP + i * (nat.BLOCK_HEIGHT + nat.V_SPACING)
-            draw_obj.rectangle(
-                [x_start, y, x_start + nat.BLOCK_WIDTH, y + nat.BLOCK_HEIGHT],
-                fill=color_hex, outline="#000000", width=1)
-            limg = label_img_cols[col_idx][i]
-            nat.blit_rgba(final_img, limg, (x_start + nat.BLOCK_WIDTH + 8,
-                                            y + (nat.BLOCK_HEIGHT - limg.height) / 2))
-
-    final_img.save(OUT_PNG)
 
     # 存檔後自檢
     _re = np.asarray(Image.open(OUT_PNG).convert("RGB"))
-    _off = (new_H - H) // 2
-    _re_map = _re[_off:_off + H, :W]
+    _re_map = _re[:H, :W]
     _u2, _c2 = np.unique(_re_map.reshape(-1, 3), axis=0, return_counts=True)
     _bad2 = [(tuple(int(x) for x in c), int(n)) for c, n in zip(_u2, _c2)
              if tuple(int(x) for x in c) not in allowed]
@@ -486,7 +436,7 @@ def main():
           f"幾何參考差異 {_nw2} px（容差 {_tol2:.0f}）、村外非白 {_nout2} px（皆應 ≈0）")
     if _bad2 or _nout2 or _nw2 > _tol2:
         print(f"  ⚠️ bad={_bad2[:5]} wrong={_nw2} out={_nout2}")
-    print(f"\n  Saved: {OUT_PNG}  ({final_img.width}×{final_img.height}px)")
+    print(f"\n  Saved: {OUT_PNG}  ({W}×{H}px)")
     print("==== All finished ====")
 
 

@@ -6,7 +6,7 @@
 資料來源：2016Precident/data/2016總統副總統選舉_得票率.xlsx（工作表「各里彙總」）
     選舉區別 | 鄉(鎮、市、區)別 | 村里別 | 朱立倫得票率 | 蔡英文得票率 | 宋楚瑜得票率
     → 候選人（號次）：朱立倫(01) → 蔡英文(02) → 宋楚瑜(03)，與 2020 版色階順序一致
-      （藍／綠／橘），故 RATE_COLOR_STOPS 沿用 Draw_National_President_2020。
+      （藍／綠／橘），色階寫死於 President2016_Common.RATE_COLOR_STOPS（取自 color.txt）。
 
 繪圖邏輯完全沿用 Draw_NewTaipei_President_2020.py，只把「只找新北市」改為
 「找這四個縣市」（桃園市排除），並依需求調整比例尺與離島處理：
@@ -77,11 +77,12 @@ SHARED_SCRIPTS = os.path.join(
 if SHARED_SCRIPTS not in sys.path:
     sys.path.insert(0, SHARED_SCRIPTS)
 import Draw_National_President_2020 as nat
+import President2016_Common as col
 
 # ===================== 配置 =====================
 # 2016 總統副總統選舉三組候選人（號次 01/02/03）：
-# 色階沿用 nat.RATE_COLOR_STOPS —— 第 1 組藍(國民黨 朱立倫)、第 2 組綠(民進黨 蔡英文)、
-# 第 3 組橘(親民黨 宋楚瑜)，與 2020 版順序一致，不需另建色表
+# 色階改用 President2016_Common.RATE_COLOR_STOPS（寫死於該模組，值取自 Precident\color.txt）——
+# 第 1 組藍(國民黨 朱立倫)、第 2 組綠(民進黨 蔡英文)、第 3 組橘(親民黨 宋楚瑜)
 CAND_NAMES = ["朱立倫", "蔡英文", "宋楚瑜"]
 CAND_RATE_COLS = [f"{n}得票率" for n in CAND_NAMES]
 
@@ -94,6 +95,7 @@ VOTE_XLSX = os.path.join(os.path.dirname(SCRIPT_DIR), "data",
 shp_path = r"D:\Windows\Documents\村里界歷史圖資_111\108\VILLAGE_MOI_1081121.shp"
 OUT_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), "maps")
 OUT_PNG = os.path.join(OUT_DIR, "北北基宜2016年總統副總統選舉_得票率地圖.png")
+MISSING_MD = os.path.join(OUT_DIR, "北北基宜2016_無資料與未匹配村里.md")
 layer_name = "layer_north5_district_2px.png"   # ② 層單獨輸出（核對用）
 TARGET_COUNTIES = ["臺北市", "新北市", "基隆市", "宜蘭縣"]   # 桃園市不繪製
 encoding = "UTF-8"        # 108 版 .dbf 為 UTF-8；若失效可改 "cp950"
@@ -232,11 +234,19 @@ def main():
     exact_cnt = int((gdf_all["match_type"] == "exact").sum())
     fuzzy_cnt = int((gdf_all["match_type"].str.startswith("fuzzy", na=False)).sum())
 
+    # ③ 無資料／未匹配村里清單（Markdown，供人工核對；不影響地圖）
+    nat.write_missing_report(
+        gdf_all, vote_dict, MISSING_MD, TARGET_COUNTIES,
+        "# 北北基宜 2016 總統副總統選舉 各村（里）得票率地圖 — 無資料與未匹配村里",
+        base_label=os.path.basename(shp_path),
+        vote_label="2016總統副總統選舉_得票率.xlsx（工作表「各里彙總」）",
+    )
+
     # 三候選人取最高者填色；無資料(含 VILLNAME 空值)一律純白
     def pick_fill_color(row):
         vals = [row[c] if not np.isnan(row[c]) else 0.0 for c in rate_cols]
         i = int(np.argmax(vals))
-        return nat.get_color_by_value(vals[i], nat.RATE_COLOR_STOPS[i])
+        return nat.get_color_by_value(vals[i], col.RATE_COLOR_STOPS[i])
 
     gdf_all["fill_hex"] = np.where(
         gdf_all[rate_cols].notna().any(axis=1),
@@ -256,8 +266,8 @@ def main():
         tied = (round(vals[order[0]], 3) == round(vals[order[1]], 3)) or (
             cnts is not None and float(cnts[order[0]]) == float(cnts[order[1]]))
         if tied:
-            c1 = nat.get_color_by_value(vals[order[0]], nat.RATE_COLOR_STOPS[order[0]])
-            c2 = nat.get_color_by_value(vals[order[1]], nat.RATE_COLOR_STOPS[order[1]])
+            c1 = nat.get_color_by_value(vals[order[0]], col.RATE_COLOR_STOPS[order[0]])
+            c2 = nat.get_color_by_value(vals[order[1]], col.RATE_COLOR_STOPS[order[1]])
             if c1 is not None and c2 is not None and c2.upper() != c1.upper():
                 return c2
         return np.nan
@@ -385,7 +395,7 @@ def main():
 
     # 顏色驗證：全圖只應含允許色（填色 + 純白底 + 純黑線）
     allowed = {(255, 255, 255), (0, 0, 0)}
-    for stops in nat.RATE_COLOR_STOPS:
+    for stops in col.RATE_COLOR_STOPS:
         for _, hx in stops:
             allowed.add(tuple(int(round(v * 255)) for v in nat.hex2rgb(hx)))
     _uniq, _cnt = np.unique(arr.reshape(-1, 3), axis=0, return_counts=True)

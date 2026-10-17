@@ -6,7 +6,7 @@
 資料來源：2024Precident/data/2024總統副總統選舉_得票率.xlsx（工作表「各里彙總」）
     縣市 | 鄉鎮市區 | 村里 | 侯友宜得票率 | 賴清德得票率 | 柯文哲得票率
     → 候選人：侯友宜(藍) / 賴清德(綠) / 柯文哲(青)，RATE_COLOR_STOPS 沿用
-      Draw_National_President_2024（idx 依 nat.CAND_NAMES）= 侯友宜→賴清德→柯文哲。
+      President2024_Common（idx 依 nat.CAND_NAMES）= 侯友宜→賴清德→柯文哲。
 村里界圖資：111 年版（2022/11/18）VILLAGE_MOI_1081121.shp，與 2024 選舉最接近
     （.dbf 為 UTF-8）。
 
@@ -84,7 +84,7 @@ for _shared in (
 ):
     if _shared not in sys.path:
         sys.path.insert(0, _shared)
-import Draw_National_President_2024 as nat
+import President2024_Common as nat
 
 # ===================== 配置 =====================
 # 2024 總統副總統選舉三組候選人：依 nat.CAND_NAMES（侯友宜藍 / 賴清德綠 / 柯文哲青），
@@ -100,6 +100,7 @@ shp_path = r"D:\Windows\Documents\村里界歷史圖資_111\村里界歷史圖�
 OUT_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), "maps")
 DATA_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), "data")   # 2024 得票率 Excel 所在
 OUT_PNG = os.path.join(OUT_DIR, "高屏2024年總統副總統選舉_得票率地圖.png")
+MISSING_MD = os.path.join(OUT_DIR, "高屏2024_無資料與未匹配村里.md")
 layer_name = "layer_south2_district_3px.png"   # ② 層單獨輸出（核對用）
 TARGET_COUNTIES = ["高雄市", "屏東縣"]
 encoding = "UTF-8"       # 111 版 .dbf 為 UTF-8；若失效可改 "cp950"
@@ -198,6 +199,14 @@ def main():
 
     exact_cnt = int((gdf_all["match_type"] == "exact").sum())
     fuzzy_cnt = int((gdf_all["match_type"].str.startswith("fuzzy", na=False)).sum())
+
+    # ③ 無資料／未匹配村里清單（Markdown，供人工核對；不影響地圖）
+    nat.write_missing_report(
+        gdf_all, vote_dict, MISSING_MD, TARGET_COUNTIES,
+        "# 高屏 2024 總統副總統選舉 各村（里）得票率地圖 — 無資料與未匹配村里",
+        base_label=os.path.basename(shp_path),
+        vote_label="2024總統副總統選舉_得票率.xlsx（工作表「各里彙總」）",
+    )
 
     # 三候選人取最高者填色；無資料(含 VILLNAME 空值)一律純白
     def pick_fill_color(row):
@@ -653,7 +662,7 @@ def render_line_layer(gdf, w_px, h_px, minx, maxx, miny, maxy,
 
 
 def flood_fill_layer(*a, **k):
-    """油漆桶式填色（共用實作：Draw_National_President_2024.flood_fill_layer）。"""
+    """油漆桶式填色（共用實作：President2024_Common.flood_fill_layer）。"""
     return nat.flood_fill_layer(*a, **k)
 
 

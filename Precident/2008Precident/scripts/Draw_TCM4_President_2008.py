@@ -49,8 +49,14 @@
   - 村名修補：twvillage2012.json 以私用區(PUA)碼位或「■」代替罕見字，先還原成正字再比對
     （PUA 碼位可全域對應；「■」一字多義，逐一指定，多筆歧義者以同鄉鎮其餘村里的消去法確認）。
     見 village_name_repair.repair_json_vill_name。
-  - 本區無村里沿革對照表（沿革表目前僅新北市），故不套用沿革合併；
-    2012 圖資有、2008 未設立的里若對不上資料，一律留白並記入報告。
+  - 村里沿革合併（**四縣市**）：底圖有該里、得票資料亦有 → 用自身（不套沿革）；
+    底圖有該里、得票資料沒有 → 一律往沿革母里追溯（可連續追溯），
+    母里亦無得票資料者才留白並記入報告。
+    母里→子里對照表＝使用者查證後提供之 `maps/村里对应关系.md`
+    （欄位：縣市｜鄉鎮市區｜村里｜1995年時所屬村里｜備註；跨屆共用同一份），
+    由 village_lineage_tcm4 於 import 時解析（以 (縣市,鄉鎮,村里) 為鍵），
+    母里欄可含多個母村。（與 1996 屆不同：1996 屆把「分割年 <= 1996」者
+    視為當年已設里、資料缺漏而不併入。）
 
 比例尺：1px = 20m
 輸出：2008Precident/maps/桃竹苗2008年總統副總統選舉_得票率地圖.png
@@ -91,6 +97,15 @@ if SHARED_SCRIPTS not in sys.path:
 import Draw_National_President_2020 as nat
 # twvillage2012.json 村里名修補（PUA 碼位 / ■ 佔位符還原；同目錄）
 import village_name_repair as nr
+# 桃竹苗四縣市村里沿革（母里對照）——實作與 2000／2004 屆完全相同（母里對照表
+# 亦為跨屆共用同一份），故不複製整份程式碼，改自 2000Precident/scripts 載入後 re-export。
+import importlib.util as _ilu
+_LINEAGE_SRC = os.path.join(
+    os.path.dirname(os.path.dirname(SCRIPT_DIR)), "2000Precident", "scripts",
+    "village_lineage_tcm4.py")
+_lin_spec = _ilu.spec_from_file_location("village_lineage_tcm4", _LINEAGE_SRC)
+lin = _ilu.module_from_spec(_lin_spec)
+_lin_spec.loader.exec_module(lin)
 
 # ===================== 配置 =====================
 # 2008 第十二屆總統副總統選舉候選人（號次 01~02）：謝長廷／蘇貞昌(01,民主進步黨)、
@@ -286,13 +301,15 @@ def write_missing_report(gdf_all, vote_dict):
      ② 模糊匹配（異體字/近似）
      ③ 得票資料有、底圖無對應村里圖斑（反向缺漏）
      ④ 底圖村名修補（PUA 碼位／■ 還原）——校對用
-     ⑤ 村里沿革合併（本地區無沿革表，故此節為空）
+     ⑤ 村里沿革合併（四縣市，底圖有、得票資料沒有的里 → 往母里追溯）——校對用
      ⑥ 各縣市比對統計
     """
     ts = time.strftime("%Y-%m-%d %H:%M:%S")
     none_df = gdf_all[gdf_all["match_type"] == "none"].sort_values(
         ["COUNTYNAME", "TOWNNAME", "VILLNAME"])
     fuzzy_df = gdf_all[gdf_all["match_type"].str.startswith("fuzzy", na=False)]
+    merged_df = gdf_all[gdf_all["match_type"].str.startswith("merged", na=False)].sort_values(
+        ["TOWNNAME", "merged_into", "VILLNAME"])
     repair_df = gdf_all[gdf_all["NAME_REPAIR"].astype(str).str.len() > 0].sort_values(
         ["COUNTYNAME", "TOWNNAME", "VILLNAME"])
     exact_n = int((gdf_all["match_type"] == "exact").sum())
@@ -304,21 +321,28 @@ def write_missing_report(gdf_all, vote_dict):
 
     L = []
     L.append(f"# 桃竹苗 2008 總統副總統選舉 得票率地圖 — 匹配稽核")
-    L.append("（無資料／未匹配／村名修補）")
+    L.append("（無資料／未匹配／村名修補／沿革合併）")
     L.append("")
     L.append(f"- 產生時間：{ts}")
     L.append(f"- 底圖：`twvillage2012.json`（民國101年村里界） → 桃竹苗 {len(gdf_all)} 個村里圖斑")
     L.append(f"- 得票資料：`2008總統副總統選舉_得票率.xlsx`（工作表「各里彙總」，全國 {len(vote_dict)} 筆村里）")
-    L.append(f"- 匹配結果：精確 **{exact_n}**、模糊 **{len(fuzzy_df)}**、無資料 **{len(none_df)}**（圖上留白）")
+    L.append(f"- 匹配結果：精確 **{exact_n}**、沿革合併 **{len(merged_df)}**、"
+             f"模糊 **{len(fuzzy_df)}**、無資料 **{len(none_df)}**（圖上留白）")
     L.append("")
 
     L.append(f"## 1. 地圖上有村里圖斑、但對不上得票資料（{len(none_df)} 筆 → 留白）")
+    L.append("")
+    L.append("> 「說明」欄為該里的沿革母里（取自 `村里对应关系.md`）；"
+             "留白者為無母里線索，或母里亦無得票資料者。")
     L.append("")
     if len(none_df):
         L.append("| # | 縣市 | 鄉鎮市區 | 村里 | 說明 |")
         L.append("|---:|---|---|---|---|")
         for i, (_, r) in enumerate(none_df.iterrows(), 1):
-            L.append(f"| {i} | {r['COUNTYNAME']} | {r['TOWNNAME']} | {r['VILLNAME']} | 無對應得票資料 |")
+            note = lin.split_note(r["county_core"], r["town_core"], r["vill_core"],
+                                  nat.normalize_text)
+            L.append(f"| {i} | {r['COUNTYNAME']} | {r['TOWNNAME']} | {r['VILLNAME']} | "
+                     f"{note if note else '無對應得票資料（無母里線索）'} |")
         L.append("")
         L.append("### 依縣市統計")
         L.append("")
@@ -368,22 +392,37 @@ def write_missing_report(gdf_all, vote_dict):
         L.append("（無）")
     L.append("")
 
-    L.append("## 5. 村里沿革合併")
+    L.append(f"## 5. 村里沿革合併（四縣市；{len(merged_df)} 筆）")
     L.append("")
-    L.append("> 本地區無村里沿革對照表（沿革表目前僅新北市，見 `village_lineage_north4.py`），")
-    L.append("> 故不套用沿革合併；2012 圖資有、2008 未設立的里若對不上資料，一律留白並記入第 1 節。")
-    L.append("（無）")
+    L.append("> 2012 圖資中存在、但 2008 年得票資料查無的村里 → 往沿革母里追溯（同底色，且其間不畫界線）。")
+    L.append("> 母里→子里對照表＝ `maps/村里对应关系.md`（使用者查證後提供，跨屆共用），")
+    L.append("> 由 `village_lineage_tcm4` 解析。底圖有該里且得票資料亦有者用自身、不列入此表；")
+    L.append("> 分割年僅供備註，母里亦無得票資料者才留白，記入第 1 節。")
+    L.append("")
+    if len(merged_df):
+        L.append("| # | 縣市 | 鄉鎮市區 | 子里（2012 圖資） | 併入母里 | 母里在2008資料 | 分割年 |")
+        L.append("|---:|---|---|---|---|---|---|")
+        for i, (_, r) in enumerate(merged_df.iterrows(), 1):
+            cy = lin.VILLAGE_SPLIT_YEARS.get(
+                (r["COUNTYNAME"], r["TOWNNAME"], r["VILLNAME"]), None)
+            has_parent = (r["county_core"], r["town_core"], r["merged_into"]) in vote_dict
+            L.append(f"| {i} | {r['COUNTYNAME']} | {r['TOWNNAME']} | {r['VILLNAME']} | "
+                     f"{r['merged_into']} | {'有' if has_parent else '無'} | "
+                     f"{str(cy) if cy else '—'} |")
+    else:
+        L.append("（無）")
     L.append("")
 
     L.append("## 6. 各縣市比對統計")
     L.append("")
-    L.append("| 縣市 | 村里圖斑 | 精確 | 模糊 | 無資料 |")
-    L.append("|---|---:|---:|---:|---:|")
+    L.append("| 縣市 | 村里圖斑 | 精確 | 沿革合併 | 模糊 | 無資料 |")
+    L.append("|---|---:|---:|---:|---:|---:|")
     for c in TARGET_COUNTIES:
         s = gdf_all[gdf_all["COUNTYNAME"] == c]
         if not len(s):
             continue
         L.append(f"| {c} | {len(s)} | {int((s['match_type'] == 'exact').sum())} | "
+                 f"{int(s['match_type'].str.startswith('merged', na=False).sum())} | "
                  f"{int(s['match_type'].str.startswith('fuzzy', na=False).sum())} | "
                  f"{int((s['match_type'] == 'none').sum())} |")
     L.append("")
@@ -391,7 +430,8 @@ def write_missing_report(gdf_all, vote_dict):
     with open(MISSING_MD, "w", encoding="utf-8") as f:
         f.write("\n".join(L) + "\n")
     print(f"  ③ 匹配稽核報告：{MISSING_MD}")
-    print(f"     （無資料 {len(none_df)}、村名修補 {len(repair_df)}、模糊 {len(fuzzy_df)}、反向缺漏 {len(orphan)}）")
+    print(f"     （無資料 {len(none_df)}、沿革合併 {len(merged_df)}、"
+          f"村名修補 {len(repair_df)}、模糊 {len(fuzzy_df)}、反向缺漏 {len(orphan)}）")
 
 
 def expected_line_components(gdf):
@@ -442,20 +482,36 @@ def main():
 
     rate_cols = [f"rate{i}" for i in range(len(CAND_NAMES))]
 
-    # 本地區無村里沿革對照表 → 行政單元即村里本身
-    gdf_all["unit_core"] = gdf_all["vill_core"]
+    # ---- 村里沿革合併（四縣市）：底圖有、得票資料沒有的村里 → 往沿革母里追溯 ----
+    # 母里→子里對照表自 `maps/村里对应关系.md` 解析（見 village_lineage_tcm4）。
+    # 本屆政策：底圖有該里且得票資料亦有 → 用自身（不套沿革）；
+    #            否則一律往母里追溯（可連續追溯），母里亦無資料者才留白。
+    exists_keys = set(vote_dict)
+    split_index = lin.build_split_index(nat.normalize_text, enabled=True)
+
+    def _unit_of(r):
+        return lin.resolve_unit_name(r["county_core"], r["town_core"], r["vill_core"],
+                                     exists_keys, split_index)
+
+    gdf_all["unit_core"] = gdf_all.apply(_unit_of, axis=1)
+    gdf_all["merged_into"] = np.where(
+        gdf_all["unit_core"] != gdf_all["vill_core"], gdf_all["unit_core"], "")
 
     def process_row(r):
+        unit = r["unit_core"]
         matched, vals, mt = nat.fuzzy_lookup(
-            r["county_core"], r["town_core"], r["vill_core"], vote_dict, vote_by_town)
+            r["county_core"], r["town_core"], unit, vote_dict, vote_by_town)
         if vals is None:
             return pd.Series([np.nan] * len(CAND_NAMES) + [mt, ""])
+        if unit != r["vill_core"]:
+            mt = f"merged:{unit}"     # 沿革合併：得票資料查無該里，沿用母里得票
         return pd.Series(list(vals) + [mt, matched])
 
     gdf_all[rate_cols + ["match_type", "matched_vill"]] = gdf_all.apply(process_row, axis=1)
 
     exact_cnt = int((gdf_all["match_type"] == "exact").sum())
     fuzzy_cnt = int((gdf_all["match_type"].str.startswith("fuzzy", na=False)).sum())
+    merged_cnt = int((gdf_all["match_type"].str.startswith("merged", na=False)).sum())
 
     # ③ 缺資料／未匹配回報（Markdown 表格；含 ④ 村名修補校對表）
     write_missing_report(gdf_all, vote_dict)
@@ -499,6 +555,7 @@ def main():
     has_data = gdf_all[rate_cols].notna().any(axis=1)
     print(f"  JSON 要素數      : {len(gdf_all)}")
     print(f"  精確匹配         : {exact_cnt}")
+    print(f"  沿革合併         : {merged_cnt}（底圖有、2008 得票資料沒有 → 併入母里）")
     print(f"  異體字/模糊匹配   : {fuzzy_cnt}")
     print(f"  有資料填色       : {int(has_data.sum())}")
     print(f"  無資料（純白）    : {int((~has_data).sum())}")
@@ -521,7 +578,7 @@ def main():
     villages = records[records["VILLNAME"].notna()].copy()   # ① 村里層
     if SIMPLIFY_TOL_M > 0:
         villages["geometry"] = villages.geometry.simplify(SIMPLIFY_TOL_M, preserve_topology=True)
-    # 村里界線以「當年行政單元」為單位（本地區 = 村里本身）
+    # 村里界線以「當年行政單元」為單位：沿革合併者（unit_core != vill_core）與母里同屬一單元，
     _ukey = (villages["COUNTYNAME"].astype(str) + "|" + villages["TOWNNAME"].astype(str)
              + "|" + villages["unit_core"].astype(str))
     _blank = villages["unit_core"].astype(str).str.strip().eq("")
