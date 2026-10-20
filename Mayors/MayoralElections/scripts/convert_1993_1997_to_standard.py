@@ -5,7 +5,11 @@
 
 輸出：
   1993_得票率.xlsx  →  各里彙總 (選舉區別 | 鄉鎮市區 | 村里別 | 尤清得票率 | 蔡勝邦得票率)
-  1997_得票率.xlsx  →  各里彙總 (選舉區別 | 鄉鎮市區 | 村里別 | 蘇貞昌得票率 | 謝深山得票率)
+  1997_得票率.xlsx  →  各里彙總 (選舉區別 | 鄉鎮市區 | 村里別 |
+                       蘇貞昌得票率 | 謝深山得票率 | 林志嘉得票率 | 廖學廣得票率)
+
+1997 年除民進黨蘇貞昌、國民黨謝深山外，另有無黨籍（林志嘉、廖學廣）在部分村里
+得票領先，故 1997 另列出全部曾領先村里之候選人，避免領先者未被繪出。
 """
 import os
 import openpyxl
@@ -48,7 +52,8 @@ def process_file(src_xlsx, sheet_name, out_xlsx, cand_names):
     src_xlsx:  原始 xlsx 檔名
     sheet_name: 村里層級明細
     out_xlsx:  輸出標準格式檔名
-    cand_names: (target_cand, other_cand) → 選圖例用的兩位候選人
+    cand_names: 要輸出的候選人姓名序列（依序成為得票率欄）；可為 2 位或更多位，
+                用途為讓「曾在部分村里領先」的候選人都能被繪出。
     """
     wb = openpyxl.load_workbook(os.path.join(DATA_DIR, src_xlsx))
     ws = wb[sheet_name]
@@ -63,15 +68,17 @@ def process_file(src_xlsx, sheet_name, out_xlsx, cand_names):
             name = str(h).split("（")[0].split("_")[0]  # e.g. "尤清"
             pct_indices[name] = i
 
-    target, other = cand_names
-    if target not in pct_indices or other not in pct_indices:
-        raise ValueError(f"找不到候選人 {target} 或 {other} 的得票率欄位，可用: {list(pct_indices.keys())}")
+    cand_names = list(cand_names)
+    missing = [n for n in cand_names if n not in pct_indices]
+    if missing:
+        raise ValueError(f"找不到候選人 {missing} 的得票率欄位，可用: {list(pct_indices.keys())}")
 
     # 建立輸出
     out_wb = openpyxl.Workbook()
     out_ws = out_wb.active
     out_ws.title = "各里彙總"
-    out_ws.append(["選舉區別", "鄉(鎮、市、區)別", "村里別", f"{target}得票率", f"{other}得票率"])
+    out_ws.append(["選舉區別", "鄉(鎮、市、區)別", "村里別"]
+                  + [f"{n}得票率" for n in cand_names])
 
     count = 0
     for row in ws.iter_rows(min_row=2, values_only=True):
@@ -82,11 +89,10 @@ def process_file(src_xlsx, sheet_name, out_xlsx, cand_names):
         city, town_modern, town_body = convert_suffix(town_full)
         if city is None:
             continue
-        rate_target = pct_str_to_num(row[pct_indices[target]])
-        rate_other = pct_str_to_num(row[pct_indices[other]])
+        rates = [pct_str_to_num(row[pct_indices[n]]) for n in cand_names]
         # 村里名：已有後綴（如「三峽里」）；若無則補（不太可能缺）
         vill_full = str(village).strip() if village else ""
-        out_ws.append([city, town_modern, vill_full, rate_target, rate_other])
+        out_ws.append([city, town_modern, vill_full] + rates)
         count += 1
 
     out_path = os.path.join(DATA_DIR, out_xlsx)
@@ -103,5 +109,5 @@ if __name__ == "__main__":
     print("=" * 50)
     print("  1997 臺北縣長 → 標準格式")
     process_file("1997台北縣長.xlsx", "村里層級明細", "1997台北縣_得票率.xlsx",
-                 cand_names=("蘇貞昌", "謝深山"))
+                 cand_names=("蘇貞昌", "謝深山", "林志嘉", "廖學廣"))
     print("完成。")

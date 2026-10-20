@@ -1,0 +1,190 @@
+{
+  "id": "2000-president-tzmm",
+  "meta": {
+    "election": "第十屆總統副總統選舉",
+    "electionEn": "2000 Presidential Election",
+    "year": 2000,
+    "date": "3月18日",
+    "dateEn": "18 Mar",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "總統副總統",
+    "officeEn": "President & Vice President",
+    "turnout": null,
+    "validVotes": 1721512,
+    "regionLabel": "桃竹苗",
+    "header": {
+      "role": "時任總統",
+      "name": "李登輝",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "chen",
+      "name": "陳水扁",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 1,
+      "votes": 517120,
+      "pct": 30.04,
+      "elected": true,
+      "vice": "呂秀蓮",
+      "viceParty": "民主進步黨"
+    },
+    {
+      "key": "song",
+      "name": "宋楚瑜",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 2,
+      "votes": 790546,
+      "pct": 45.92,
+      "elected": false,
+      "vice": "張昭雄",
+      "viceParty": "無黨籍"
+    },
+    {
+      "key": "lien",
+      "name": "連戰",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 3,
+      "votes": 378355,
+      "pct": 21.98,
+      "elected": false,
+      "vice": "蕭萬長",
+      "viceParty": "中國國民黨"
+    },
+    {
+      "key": "lee",
+      "name": "李敖",
+      "nameEn": "",
+      "party": "新黨",
+      "partyShort": "NSC",
+      "partyEn": "New Party",
+      "number": 4,
+      "votes": 2140,
+      "pct": 0.12,
+      "elected": false,
+      "vice": "馮滬祥",
+      "viceParty": "新黨"
+    },
+    {
+      "key": "hsu",
+      "name": "許信良",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 5,
+      "votes": 33351,
+      "pct": 1.94,
+      "elected": false,
+      "vice": "朱惠良",
+      "viceParty": "無黨籍"
+    }
+  ],
+  "districts": [
+    {
+      "name": "桃園市",
+      "short": "桃園",
+      "votes": {
+        "陳水扁": 299120,
+        "宋楚瑜": 413370,
+        "連戰": 208881,
+        "李敖": 1140,
+        "許信良": 20581
+      },
+      "pct": {
+        "陳水扁": 31.72,
+        "宋楚瑜": 43.83,
+        "連戰": 22.15,
+        "李敖": 0.12,
+        "許信良": 2.18
+      },
+      "valid": 943092,
+      "winnerKey": "宋楚瑜",
+      "margin": 12.11
+    },
+    {
+      "name": "新竹市",
+      "short": "新竹市",
+      "votes": {
+        "陳水扁": 69760,
+        "宋楚瑜": 88412,
+        "連戰": 46234,
+        "李敖": 292,
+        "許信良": 1746
+      },
+      "pct": {
+        "陳水扁": 33.79,
+        "宋楚瑜": 42.83,
+        "連戰": 22.4,
+        "李敖": 0.14,
+        "許信良": 0.85
+      },
+      "valid": 206444,
+      "winnerKey": "宋楚瑜",
+      "margin": 9.04
+    },
+    {
+      "name": "新竹縣",
+      "short": "新竹縣",
+      "votes": {
+        "陳水扁": 61533,
+        "宋楚瑜": 128231,
+        "連戰": 51442,
+        "李敖": 309,
+        "許信良": 7093
+      },
+      "pct": {
+        "陳水扁": 24.75,
+        "宋楚瑜": 51.58,
+        "連戰": 20.69,
+        "李敖": 0.12,
+        "許信良": 2.85
+      },
+      "valid": 248608,
+      "winnerKey": "宋楚瑜",
+      "margin": 26.83
+    },
+    {
+      "name": "苗栗縣",
+      "short": "苗栗",
+      "votes": {
+        "陳水扁": 86707,
+        "宋楚瑜": 160533,
+        "連戰": 71798,
+        "李敖": 399,
+        "許信良": 3931
+      },
+      "pct": {
+        "陳水扁": 26.81,
+        "宋楚瑜": 49.64,
+        "連戰": 22.2,
+        "李敖": 0.12,
+        "許信良": 1.22
+      },
+      "valid": 323368,
+      "winnerKey": "宋楚瑜",
+      "margin": 22.83
+    }
+  ],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560,
+      "w": 880
+    }
+  }
+}

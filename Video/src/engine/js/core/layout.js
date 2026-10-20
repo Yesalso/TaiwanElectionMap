@@ -136,13 +136,17 @@
        配方見 boardlib/assets.py 的 STATIC_RECIPES）。
        讀不到圖時該位置退回原本的抽象色塊（Marks.partyChip），不會開天窗。
        markRatio 是徽章邊長相對「標籤高度」的比例。
-       ★ 2026-10-14 晚五：標籤加高、徽章放大（需求：第 1／2 名的政黨徽章
+       ★ 2026-10-19 晚五：標籤加高、徽章放大（需求：第 1／2 名的政黨徽章
          「適度大一點」）—— h 76→84、radius 38→42、markRatio 0.42→0.54
          （徽章邊長 31.9 → 45.4px，約 1.42 倍）；黨名可用的寬度會少一點，
-         labelMax 由 cp.w 扣掉內距與徽章寬自己算出來，不會溢出膠囊。 */
+         labelMax 由 cp.w 扣掉內距與徽章寬自己算出來，不會溢出膠囊。
+       ★ 2026-10-19 晚七（需求）：政黨欄底板方框移除（見 layers.js），徽章
+         再放大一級 markRatio 0.54→0.75（邊長 45.4 → 63px）。
+       ★ 2026-10-19 晚八（需求）：主卡政黨色卡移除後徽章再放大一級
+         0.75→0.95（邊長 63 → 79.8px，幾乎占滿 chip 高）。 */
     chip: {
       w: 452, h: 84, y: 910, radius: 42, nameSize: 40,
-      markRatio: 0.54,
+      markRatio: 0.95,
       marks: { kmt: 'assets/party_kmt.png', dpp: 'assets/party_dpp.png' },
       /* 政黨徽章檔名規則：party_<政黨 key>.png（kmt -> assets/party_kmt.png） */
     },
@@ -182,7 +186,7 @@
      上面再罩一層暗色（dim = 遮罩不透明度），讓前景的白字與色卡一樣讀得清楚。
      原本的漸層底色、光暈、細格線仍然畫在照片之上（半透明疊加），
      所以「換掉 src」或「讀不到照片」時畫面會退回純漸層底，不會開天窗。
-     素材：src/mapgen/png/share/街景3.png → processed/share/street_bg.png
+     素材：assets/share/街景2.png → dist/assets/share/street_bg.png
      （原樣沿用、不做任何透明化轉換，配方見 boardlib/assets.py 的 CopyRecipe）。 */
   Layout.background = {
     src: 'assets/street_bg.png',
@@ -447,9 +451,12 @@
   /* --------------------- 逐場版面覆寫（meta.layout） ---------------------
      board.js 比 layout.js 先載入（見 index.html），所以在這裡可以把
      window.BOARD.meta.layout 的欄位淺層併進對應的 Layout 區塊。
-     目前只開放 legend（總統北北基宜看板把 h 覆寫成 717）；
+     目前開放 legend（總統北北基宜看板把 h 覆寫成 717）、map2，
+     以及 map（2026-10-19 桃竹苗看板：地圖是近方形，contain 進預設框
+     560–1580 後墨跡右緣會到 x≈1546，壓到第 3 名高卡與 map2 欄，
+     故把主圖框收窄成 w=880 → 墨跡右緣 1432，見 verify_layout L9/L10）；
      要開放其他區塊時照樣加進 LAYOUT_OVERRIDABLE 即可。 */
-  var LAYOUT_OVERRIDABLE = ['legend', 'map2'];
+  var LAYOUT_OVERRIDABLE = ['legend', 'map2', 'map'];
   try {
     var overrides = (global.BOARD && global.BOARD.meta &&
                      global.BOARD.meta.layout) || null;

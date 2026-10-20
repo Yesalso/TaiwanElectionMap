@@ -1,0 +1,146 @@
+{
+  "id": "2020-president-tzmm",
+  "meta": {
+    "election": "第十五屆總統副總統選舉",
+    "electionEn": "2020 Presidential Election",
+    "year": 2020,
+    "date": "1月11日",
+    "dateEn": "11 Jan",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "總統副總統",
+    "officeEn": "President & Vice President",
+    "turnout": null,
+    "validVotes": 2223883,
+    "regionLabel": "桃竹苗",
+    "header": {
+      "role": "時任總統",
+      "name": "蔡英文",
+      "party": "民主進步黨",
+      "partyShort": "DPP"
+    }
+  },
+  "candidates": [
+    {
+      "key": "tsai",
+      "name": "蔡英文",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 1,
+      "votes": 1161948,
+      "pct": 52.25,
+      "elected": true,
+      "vice": "賴清德",
+      "viceParty": "民主進步黨"
+    },
+    {
+      "key": "han",
+      "name": "韓國瑜",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 2,
+      "votes": 951043,
+      "pct": 42.76,
+      "elected": false,
+      "vice": "張善政",
+      "viceParty": "無黨籍"
+    },
+    {
+      "key": "song",
+      "name": "宋楚瑜",
+      "nameEn": "",
+      "party": "親民黨",
+      "partyShort": "PFP",
+      "partyEn": "People First Party",
+      "number": 3,
+      "votes": 110892,
+      "pct": 4.99,
+      "elected": false,
+      "vice": "余湘",
+      "viceParty": "親民黨"
+    }
+  ],
+  "districts": [
+    {
+      "name": "桃園市",
+      "short": "桃園",
+      "votes": {
+        "蔡英文": 718260,
+        "韓國瑜": 529749,
+        "宋楚瑜": 63132
+      },
+      "pct": {
+        "蔡英文": 54.78,
+        "韓國瑜": 40.4,
+        "宋楚瑜": 4.82
+      },
+      "valid": 1311141,
+      "winnerKey": "蔡英文",
+      "margin": 14.38
+    },
+    {
+      "name": "新竹市",
+      "short": "新竹市",
+      "votes": {
+        "蔡英文": 144274,
+        "韓國瑜": 102725,
+        "宋楚瑜": 14103
+      },
+      "pct": {
+        "蔡英文": 55.26,
+        "韓國瑜": 39.34,
+        "宋楚瑜": 5.4
+      },
+      "valid": 261102,
+      "winnerKey": "蔡英文",
+      "margin": 15.92
+    },
+    {
+      "name": "新竹縣",
+      "short": "新竹縣",
+      "votes": {
+        "蔡英文": 152380,
+        "韓國瑜": 154224,
+        "宋楚瑜": 18435
+      },
+      "pct": {
+        "蔡英文": 46.88,
+        "韓國瑜": 47.45,
+        "宋楚瑜": 5.67
+      },
+      "valid": 325039,
+      "winnerKey": "韓國瑜",
+      "margin": 0.57
+    },
+    {
+      "name": "苗栗縣",
+      "short": "苗栗",
+      "votes": {
+        "蔡英文": 147034,
+        "韓國瑜": 164345,
+        "宋楚瑜": 15222
+      },
+      "pct": {
+        "蔡英文": 45.02,
+        "韓國瑜": 50.32,
+        "宋楚瑜": 4.66
+      },
+      "valid": 326601,
+      "winnerKey": "韓國瑜",
+      "margin": 5.3
+    }
+  ],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560,
+      "w": 880
+    }
+  }
+}

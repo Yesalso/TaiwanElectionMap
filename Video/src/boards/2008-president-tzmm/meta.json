@@ -1,0 +1,124 @@
+{
+  "id": "2008-president-tzmm",
+  "meta": {
+    "election": "第十二屆總統副總統選舉",
+    "electionEn": "2008 Presidential Election",
+    "year": 2008,
+    "date": "3月22日",
+    "dateEn": "22 Mar",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "總統副總統",
+    "officeEn": "President & Vice President",
+    "turnout": null,
+    "validVotes": 1900069,
+    "regionLabel": "桃竹苗",
+    "header": {
+      "role": "時任總統",
+      "name": "陳水扁",
+      "party": "民主進步黨",
+      "partyShort": "DPP"
+    }
+  },
+  "candidates": [
+    {
+      "key": "ma",
+      "name": "馬英九",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 1,
+      "votes": 1275046,
+      "pct": 67.11,
+      "elected": true,
+      "vice": "蕭萬長",
+      "viceParty": "中國國民黨"
+    },
+    {
+      "key": "hsieh",
+      "name": "謝長廷",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 2,
+      "votes": 625023,
+      "pct": 32.89,
+      "elected": false,
+      "vice": "蘇貞昌",
+      "viceParty": "民主進步黨"
+    }
+  ],
+  "districts": [
+    {
+      "name": "桃園市",
+      "short": "桃園",
+      "votes": {
+        "馬英九": 693602,
+        "謝長廷": 379416
+      },
+      "pct": {
+        "馬英九": 64.64,
+        "謝長廷": 35.36
+      },
+      "valid": 1073018,
+      "winnerKey": "馬英九",
+      "margin": 29.28
+    },
+    {
+      "name": "新竹市",
+      "short": "新竹市",
+      "votes": {
+        "馬英九": 145930,
+        "謝長廷": 79634
+      },
+      "pct": {
+        "馬英九": 64.7,
+        "謝長廷": 35.3
+      },
+      "valid": 225564,
+      "winnerKey": "馬英九",
+      "margin": 29.4
+    },
+    {
+      "name": "新竹縣",
+      "short": "新竹縣",
+      "votes": {
+        "馬英九": 208445,
+        "謝長廷": 73178
+      },
+      "pct": {
+        "馬英九": 74.02,
+        "謝長廷": 25.98
+      },
+      "valid": 281623,
+      "winnerKey": "馬英九",
+      "margin": 48.04
+    },
+    {
+      "name": "苗栗縣",
+      "short": "苗栗",
+      "votes": {
+        "馬英九": 227069,
+        "謝長廷": 92795
+      },
+      "pct": {
+        "馬英九": 70.99,
+        "謝長廷": 29.01
+      },
+      "valid": 319864,
+      "winnerKey": "馬英九",
+      "margin": 41.98
+    }
+  ],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560,
+      "w": 880
+    }
+  }
+}

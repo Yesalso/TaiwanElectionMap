@@ -1,0 +1,170 @@
+{
+  "id": "1996-president-tzmm",
+  "meta": {
+    "election": "第九屆總統副總統選舉",
+    "electionEn": "1996 Presidential Election",
+    "year": 1996,
+    "date": "3月23日",
+    "dateEn": "23 Mar",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "總統副總統",
+    "officeEn": "President & Vice President",
+    "turnout": null,
+    "validVotes": 1434541,
+    "regionLabel": "桃竹苗",
+    "header": {
+      "role": "時任總統",
+      "name": "李登輝",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "leedeng",
+      "name": "李登輝",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 1,
+      "votes": 859924,
+      "pct": 59.94,
+      "elected": true,
+      "vice": "連戰",
+      "viceParty": "中國國民黨"
+    },
+    {
+      "key": "peng",
+      "name": "彭明敏",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 2,
+      "votes": 197773,
+      "pct": 13.79,
+      "elected": false,
+      "vice": "謝長廷",
+      "viceParty": "民主進步黨"
+    },
+    {
+      "key": "liny",
+      "name": "林洋港",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 3,
+      "votes": 208563,
+      "pct": 14.54,
+      "elected": false,
+      "vice": "郝柏村",
+      "viceParty": "無黨籍",
+      "color": "#f2b800",
+      "recommendedBy": "NSC"
+    },
+    {
+      "key": "chenla",
+      "name": "陳履安",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 4,
+      "votes": 168281,
+      "pct": 11.73,
+      "elected": false,
+      "vice": "王清峰",
+      "viceParty": "無黨籍"
+    }
+  ],
+  "districts": [
+    {
+      "name": "桃園市",
+      "short": "桃園",
+      "votes": {
+        "李登輝": 423198,
+        "彭明敏": 114901,
+        "林洋港": 128607,
+        "陳履安": 91048
+      },
+      "pct": {
+        "李登輝": 55.85,
+        "彭明敏": 15.16,
+        "林洋港": 16.97,
+        "陳履安": 12.02
+      },
+      "valid": 757754,
+      "winnerKey": "李登輝",
+      "margin": 38.88
+    },
+    {
+      "name": "新竹市",
+      "short": "新竹市",
+      "votes": {
+        "李登輝": 93812,
+        "彭明敏": 28281,
+        "林洋港": 30155,
+        "陳履安": 22603
+      },
+      "pct": {
+        "李登輝": 53.65,
+        "彭明敏": 16.17,
+        "林洋港": 17.25,
+        "陳履安": 12.93
+      },
+      "valid": 174851,
+      "winnerKey": "李登輝",
+      "margin": 36.4
+    },
+    {
+      "name": "新竹縣",
+      "short": "新竹縣",
+      "votes": {
+        "李登輝": 140321,
+        "彭明敏": 23555,
+        "林洋港": 23342,
+        "陳履安": 24746
+      },
+      "pct": {
+        "李登輝": 66.2,
+        "彭明敏": 11.11,
+        "林洋港": 11.01,
+        "陳履安": 11.67
+      },
+      "valid": 211964,
+      "winnerKey": "李登輝",
+      "margin": 54.53
+    },
+    {
+      "name": "苗栗縣",
+      "short": "苗栗",
+      "votes": {
+        "李登輝": 202593,
+        "彭明敏": 31036,
+        "林洋港": 26459,
+        "陳履安": 29884
+      },
+      "pct": {
+        "李登輝": 69.87,
+        "彭明敏": 10.7,
+        "林洋港": 9.12,
+        "陳履安": 10.31
+      },
+      "valid": 289972,
+      "winnerKey": "李登輝",
+      "margin": 59.17
+    }
+  ],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560,
+      "w": 880
+    }
+  }
+}

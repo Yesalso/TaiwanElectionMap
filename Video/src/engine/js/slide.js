@@ -249,13 +249,21 @@
     var self = this;
     var A = global.NT_ASSETS || {};
     var conf = (L.left && L.left.chip && L.left.chip.marks) || {};
-    /* 政黨本身有標章的 key（對齊 tools/boardlib/naming.py 的 PARTIES_WITH_MARK）*/
-    var PARTIES_WITH_MARK = ['kmt', 'dpp', 'tpp', 'nsc', 'pfp'];
+    /* 政黨本身有標章的 key（對齊 tools/boardlib/naming.py 的 PARTIES_WITH_MARK）
+       ★ 2026-10-19 晚八（需求）：ind（無黨籍）補進來 —— 使用者提供
+         「無」字圓標（assets/party/无党籍.png），配方見 boardlib/assets.py
+         的 party_ind.png；1996 林洋港／陳履安、2000 宋楚瑜／許信良不再是抽象色塊。 */
+    var PARTIES_WITH_MARK = ['kmt', 'dpp', 'tpp', 'nsc', 'pfp', 'ind'];
     var keys = Object.keys(conf);
     (this.model.candidates || []).forEach(function (c) {
       var k = c.partyKey;
       if (k && PARTIES_WITH_MARK.indexOf(k) >= 0 && keys.indexOf(k) < 0) {
         keys.push(k);
+      }
+      /* 推薦政黨徽章（2026-10-19 個案：無黨籍候選人由某政黨背書）也要載 */
+      var rk = c.recommendedByKey;
+      if (rk && PARTIES_WITH_MARK.indexOf(rk) >= 0 && keys.indexOf(rk) < 0) {
+        keys.push(rk);
       }
     });
     /* 內嵌副本的欄位名（board.assets.js 的 window.NT_ASSETS），

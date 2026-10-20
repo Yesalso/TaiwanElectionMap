@@ -1,0 +1,146 @@
+{
+  "id": "2012-president-tzmm",
+  "meta": {
+    "election": "第十三屆總統副總統選舉",
+    "electionEn": "2012 Presidential Election",
+    "year": 2012,
+    "date": "1月14日",
+    "dateEn": "14 Jan",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "總統副總統",
+    "officeEn": "President & Vice President",
+    "turnout": null,
+    "validVotes": 1965060,
+    "regionLabel": "桃竹苗",
+    "header": {
+      "role": "時任總統",
+      "name": "馬英九",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "ma",
+      "name": "馬英九",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 1,
+      "votes": 1170876,
+      "pct": 59.58,
+      "elected": true,
+      "vice": "吳敦義",
+      "viceParty": "中國國民黨"
+    },
+    {
+      "key": "tsai",
+      "name": "蔡英文",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 2,
+      "votes": 734845,
+      "pct": 37.4,
+      "elected": false,
+      "vice": "蘇嘉全",
+      "viceParty": "民主進步黨"
+    },
+    {
+      "key": "song",
+      "name": "宋楚瑜",
+      "nameEn": "",
+      "party": "親民黨",
+      "partyShort": "PFP",
+      "partyEn": "People First Party",
+      "number": 3,
+      "votes": 59339,
+      "pct": 3.02,
+      "elected": false,
+      "vice": "林瑞雄",
+      "viceParty": "親民黨"
+    }
+  ],
+  "districts": [
+    {
+      "name": "桃園市",
+      "short": "桃園",
+      "votes": {
+        "馬英九": 639151,
+        "蔡英文": 445308,
+        "宋楚瑜": 32927
+      },
+      "pct": {
+        "馬英九": 57.2,
+        "蔡英文": 39.85,
+        "宋楚瑜": 2.95
+      },
+      "valid": 1117386,
+      "winnerKey": "馬英九",
+      "margin": 17.35
+    },
+    {
+      "name": "新竹市",
+      "short": "新竹市",
+      "votes": {
+        "馬英九": 134728,
+        "蔡英文": 92632,
+        "宋楚瑜": 7216
+      },
+      "pct": {
+        "馬英九": 57.43,
+        "蔡英文": 39.49,
+        "宋楚瑜": 3.08
+      },
+      "valid": 234576,
+      "winnerKey": "馬英九",
+      "margin": 17.94
+    },
+    {
+      "name": "新竹縣",
+      "short": "新竹縣",
+      "votes": {
+        "馬英九": 190797,
+        "蔡英文": 89741,
+        "宋楚瑜": 9599
+      },
+      "pct": {
+        "馬英九": 65.76,
+        "蔡英文": 30.93,
+        "宋楚瑜": 3.31
+      },
+      "valid": 290137,
+      "winnerKey": "馬英九",
+      "margin": 34.83
+    },
+    {
+      "name": "苗栗縣",
+      "short": "苗栗",
+      "votes": {
+        "馬英九": 206200,
+        "蔡英文": 107164,
+        "宋楚瑜": 9597
+      },
+      "pct": {
+        "馬英九": 63.85,
+        "蔡英文": 33.18,
+        "宋楚瑜": 2.97
+      },
+      "valid": 322961,
+      "winnerKey": "馬英九",
+      "margin": 30.67
+    }
+  ],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560,
+      "w": 880
+    }
+  }
+}

@@ -61,3 +61,6 @@ _tmp*.txt
 *.bak_flood
 *.myflood_variant
 _tmp*.txt
+
+# 本地配乐素材（约 105 MB，不入库）
+/Video/MP3/

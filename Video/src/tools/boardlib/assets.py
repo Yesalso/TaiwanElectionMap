@@ -165,6 +165,12 @@ STATIC_RECIPES: Dict[str, object] = {
     "party_dpp.png": CircleRecipe(width=PARTY_WIDTH),
     "party_nsc.png": CircleRecipe(width=PARTY_WIDTH),   # 新黨徽：黃圓 +「新」，同民進黨徽做法
     "party_pfp.png": CircleRecipe(width=PARTY_WIDTH),   # 親民黨徽：橘圓 +「親」，同上
+    "party_tpp.png": CircleRecipe(width=PARTY_WIDTH,    # 民眾黨徽：青圓 +「眾」（識別色 #00A89C，
+        edge_fill=(0, 168, 156)),                       #   源圖是滿版方形青底，圓外填同色再內切圓）
+    "party_ind.png": CircleRecipe(width=PARTY_WIDTH,    # 無黨籍（2026-10-19 補）：黑圓 +「無」，
+        edge_fill=(0, 0, 0)),                           #   源圖白底黑圓，圓外填黑再內切圓
+    "party_ind.png": CircleRecipe(width=PARTY_WIDTH,    # 無黨籍徽：黑圓 + 白「無」（源圖白底，
+        edge_fill=(0, 0, 0)),                           #   圓外填黑再內切，避免深色底上留白暈）
     # 市徽：不規則主體 + 大片純白，縮到 SEAL_WIDTH
     "city_seal.png": WhiteRecipe(soft=30, width=SEAL_WIDTH),
     # 國旗（總統選舉頁眉白卡用）／街景背景照：原樣沿用，見 CopyRecipe 說明

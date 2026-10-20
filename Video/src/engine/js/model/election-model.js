@@ -45,6 +45,12 @@
        沒宣告（市長選舉）時為 null，繪製層就不畫副手行，既有輸出不變。 */
     this.vice = raw.vice || raw.viceName || null;
     this.viceParty = raw.viceParty || null;
+    /* 推薦政黨（2026-10-19 個案：無黨籍候選人由某政黨背書，如 1996 林洋港＝
+       新黨推薦）。recommendedBy 存推薦政黨的 partyShort，引擎據此在主卡
+       政黨標籤後追加「[推薦徽章] 推薦」一段。沒有宣告就維持原樣。 */
+    this.recommendedBy = raw.recommendedBy || raw.recommend || '';
+    this.recommendedByKey = this.recommendedBy
+        ? Candidate.partyKeyOf(this.recommendedBy) : '';
     this.theme = this.color ? NT.Theme.fromColor(this.color, this.partyKey)
                             : NT.Theme.party(this.partyKey);
   }

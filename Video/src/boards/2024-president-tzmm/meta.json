@@ -1,0 +1,146 @@
+{
+  "id": "2024-president-tzmm",
+  "meta": {
+    "election": "第十六屆總統副總統選舉",
+    "electionEn": "2024 Presidential Election",
+    "year": 2024,
+    "date": "1月13日",
+    "dateEn": "13 Jan",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "總統副總統",
+    "officeEn": "President & Vice President",
+    "turnout": null,
+    "validVotes": 2276156,
+    "regionLabel": "桃竹苗",
+    "header": {
+      "role": "時任總統",
+      "name": "蔡英文",
+      "party": "民主進步黨",
+      "partyShort": "DPP"
+    }
+  },
+  "candidates": [
+    {
+      "key": "lai",
+      "name": "賴清德",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 1,
+      "votes": 754227,
+      "pct": 33.14,
+      "elected": true,
+      "vice": "蕭美琴",
+      "viceParty": "民主進步黨"
+    },
+    {
+      "key": "hou",
+      "name": "侯友宜",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 2,
+      "votes": 800395,
+      "pct": 35.16,
+      "elected": false,
+      "vice": "趙少康",
+      "viceParty": "中國國民黨"
+    },
+    {
+      "key": "ko",
+      "name": "柯文哲",
+      "nameEn": "",
+      "party": "台灣民眾黨",
+      "partyShort": "TPP",
+      "partyEn": "Taiwan People's Party",
+      "number": 3,
+      "votes": 721534,
+      "pct": 31.7,
+      "elected": false,
+      "vice": "吳欣盈",
+      "viceParty": "台灣民眾黨"
+    }
+  ],
+  "districts": [
+    {
+      "name": "桃園市",
+      "short": "桃園",
+      "votes": {
+        "賴清德": 476441,
+        "侯友宜": 460823,
+        "柯文哲": 413528
+      },
+      "pct": {
+        "賴清德": 35.27,
+        "侯友宜": 34.12,
+        "柯文哲": 30.61
+      },
+      "valid": 1350792,
+      "winnerKey": "賴清德",
+      "margin": 1.15
+    },
+    {
+      "name": "新竹市",
+      "short": "新竹市",
+      "votes": {
+        "賴清德": 92679,
+        "侯友宜": 82326,
+        "柯文哲": 91384
+      },
+      "pct": {
+        "賴清德": 34.79,
+        "侯友宜": 30.9,
+        "柯文哲": 34.3
+      },
+      "valid": 266389,
+      "winnerKey": "賴清德",
+      "margin": 0.49
+    },
+    {
+      "name": "新竹縣",
+      "short": "新竹縣",
+      "votes": {
+        "賴清德": 93309,
+        "侯友宜": 126016,
+        "柯文哲": 120985
+      },
+      "pct": {
+        "賴清德": 27.42,
+        "侯友宜": 37.03,
+        "柯文哲": 35.55
+      },
+      "valid": 340310,
+      "winnerKey": "侯友宜",
+      "margin": 1.48
+    },
+    {
+      "name": "苗栗縣",
+      "short": "苗栗",
+      "votes": {
+        "賴清德": 91798,
+        "侯友宜": 131230,
+        "柯文哲": 95637
+      },
+      "pct": {
+        "賴清德": 28.81,
+        "侯友宜": 41.18,
+        "柯文哲": 30.01
+      },
+      "valid": 318665,
+      "winnerKey": "侯友宜",
+      "margin": 11.17
+    }
+  ],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560,
+      "w": 880
+    }
+  }
+}

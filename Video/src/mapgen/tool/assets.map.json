@@ -6,6 +6,8 @@
     "成品名也可以寫成 {\"to\": 檔名, \"how\": \"copy\"}，表示原樣搬過去、不做任何轉換。",
     "  map/<year>/map.png          得票率地圖（白底轉透明，how 預設 white）",
     "  map/<year>/map2.png         區級地圖（只畫區、不畫里；同畫布同範圍，同樣白底轉透明）",
+    "  map/<year>/map_tzmm.png     桃竹苗村里級得票率地圖（總統線，2026-10-19 新增）",
+    "  map/<year>/map2_tzmm.png    桃竹苗鄉鎮級地圖（同上；北北基宜仍用 map.png/map2.png）",
     "  map/<year>/legend.png        圖例（how=copy：Converge 直接產出透明底 + 白字，",
     "                               再過白底轉透明會把白字整片吃掉）",
     "  party/party_<key>.png        政黨徽章（內切圓去背）",
@@ -86,7 +88,9 @@
       "legend.png": {
         "to": "legend.png",
         "how": "copy"
-      }
+      },
+      "map_tzmm.png": "map_tzmm.png",
+      "map2_tzmm.png": "map2_tzmm.png"
     },
     "2000": {
       "map.png": "map.png",
@@ -94,7 +98,9 @@
       "legend.png": {
         "to": "legend.png",
         "how": "copy"
-      }
+      },
+      "map_tzmm.png": "map_tzmm.png",
+      "map2_tzmm.png": "map2_tzmm.png"
     },
     "2004": {
       "map.png": "map.png",
@@ -102,7 +108,9 @@
       "legend.png": {
         "to": "legend.png",
         "how": "copy"
-      }
+      },
+      "map_tzmm.png": "map_tzmm.png",
+      "map2_tzmm.png": "map2_tzmm.png"
     },
     "2008": {
       "map.png": "map.png",
@@ -110,7 +118,9 @@
       "legend.png": {
         "to": "legend.png",
         "how": "copy"
-      }
+      },
+      "map_tzmm.png": "map_tzmm.png",
+      "map2_tzmm.png": "map2_tzmm.png"
     },
     "2012": {
       "map.png": "map.png",
@@ -118,7 +128,9 @@
       "legend.png": {
         "to": "legend.png",
         "how": "copy"
-      }
+      },
+      "map_tzmm.png": "map_tzmm.png",
+      "map2_tzmm.png": "map2_tzmm.png"
     },
     "2016": {
       "map.png": "map.png",
@@ -126,7 +138,9 @@
       "legend.png": {
         "to": "legend.png",
         "how": "copy"
-      }
+      },
+      "map_tzmm.png": "map_tzmm.png",
+      "map2_tzmm.png": "map2_tzmm.png"
     },
     "2020": {
       "map.png": "map.png",
@@ -134,7 +148,9 @@
       "legend.png": {
         "to": "legend.png",
         "how": "copy"
-      }
+      },
+      "map_tzmm.png": "map_tzmm.png",
+      "map2_tzmm.png": "map2_tzmm.png"
     },
     "2024": {
       "map.png": "map.png",
@@ -142,20 +158,24 @@
       "legend.png": {
         "to": "legend.png",
         "how": "copy"
-      }
+      },
+      "map_tzmm.png": "map_tzmm.png",
+      "map2_tzmm.png": "map2_tzmm.png"
     }
   },
   "party": {
     "中国国民党.png": "party_kmt.png",
     "民主进步党.png": "party_dpp.png",
     "新党.png": "party_nsc.png",
-    "亲民党.png": "party_pfp.png"
+    "亲民党.png": "party_pfp.png",
+    "台湾民众党.png": "party_tpp.png",
+    "无党籍.png": "party_ind.png"
   },
   "share": {
     "台北市市徽.png": "city_seal.png",
     "国徽.png": "emblem.png",
     "当选标志.png": "mark_elected.png",
     "ROCFLAG.png": "roc_flag.png",
-    "街景3.png": "street_bg.png"
+    "街景2.png": "street_bg.png"
   }
 }

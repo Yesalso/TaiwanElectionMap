@@ -1,0 +1,124 @@
+{
+  "id": "2004-president-tzmm",
+  "meta": {
+    "election": "第十一屆總統副總統選舉",
+    "electionEn": "2004 Presidential Election",
+    "year": 2004,
+    "date": "3月20日",
+    "dateEn": "20 Mar",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "總統副總統",
+    "officeEn": "President & Vice President",
+    "turnout": null,
+    "validVotes": 1792289,
+    "regionLabel": "桃竹苗",
+    "header": {
+      "role": "時任總統",
+      "name": "陳水扁",
+      "party": "民主進步黨",
+      "partyShort": "DPP"
+    }
+  },
+  "candidates": [
+    {
+      "key": "chen",
+      "name": "陳水扁",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 1,
+      "votes": 761591,
+      "pct": 42.49,
+      "elected": true,
+      "vice": "呂秀蓮",
+      "viceParty": "民主進步黨"
+    },
+    {
+      "key": "lien",
+      "name": "連戰",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 2,
+      "votes": 1030698,
+      "pct": 57.51,
+      "elected": false,
+      "vice": "宋楚瑜",
+      "viceParty": "親民黨"
+    }
+  ],
+  "districts": [
+    {
+      "name": "桃園市",
+      "short": "桃園",
+      "votes": {
+        "陳水扁": 448770,
+        "連戰": 555688
+      },
+      "pct": {
+        "陳水扁": 44.68,
+        "連戰": 55.32
+      },
+      "valid": 1004458,
+      "winnerKey": "連戰",
+      "margin": 10.64
+    },
+    {
+      "name": "新竹市",
+      "short": "新竹市",
+      "votes": {
+        "陳水扁": 96818,
+        "連戰": 118924
+      },
+      "pct": {
+        "陳水扁": 44.88,
+        "連戰": 55.12
+      },
+      "valid": 215742,
+      "winnerKey": "連戰",
+      "margin": 10.24
+    },
+    {
+      "name": "新竹縣",
+      "short": "新竹縣",
+      "votes": {
+        "陳水扁": 92576,
+        "連戰": 165027
+      },
+      "pct": {
+        "陳水扁": 35.94,
+        "連戰": 64.06
+      },
+      "valid": 257603,
+      "winnerKey": "連戰",
+      "margin": 28.12
+    },
+    {
+      "name": "苗栗縣",
+      "short": "苗栗",
+      "votes": {
+        "陳水扁": 123427,
+        "連戰": 191059
+      },
+      "pct": {
+        "陳水扁": 39.25,
+        "連戰": 60.75
+      },
+      "valid": 314486,
+      "winnerKey": "連戰",
+      "margin": 21.5
+    }
+  ],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560,
+      "w": 880
+    }
+  }
+}

@@ -801,31 +801,41 @@
          （2018 柯文哲那張就是這樣）。
        ★ 政黨名走 partyDisplay()：「無黨籍及未經政黨推薦」只印「無黨籍」。
        fitText 是最後一道保險 —— 真的遇到超長黨名就截斷補「…」，
-       不會再讓文字壓出膠囊外。 */
+       不會再讓文字壓出膠囊外。
+       ★ 2026-10-19（需求）：政黨欄的深色圓角框＋描邊**移除** ——
+         只留「徽章＋黨名」直接落在街景暗化背景上，不再有膠囊底板；
+         徽章同步放大（markRatio，見 layout.js chip）。框的幾何
+         （chip 的 x/y/w/h）保留不變，headless 版面報告仍記同一矩形，
+         verify_layout 的判定不受影響。 */
     var cp = conf.chip;
     var chipX = cx - cp.w / 2;
-    ctx.save();
-    ctx.fillStyle = 'rgba(6,12,26,0.66)';
-    U.roundRectPath(ctx, chipX, cp.y, cp.w, cp.h, cp.radius);
-    ctx.fill();
-    ctx.strokeStyle = U.alpha(th.main, 0.75);
-    ctx.lineWidth = 2.5;
-    U.roundRectPath(ctx, chipX, cp.y, cp.w, cp.h, cp.radius);
-    ctx.stroke();
-    ctx.restore();
 
     var markW = cp.h * (cp.markRatio === undefined ? 0.42 : cp.markRatio);
     var gap1 = 20;
-    /* 膠囊左右各留 24px 內距，扣掉徽章與間隔，才是黨名真正可用的寬度 */
-    var labelMax = cp.w - 48 - markW - gap1;
+    /* 推薦政黨段（2026-10-19 個案：無黨籍候選人由某政黨背書，如 1996 林洋港
+       ＝新黨支持）。有推薦且不是自己同黨時，標籤變成
+       「[政黨徽章] 政黨名  [推薦徽章] 新黨支持」，推薦徽章略小、
+       文字比黨名小一級，作為次要資訊排在政黨名之後。 */
+    var recKey = c.recommendedByKey && c.recommendedByKey !== c.partyKey
+        ? c.recommendedByKey : null;
+    var recMarkW = recKey ? markW * 0.7 : 0;
+    var recGap = recKey ? 16 : 0;
+    var recLabel = recKey ? '新黨支持' : '';
+    var recLabelSize = Math.round(cp.nameSize * 0.62);
+    ctx.save();
+    ctx.font = U.font(recLabelSize, 700);
+    var recLabelW = recKey ? ctx.measureText(recLabel).width : 0;
+    ctx.restore();
+    /* 膠囊左右各留 24px 內距，扣掉徽章與間隔（含推薦段），才是黨名可用寬度 */
+    var labelMax = cp.w - 48 - markW - gap1 - recMarkW - recGap - recLabelW;
     var partyLabel = c.partyDisplay();
     ctx.save();
     ctx.font = U.font(cp.nameSize, 900);
-    partyLabel = U.fitText(ctx, partyLabel, labelMax, 0);
+    partyLabel = U.fitText(ctx, partyLabel, Math.max(labelMax, 40), 0);
     var nameW = ctx.measureText(partyLabel).width;
     ctx.restore();
 
-    var total = markW + gap1 + nameW;
+    var total = markW + gap1 + nameW + recMarkW + recGap + recLabelW;
     var sx = chipX + (cp.w - total) / 2;
 
     /* 徽章：使用者提供的政黨圖（assets/party_*.png）。
@@ -855,6 +865,27 @@
       x: sx + markW + gap1, y: cp.y + cp.h / 2, size: cp.nameSize, weight: 900,
       color: '#fff', baseline: 'middle'
     });
+
+    /* 推薦政黨段：小徽章 + 「推薦」二字，排在政黨名之後 */
+    if (recKey) {
+      var recSx = sx + markW + gap1 + nameW + recGap;
+      var recMarkY = cp.y + (cp.h - recMarkW) / 2;
+      var recMark = (this.assets.partyMarks || {})[recKey];
+      if (recMark) {
+        ctx.save();
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(recMark, recSx, recMarkY, recMarkW, recMarkW);
+        ctx.restore();
+      } else {
+        var recTheme = NT.Theme.party(recKey);
+        Marks.partyChip(ctx, recSx, recMarkY, recMarkW, recTheme);
+      }
+      U.text(ctx, recLabel, {
+        x: recSx + recMarkW + 6, y: cp.y + cp.h / 2,
+        size: recLabelSize, weight: 700,
+        color: 'rgba(255,255,255,0.82)', baseline: 'middle'
+      });
+    }
 
     /* ------------------------- 3. 當選標誌 + 姓名 -------------------------
        當選者在姓名左側貼上當選標誌（使用者提供的圖，不是打勾），
@@ -912,6 +943,9 @@
    */
   function drawViceLine(ctx, c, cx, conf) {
     var party = c.viceParty || c.partyDisplay();
+    /* 無黨籍一律標灰（與 Theme.parties.ind 同源），不沿用主候選人的政黨色。 */
+    var partyColor = /^無黨籍/.test(party || '')
+      ? T.party('ind').light : c.theme.light;
     var partySeg = party ? '（' + party + '）' : '';
     var segs = [
       { text: '副手：', size: conf.labelSize, weight: 700,
@@ -921,7 +955,7 @@
     ];
     if (partySeg) {
       segs.push({ text: partySeg, size: conf.labelSize, weight: 700,
-        color: U.alpha(c.theme.light, 0.95), family: NT.FONT_STACK });
+        color: U.alpha(partyColor, 0.95), family: NT.FONT_STACK });
     }
 
     /* 量總寬，超過 maxW 就從後段截（先保姓名，政黨名最後犧牲） */
