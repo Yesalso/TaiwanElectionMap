@@ -13,6 +13,9 @@ __pycache__/
 /Video/Share/tools/_out/
 /Video/Share/data/.local-assets.backup.js
 
+# Video 目錄內所有 png 圖片（大體積，本機保留，不入庫）
+/Video/**/*.png
+
 # 影片合成產物與素材（大體積，本機保留，不入庫）
 /Video/out_video/
 /Video/final/
@@ -62,5 +65,5 @@ _tmp*.txt
 *.myflood_variant
 _tmp*.txt
 
-# ���������زģ�Լ 105 MB������⣩
+# ���������زģ�Լ 105 MB������⣩
 /Video/MP3/
