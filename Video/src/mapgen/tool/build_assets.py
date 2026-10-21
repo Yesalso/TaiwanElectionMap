@@ -21,6 +21,10 @@
 兩種處理方式（配方集中在這條管線，看板端不需要知道）：
 
   地圖        純白底轉透明（threshold 12，實作在 make_transparent.py）。
+              ★ 桃竹苗地圖（map_tzmm.png / map2_tzmm.png）另有一條配方
+                how="whiteblack"：白底轉透明 **且** 純黑界線轉白線 ——
+                看板底色是深色的，黑界線看不見，轉白才浮得出來。
+                （兩個遮罩在同一次掃描裡從原圖算出來，否則白線會被吃掉。）
   圖例        原樣沿用（copy）—— 它由 Converge_to_map_taipei.py 直接畫成
               「透明底 + 白字 + 色塊」的 RGBA，白字本身就是 RGB(255,255,255)，
               再過一次白底轉透明會被整片吃掉，所以這裡只搬檔、不轉換。
@@ -32,6 +36,7 @@
     python tool/build_assets.py                     # 全部（依 assets.map.json）
     python tool/build_assets.py --year 2018         # 只做 2018
     python tool/build_assets.py --kind map          # 只做某一類
+    python tool/build_assets.py --only map_tzmm.png # 只做某些「原始檔名」
     python tool/build_assets.py --force             # 已存在的成品也重做
     python tool/build_assets.py --dry-run           # 只列出會做什麼
     python tool/build_assets.py --check             # 只檢查成品是否齊備（CI 用）
@@ -95,6 +100,20 @@ def build_white(src: Path, dst: Path, threshold: int = MAP_WHITE_THRESHOLD) -> s
     return "白底轉透明（threshold %d）" % threshold
 
 
+def build_white_black(src: Path, dst: Path, threshold: int = MAP_WHITE_THRESHOLD) -> str:
+    """白底 -> 透明 **且** 純黑界線 -> 白線（桃竹苗地圖專用）。
+
+    兩個遮罩都在同一次掃描裡從**原圖**算出來，否則「黑轉白」做出來的白線
+    會被白底遮罩一起吃掉、界線直接消失（詳見 make_transparent.py 裡
+    white_to_transparent_black_to_white 的說明）。
+
+    純黑判准**不帶容差**：桃竹苗地圖的界線是 OpenCV 畫的（不抗鋸齒），
+    實測整張圖沒有半灰的過渡像素，加容差反而會誤傷深色的填色檔。
+    """
+    MT.white_to_transparent_black_to_white(str(src), str(dst), threshold=threshold)
+    return "白底轉透明（threshold %d）＋ 純黑界線轉白線" % threshold
+
+
 def build_copy(src: Path, dst: Path) -> str:
     """原圖本身就是最終成品（透明底 RGBA）——原樣搬成成品，不做任何轉換。
 
@@ -116,9 +135,15 @@ def build_static(src: Path, dst: Path, filename: str) -> str:
 
 
 # ----------------------------------------------------------------- 掃描
-def tasks_for(cfg: dict, kinds, years):
-    """把 assets.map.json 攤平成 [(kind, src, dst, how)]。"""
+def tasks_for(cfg: dict, kinds, years, only=None):
+    """把 assets.map.json 攤平成 [(kind, src, dst, how)]。
+
+    only = 只做這些「原始檔名」（不含副檔名），例如 ("map_tzmm.png",)。
+    這是為了改桃竹苗地圖時**不碰市長線 / 北北基宜線的成品**：
+    那兩條線共用 map.png / map2.png，`--force` 會把它們一起重寫。
+    """
     out = []
+    only = set(only or [])
 
     def want(kind, year=None):
         if kinds and kind not in kinds:
@@ -151,6 +176,9 @@ def tasks_for(cfg: dict, kinds, years):
                         OUT_ROOT / kind / dstname,
                         "static"))
 
+    if only:
+        out = [t for t in out if t[1].name in only]
+
     return out
 
 
@@ -170,6 +198,8 @@ def run_one(task, force: bool, dry: bool):
         note = build_copy(src, dst)
     elif how == "white":
         note = build_white(src, dst)
+    elif how == "whiteblack":
+        note = build_white_black(src, dst)
     else:
         note = build_static(src, dst, dst.name)
     return ("built", "%s -> %s\n        %s"
@@ -183,6 +213,10 @@ def main():
                     help="只做這個年份（可重複；不給 = 全部）")
     ap.add_argument("--kind", action="append", default=[],
                     choices=KINDS, help="只做這一類（可重複）")
+    ap.add_argument("--only", action="append", default=[],
+                    help="只做這些『原始檔名』（可重複；不給 = 全部）。"
+                         "例：--only map_tzmm.png --only map2_tzmm.png "
+                         "（只重做桃竹苗地圖，市長線 / 北北基宜線的成品完全不動）")
     ap.add_argument("--force", action="store_true", help="已存在的成品也重做")
     ap.add_argument("--dry-run", action="store_true", help="只列出會做什麼")
     ap.add_argument("--check", action="store_true",
@@ -192,7 +226,7 @@ def main():
     cfg = load_map()
     years = set(args.year)
     kinds = set(args.kind)
-    tasks = tasks_for(cfg, kinds, years)
+    tasks = tasks_for(cfg, kinds, years, only=args.only)
 
     print("成品根：%s" % OUT_ROOT.relative_to(VIDEO_ROOT))
     print("原始素材：%s" % PNG_DIR.relative_to(VIDEO_ROOT))

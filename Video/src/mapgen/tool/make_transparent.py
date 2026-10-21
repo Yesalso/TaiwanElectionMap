@@ -13,6 +13,12 @@
 
 成品一律写进 `dist/assets/`，不回写 `png/` 的原图。
 
+★ 两个入口：
+  white_to_transparent()              白底转透明（地图 / 图例通用配方）
+  white_to_transparent_black_to_white() 白底转透明 **且** 纯黑界线转白线
+                                      （桃竹苗地图专用；界线在深色看板上
+                                        看不见，转白才浮得出来。详见函数说明。）
+
 ★ 前提（改绘图参数前务必看一眼）：本判准是「逐通道区间」——
   三条通道都 >= 255 - threshold 才算白。它对
   `Converge_to_map_taipei.py` 的产物是精确的：四层绘图全部
@@ -53,6 +59,57 @@ def white_to_transparent(input_path: str,
     #    会从 148.0 KB 涨到 159.3 KB（+7.6%），加了才与既有成品位元组相同。
     Image.fromarray(data, mode="RGBA").save(output_path, "PNG", optimize=True)
     print(f"完成：{white_mask.sum()} 个像素已变为透明 -> {output_path}")
+
+
+def white_to_transparent_black_to_white(input_path: str,
+                                        output_path: str,
+                                        threshold: int = 12) -> None:
+    """
+    白底转透明，**同时把纯黑界线转成白色界线**（转完仍然不透明）。
+
+    为什么必须放在同一个函数里、一次扫描做完：
+      先「黑→白」再「白→透明」是**行不通的** —— 黑线转白之后就变成了白底
+      遮罩要吃掉的东西，下一步会被一起清成透明，界线直接消失。
+      所以两个遮罩都取自**原图**：白底遮罩用原图算，黑线遮罩也用原图算，
+      然后才分别套用。
+
+    为什么要黑线转白：
+      看板底色是深色的街景暗化背景，黑界线在深底上几乎看不见；
+      转成白线之后界线才浮得出来（地图缩小到看板尺寸时白线还会与
+      两侧的填色混色，变成该填色的「亮色描边」，而不是刺眼的纯白）。
+
+    黑线判准是**精确的 (0,0,0)，不带容差**：
+      桃竹苗地图的界线是 OpenCV 画出来的（cv2.line，不抗锯齿），
+      实测整个图层只有精确的纯黑、没有半灰的过渡像素，所以不需要容差；
+      真要加容差反而会把「深色的填色档」也吃进来。
+
+    :param input_path:  输入 PNG 路径（白底 + 黑界线 + 填色）
+    :param output_path: 输出 PNG 路径
+    :param threshold:   白底的容差 (0~255)，与地图其余成品一致（12）
+    """
+    # 1. 打开并统一转为 RGBA（保证有 alpha 通道）
+    img = Image.open(input_path).convert("RGBA")
+    # 2. 转成 numpy 数组，形状 (H, W, 4)
+    data = np.array(img)
+    r, g, b, a = data[..., 0], data[..., 1], data[..., 2], data[..., 3]
+
+    # 3. 两个遮罩都从**原图**算出来（此刻还没动过任何一个像素）
+    limit = 255 - threshold
+    white_mask = (r >= limit) & (g >= limit) & (b >= limit)   # 白底
+    black_mask = (r == 0) & (g == 0) & (b == 0) & (a > 0)     # 纯黑界线，无容差
+
+    # 4. 黑线转白：只改 RGB，**不动 alpha**（界线保持不透明）
+    data[..., 0] = np.where(black_mask, 255, r)
+    data[..., 1] = np.where(black_mask, 255, g)
+    data[..., 2] = np.where(black_mask, 255, b)
+
+    # 5. 白底转透明：用第 3 步算好的遮罩（刚转白的黑线不在里面）
+    data[..., 3] = np.where(white_mask, 0, a)
+
+    # 6. 保存（optimize=True 只影响压缩旗标、不改任何像素）
+    Image.fromarray(data, mode="RGBA").save(output_path, "PNG", optimize=True)
+    print(f"完成：{white_mask.sum()} 个像素已变为透明，"
+          f"{black_mask.sum()} 个纯黑界线已转为白色 -> {output_path}")
 
 
 if __name__ == "__main__":
