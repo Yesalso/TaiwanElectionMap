@@ -161,15 +161,19 @@ def processed_path(filename: str, year=None, map_variant: str = "map") -> Option
     return os.path.join(VIDEO_ROOT, PROCESSED_ROOT, rel.replace("/", os.sep))
 
 
-# 這些政黨是政黨本身有標章的，沒有徽章的政黨（如無黨籍）走預設色塊
-PARTIES_WITH_MARK = ("kmt", "dpp", "tpp", "pfp", "nsc")
+# 這些政黨是政黨本身有標章的，沒有徽章的政黨（如各國小黨）走預設色塊。
+# ★ 2026-10-24：補 "ind"（無黨籍黑圓「無」）—— 引擎端 slide.js 的
+#   PARTIES_WITH_MARK 早在 2026-10-19 就加了 ind，這裡沒跟上，導致
+#   build_board.py 建出的市長場沒把 party_ind.png 寫進 board.files.js，
+#   引擎只好退回抽象色塊並噴「讀不到政黨徽章」警告。兩邊務必保持一致。
+PARTIES_WITH_MARK = ("kmt", "dpp", "tpp", "pfp", "nsc", "ind")
 
 
 def party_needs_mark(candidates) -> List[str]:
     """回傳需要徽章的政黨 key（依出現順序，同政黨只列一次）。
 
-    partyShort 不在 PARTIES_WITH_MARK 的一律不要求徽章 —— 無黨籍、
-    聯盟、各國小黨沒有公開的標準標章，強行要求會擋住建置。
+    partyShort 不在 PARTIES_WITH_MARK 的一律不要求徽章 —— 聯盟、
+    各國小黨沒有公開的標準標章，強行要求會擋住建置。
     """
     out = []
     for c in candidates:

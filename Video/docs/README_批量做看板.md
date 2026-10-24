@@ -145,7 +145,8 @@ done
   tools/render_boards.mjs --all --scale 1 --out ./out
 ```
 
-- `build_board.py` 每場寫出 `board.js` / `board.files.js` / `board.assets.js`。
+- `build_board.py` 每場寫出 `board.js` / `board.files.js`（+ `index.html`）。
+  `board.assets.js` **預設不產**（每場約 10 MB，模板也沒載入它）；要 file:// 直開才加 `--embed`。
 - `render_boards.mjs --all` 掃 `boards/` 下所有含 `meta.json` 的目錄；
   有 `.skip` 標記的會**自動跳過**（`2014-newtpei-mayor` 就是這樣被排除的）。
 - 多倍率：`--scales 1,2`（1× = 2560×1440，2× = 5120×2880）。
@@ -175,7 +176,8 @@ boards/<id>/
     emblem.png       國徽      = processed/share/emblem.png
     mark_elected.png 當選標誌  = processed/share/mark_elected.png
     party_<key>.png  黨徽      = processed/party/party_<key>.png
-  board.js / board.files.js / board.assets.js   ← build 產生，別手改
+  board.js / board.files.js                     ← build 產生，別手改
+  （board.assets.js 只在 --embed 時才產，正常不需要）
   .cache/geojson.json                            ← SHP dissolve 快取，可刪
 ```
 
@@ -183,8 +185,12 @@ boards/<id>/
 - `boards/<id>/assets/` 只作舊場次的回退來源，新場次不再往寫。
 - **沒有候選人照片**這一項：看板卡面只填政黨純色，照片由使用者後製合成。
 
-現成的 8 場台北市長看板目錄，是 `tools/_gen_taipei_boards.py`（一次性工具）生出來的；
-它同時產生「村里版」與「區級版」兩套（`<id>` 與 `<id>-map2`），差別只在 `mapVariant`。
+現成的 8 場台北市長看板目錄，是 `src/tools/_gen_taipei_boards.py`（一次性工具）生出來的。
+★ 2026-10-24 起**預設只產村里版**：`-map2` 區級鏡像場次已停產，既有 8 場歸檔在
+`invaild/obsolete-taipei-map2/<時間戳>/`（那批目錄每次批次建置都只多吐一份
+`dist/boards/<id>-map2/board.files.js`，沒有成品在用）。要復活加 `--with-map2`，
+要清掉既有加 `--retire-map2`。`台北市民的选择.mp4` 用的區級圖是
+`dist/final/taipeimayor/` 的獨立 PNG，不受影響。
 
 ---
 
@@ -203,14 +209,15 @@ boards/<id>/
 
 ## 6. 現況與未完成（別期待不存在的東西）
 
-**已可用**：步驟 A–D 全部跑通，8 場台北市長看板（村里版 + 區級版）已產出於 `out/`。
+**已可用**：步驟 A–D 全部跑通，8 場台北市長看板（村里版）已產出於 `dist/boards/`；
+區級鏡像版（`-map2`）自 2026-10-24 停產（見 §4 註）。
 
 **尚未實作**（README 設計規格裡有、程式碼還沒有）：
 
 - ❌ `tools/build_all.py` —— 「一條命令建置+渲染整批」的總入口（現需自己寫 for 迴圈，見 §3-C1）。
 - ❌ `tools/verify_all.py` —— 三層批次驗證。
 - ❌ `boards/_defaults/` 的 `extends` 繼承、`pool/` 跨場素材池。
-- ❌ `build_board.py --embed`：`board.assets.js` 目前每場都產（file:// 直接開才需要）。
+- ✅ `build_board.py --embed`：`board.assets.js` 已改成**選用**（預設不產；`file://` 直開才需要）。
 
 > 也就是說：**「批量」現在是「三個步驟各自支援多場 + 自己串」，不是「單一指令」。**
 > 想再往前一步，缺的就是 `build_all.py` 那層薄薄的編排。

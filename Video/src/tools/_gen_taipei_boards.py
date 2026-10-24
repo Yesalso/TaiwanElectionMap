@@ -1,24 +1,42 @@
 # -*- coding: utf-8 -*-
-"""一次性工具：為 1994-2014 臺北市長選舉建立看板目錄（meta.json + index.html + source/）。
+"""一次性工具：為臺北市長選舉建立場次目錄（meta.json + source/）。
 
-素材（地圖 / 圖例 / 市徽 / 國徽 / 當選標誌 / 黨徽）一律從
-assets/ 與 processed/ 複製進 source/，讓 build_board.py 的
-check_sources() 能通過。data.xlsx 由 data/ 對應檔複製。
+素材（地圖 / 圖例 / 市徽 / 國徽 / 當選標誌 / 黨徽）一律從 dist/assets/ 複製
+進 source/，讓 build_board.py 的 check_sources() 能通過。data.xlsx 由 data/
+對應檔複製。
 
-執行： py tools/_gen_taipei_boards.py
+★ 2026-10-24 起預設**不再產生 `-map2` 區級鏡像場次**（`<id>-map2`）：
+  那批場次每次批次建置都會多吐一份 dist/boards/<id>-map2/board.files.js，
+  卻沒有成品在用。預設只建村里版（region.mapVariant = "map"）。
+  要恢復舊行為：加 `--with-map2`。
+
+用法：
+  python src/tools/_gen_taipei_boards.py                # 只建村里版（預設）
+  python src/tools/_gen_taipei_boards.py --with-map2    # 連區級鏡像場次一起建
+  python src/tools/_gen_taipei_boards.py --retire-map2  # 只清掉既有 -map2 場次，不動 meta
+
+★ 注意：本檔是「一次性建場器」，會覆寫 meta.json。若現有 meta.json 已手改
+  （例如 meta.header 時任市長區塊），跑之前先確認不會被蓋掉。
 """
+import argparse
+import datetime
 import json
 import os
 import shutil
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from boardlib import naming
+
 sys.stdout.reconfigure(encoding="utf-8")
 
-VIDEO = r"D:\Windows\TaiwanElection\Video"
-BOARDS = os.path.join(VIDEO, "boards")
-DATA = os.path.join(VIDEO, "data")
-PNG = os.path.join(VIDEO, "assets")
-PROC = os.path.join(VIDEO, "dist", "assets")
+VIDEO = naming.VIDEO_ROOT
+BOARDS = os.path.join(VIDEO, naming.BOARDS_DIR)          # src/boards
+DATA = os.path.join(VIDEO, naming.DATA_ROOT)             # data/
+PROC = os.path.join(VIDEO, naming.PROCESSED_ROOT)        # dist/assets
+DIST_BOARDS = os.path.join(VIDEO, naming.DIST_BOARDS_ROOT)  # dist/boards
+ARCHIVE = os.path.join(VIDEO, "invaild", "obsolete-taipei-map2")
 
 TOWNFULL = {
     "松山": "松山區", "信義": "信義區", "大安": "大安區", "中山": "中山區",
@@ -160,12 +178,14 @@ ASSET_COPIES = [
 ]
 
 
-def build_one(y, variant):
-    """建一個場次目錄。variant='map' 是村里版；'map2' 是區級版（鏡像場次）。
+def build_one(y, variant="map"):
+    """建一個場次目錄。
+
+    variant='map' 是村里版（預設、唯一會產生的版本）；'map2' 是區級鏡像場次，
+    只在 `--with-map2` 時才會建，已於 2026-10-24 停用（不要再產）。
 
     兩版只有兩處不同：id 後綴（-map2）與 region.mapVariant（決定 build 時
-    到 processed/map/<year>/ 拿 map.png 還是 map2.png）。其餘 meta / 資料 /
-    素材完全相同，所以同一場選舉可以並存「村里版」與「區級版」兩張看板。
+    到 dist/assets/map/<year>/ 拿 map.png 還是 map2.png）。
     """
     bid = y["id"] + ("-map2" if variant == "map2" else "")
     bdir = os.path.join(BOARDS, bid)
@@ -209,10 +229,6 @@ def build_one(y, variant):
         json.dump(meta, f, ensure_ascii=False, indent=2)
     print("meta.json  ", bid)
 
-    # ---- index.html（複製模板）----
-    shutil.copyfile(os.path.join(BOARDS, "_template", "index.html"),
-                    os.path.join(bdir, "index.html"))
-
     # ---- source/data.xlsx ----
     shutil.copyfile(os.path.join(DATA, y["excel"]),
                     os.path.join(srcdir, "data.xlsx"))
@@ -235,13 +251,114 @@ def build_one(y, variant):
             print("  [警告] 缺", os.path.relpath(s, VIDEO))
 
 
-def main():
-    for y in YEARS:
-        build_one(y, "map")
-        build_one(y, "map2")
+# ------------------------------------------------------------ 退役 -map2
+def find_map2_boards():
+    """掃出臺北市長線既有的 `-map2` 鏡像場次 id（不論年份、含 2018/2022）。"""
+    ids = []
+    for root in (BOARDS, DIST_BOARDS):
+        if not os.path.isdir(root):
+            continue
+        for name in sorted(os.listdir(root)):
+            if not name.endswith("-map2"):
+                continue
+            base = name[: -len("-map2")]
+            if "taipei-mayor" not in base:
+                continue
+            if os.path.isdir(os.path.join(root, name)) and name not in ids:
+                ids.append(name)
+    return ids
 
-    print("\n完成。")
+
+def prune_manifest(ids):
+    """從 dist/manifest.json 移除已退役場次的紀錄（先備份）。"""
+    path = os.path.join(VIDEO, "dist", "manifest.json")
+    if not os.path.isfile(path) or not ids:
+        return
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    results = data.get("results") or []
+    keep = [r for r in results if r.get("board") not in ids]
+    if len(keep) == len(results):
+        print("manifest：無需變更")
+        return
+    stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup = os.path.join(VIDEO, "dist", "manifest.backup-%s.json" % stamp)
+    shutil.copyfile(path, backup)
+    data["results"] = keep
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    print("manifest：移除 %d 筆（%d -> %d），備份 %s"
+          % (len(results) - len(keep), len(results), len(keep),
+             os.path.relpath(backup, VIDEO)))
+
+
+def retire_map2(dry_run=False):
+    """把臺北市長線的 `-map2` 場次（src + dist）移到 invaild/ 歸檔。
+
+    直接刪掉也不影響重建（dist/boards 是可再生產物、src 的 source/ 是複製品），
+    但歸檔可以隨時還原，成本只是幾個 MB。
+    """
+    ids = find_map2_boards()
+    if not ids:
+        print("沒有需要退役的 -map2 場次。")
+        return
+    stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    for bid in ids:
+        for root, tag in ((BOARDS, "src"), (DIST_BOARDS, "dist")):
+            s = os.path.join(root, bid)
+            if not os.path.isdir(s):
+                continue
+            d = os.path.join(ARCHIVE, stamp, tag, bid)
+            if dry_run:
+                print("[dry-run] %s -> %s" % (os.path.relpath(s, VIDEO),
+                                              os.path.relpath(d, VIDEO)))
+                continue
+            os.makedirs(os.path.dirname(d), exist_ok=True)
+            shutil.move(s, d)
+            print("歸檔", os.path.relpath(s, VIDEO), "->", os.path.relpath(d, VIDEO))
+    if not dry_run:
+        prune_manifest(ids)
+    print("\n退役 %d 場 -map2：%s" % (len(ids), "、".join(ids)))
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        description="臺北市長看板一次性建場器（預設不再產生 -map2 區級鏡像場次）")
+    ap.add_argument("--with-map2", action="store_true",
+                    help="同時建 -map2 區級鏡像場次（舊行為，預設關閉）")
+    ap.add_argument("--retire-map2", action="store_true",
+                    help="只把既有 -map2 場次歸檔到 invaild/，不重建 meta")
+    ap.add_argument("--dry-run", action="store_true", help="只印動作，不動檔案")
+    ap.add_argument("--only", nargs="*", default=None,
+                    help="只處理指定年份，例如 --only 1994 2014")
+    args = ap.parse_args()
+
+    if args.retire_map2:
+        retire_map2(dry_run=args.dry_run)
+        return
+
+    years = YEARS
+    if args.only:
+        want = {str(v) for v in args.only}
+        years = [y for y in YEARS if str(y["year"]) in want]
+        if not years:
+            print("沒有符合 --only 的年份：", " ".join(args.only))
+            return 1
+
+    for y in years:
+        build_one(y, "map")
+        if args.with_map2:
+            build_one(y, "map2")
+
+    if not args.with_map2:
+        print("\n完成（只建村里版）。下一步：")
+        print("  逐場建置： python src/tools/build_board.py src/boards/<id>")
+        print("  一次渲染： node src/tools/render_boards.mjs --all --scale 1")
+        print("  既有 -map2 場次若還在，跑 --retire-map2 歸檔掉。")
+    else:
+        print("\n完成（村里版 + 區級鏡像版）。")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

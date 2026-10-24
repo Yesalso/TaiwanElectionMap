@@ -195,7 +195,7 @@ $PY tools/build_board.py boards/2022-taipei-mayor
 
 - `board.js`（选票数据 + 行政区几何）
 - `board.files.js`（`window.BOARD_FILES.files`，逻辑素材名 → 实际路径）
-- `board.assets.js`（内嵌素材，只有 `file://` 直开才需要）
+- `board.assets.js`（内嵌素材，**默认不产**；只有 `file://` 直开才需要，加 `--embed`）
 - `index.html`（薄壳，复制模板）
 - `.cache/geojson.json`（缓存，自带 `_source` 记录来源，不符会自动重建）
 

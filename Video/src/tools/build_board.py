@@ -10,7 +10,8 @@
                                >=2019 用現行圖資 111；快取會記來源，換版自動重建）
   5. resolve_assets()        找素材：一律優先吃 dist/assets/
                              的透明化成品（舊場次沒搬過去的才回退 boards/<id>/assets/）
-  6. 寫 board.js / board.files.js / board.assets.js
+  6. 寫 board.js / board.files.js（+ index.html）；board.assets.js 只在
+     `--embed` 時才產（預設不產，模板沒載入它）
 
 ★ 本檔不再「做」素材（不去背、不透明化、不往 assets/ 複製檔案）。
   素材的產生只有一個入口：src/mapgen/tool/build_assets.py，
@@ -332,6 +333,10 @@ def main():
     ap.add_argument("--shp", metavar="FILE",
                     help="強制用這份村里界 SHP，覆寫「依選舉年挑圖資」的結果"
                          "（<2019 預設用歷史圖資 106 VILLAGE_MOI_1070205）")
+    ap.add_argument("--embed", action="store_true",
+                    help="額外產出 board.assets.js（file:// 直接開 index.html 的"
+                         "內嵌備援，每場約 10 MB）。預設不產；"
+                         "index.html 模板也沒有載入它，正常（http）渲染用不到。")
     args = ap.parse_args()
 
     board = manifest.resolve(args.board_dir)
@@ -472,8 +477,19 @@ def main():
     p2 = write_board_files_js(board, resolved, board.out_dir)
     print("輸出:", os.path.relpath(p2), "(%.0f KB)" % (os.path.getsize(p2) / 1024))
 
-    p3 = write_board_assets_js(board, resolved, board.out_dir)
-    print("輸出:", os.path.relpath(p3), "(%.0f KB)" % (os.path.getsize(p3) / 1024))
+    # ---- board.assets.js：預設不產（2026-10-25 使用者要求）----
+    # 它是 file:// 直接開 index.html 時的內嵌備援，每場約 10 MB；而
+    # src/templates/index.html 根本沒有 <script src="./board.assets.js">，
+    # 也就是說正常渲染／預覽一輩子讀不到它 —— 純粹是垃圾檔。
+    # 真的要用（離線 file:// 開啟）再加 --embed。
+    p_embed = os.path.join(board.out_dir, "board.assets.js")
+    if args.embed:
+        p3 = write_board_assets_js(board, resolved, board.out_dir)
+        print("輸出:", os.path.relpath(p3), "(%.0f KB，file:// 備援)"
+              % (os.path.getsize(p3) / 1024))
+    elif os.path.isfile(p_embed):
+        os.remove(p_embed)
+        print("清除:", os.path.relpath(p_embed), "（board.assets.js 預設不產）")
 
     p4 = write_index_html(board, board.out_dir)
     print("輸出:", os.path.relpath(p4))
