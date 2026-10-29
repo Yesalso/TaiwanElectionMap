@@ -1,0 +1,84 @@
+{
+  "id": "2022-taitung",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "臺東縣縣市長",
+    "officeEn": "County Magistrate / Mayor of 臺東縣",
+    "county": "臺東縣",
+    "countyShort": "臺東",
+    "electorate": 177853,
+    "turnout": 64.79,
+    "validVotes": 112148,
+    "invalidVotes": 3078,
+    "castVotes": 115226,
+    "header": {
+      "role": "時任縣市長",
+      "name": "饒慶鈴",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "陳長宏",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 1,
+      "votes": 2383,
+      "pct": 2.12,
+      "elected": false
+    },
+    {
+      "key": "c2",
+      "name": "饒慶鈴",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 2,
+      "votes": 68661,
+      "pct": 61.22,
+      "elected": true
+    },
+    {
+      "key": "c3",
+      "name": "劉櫂豪",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 3,
+      "votes": 41104,
+      "pct": 36.65,
+      "elected": false
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 719.8,
+      "y": 197.0,
+      "w": 595.0,
+      "h": 1032
+    },
+    "map2": {
+      "x": 1350.7,
+      "y": 236.0,
+      "w": 493.5,
+      "h": 856.0,
+      "enabled": true
+    }
+  }
+}

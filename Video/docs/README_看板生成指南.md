@@ -4,6 +4,15 @@
 > 撰写时间：2026-10-15，基于当前的程式码与目录实况（含「届次文案」「小卡去底色」「宋楚瑜 2000 灰」「分两文件夹输出」四轮定案）。
 > 本文取代 `README_批量做看板.md`（那份是 2026-10-04 的历史快照，部分参数已过时，留作沿革参考）。
 
+> ⚠️ **2026-10-25 起产物落点变了**（本文下面的旧命令未逐条改写，以这条为准）：
+> - 看板 PNG 一律落 `dist/dist_png/<项目>/<年份>.png`（2× 为 `<年份>_2x.png`），
+>   >   按选举项目分文件夹（台北市长全部年份一间、总统北北基宜一间、桃竹苗一间），
+>   里面只有 png；`--out` 只改 PNG 落点，不再影响 `layout.json`。
+> - `layout.json` 固定落 `dist/boards/<id>/`，所以 `verify_layout.py` 直接跑、
+>   不用传参（传参还是可以）。
+> - `manifest.json` 固定落 `dist/manifest.json`，且改为增量合并（`--no-merge` 才整份重写）。
+> - 权威目录约定见 `.workbuddy/DIRECTORY_CONVENTION.md`。
+
 ---
 
 ## 0. 一分钟上手
@@ -196,8 +205,10 @@ $PY tools/build_board.py boards/2022-taipei-mayor
 - `board.js`（选票数据 + 行政区几何）
 - `board.files.js`（`window.BOARD_FILES.files`，逻辑素材名 → 实际路径）
 - `board.assets.js`（内嵌素材，**默认不产**；只有 `file://` 直开才需要，加 `--embed`）
-- `index.html`（薄壳，复制模板）
-- `.cache/geojson.json`（缓存，自带 `_source` 记录来源，不符会自动重建）
+- 入口页：**全場共用一份** `dist/boards/_entry/index.html`，渲染时带 `?board=<id>`
+  （2026-10-28 起不再逐场复制 index.html；入口与 `<id>/` 同深度，相对路径不需改）
+- geojson 缓存：`dist/.cache/geo/<县市>__<图资>__s<simplify>__r<round>.json`
+  （2026-10-28 起集中管理，按来源指纹寻址，不再各场一份）
 
 **总统场**
 
@@ -208,7 +219,9 @@ $PY tools/_gen_president_boards.py 2000     # 只做 2000
 
 - 直接读 `D:/Windows/TaiwanElection/Precident/<year>Precident/data/*縣市鄉鎮村里*.xlsx` 的「乡镇市区级别」工作表算北北基宜合计（★ 资料在**專案外**的兄弟目录），**不建 `source/` 目录**，直接写 `board.files.js` 指向 `processed/`。
 - 同时生成 `<year>-president-north` 与 `<year>-president-north-map2` 两个变体（差别只在主图用 `map.png` 还是 `map2.png`）。
-- ★ **`index.html` 是从 `boards/2022-taipei-mayor/index.html` 复制过来的** —— 改了引擎壳层要记得重跑这个生成器。
+- ★ 入口页不再由生成器复制（全場共用 `dist/boards/_entry/index.html`，
+  2026-10-28 起改由 `boardlib/entry.py` 统一维护）—— 改了 `src/templates/index.html`
+  只要任意跑一次建置就會同步，不必重建 32 場。
 
 ### C. 渲染
 

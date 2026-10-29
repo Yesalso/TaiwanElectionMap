@@ -1,0 +1,108 @@
+{
+  "id": "2022-hsinchucounty",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "新竹縣縣市長",
+    "officeEn": "County Magistrate / Mayor of 新竹縣",
+    "county": "新竹縣",
+    "countyShort": "新竹縣",
+    "electorate": 452720,
+    "turnout": 58.98,
+    "validVotes": 258305,
+    "invalidVotes": 8708,
+    "castVotes": 267013,
+    "header": {
+      "role": "時任縣市長",
+      "name": "楊文科",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "黃秀龍",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 1,
+      "votes": 3403,
+      "pct": 1.32,
+      "elected": false
+    },
+    {
+      "key": "c2",
+      "name": "范振揆",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 2,
+      "votes": 4874,
+      "pct": 1.89,
+      "elected": false
+    },
+    {
+      "key": "c3",
+      "name": "周江杰",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 3,
+      "votes": 83683,
+      "pct": 32.4,
+      "elected": false
+    },
+    {
+      "key": "c4",
+      "name": "楊文科",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 4,
+      "votes": 163662,
+      "pct": 63.36,
+      "elected": true
+    },
+    {
+      "key": "c5",
+      "name": "劉復嵐",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 5,
+      "votes": 2683,
+      "pct": 1.04,
+      "elected": false
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560.0,
+      "y": 197.0,
+      "w": 885.9,
+      "h": 1032
+    },
+    "map2": {
+      "x": 1481.9,
+      "y": 408.9,
+      "w": 522.1,
+      "h": 608.2,
+      "enabled": true
+    }
+  }
+}

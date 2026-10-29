@@ -101,6 +101,15 @@ DROP_NAN_COUNTIES = ["基隆市", "臺中市", "雲林縣", "高雄市"]
 REMOTE_MAX_DIST_M = 2000.0          # 無村里名：距本島 > 2km 剔除
 NAMED_MAX_DIST_M = 20000.0          # 有村里名：距本島 > 20km 才剔除
 
+# 個別縣市覆寫「距本島距離」門檻：(無村里名, 有村里名)，單位 m。
+# 群島縣的正常領土本來就超過 20km，用單一門檻會把整座島（甚至整個鄉）砍掉：
+#   澎湖縣——七美鄉距本島 34.5～37.1km、望安鄉東吉 28.0km／東坪 31.6km／西坪 26.9km／
+#   花嶼 31.1km、西安村外礁 20.0～20.8km（原本全被剔除，七美鄉整鄉消失）。
+#   放寬到 45km 後上列全部保留；本島群（102km²）仍為最大分量，不影響主圖斑判定。
+COUNTY_DIST_OVERRIDE = {
+    "澎湖縣": (45000.0, 45000.0),
+}
+
 MIN_SIMILARITY = 0.5
 
 # ===================== 22 縣市配置 =====================
@@ -714,7 +723,9 @@ def build_county_map(county, shp, rates, votes, candidates, level):
             print(f"    DROP_NAN_COUNTIES：剔除 {int(_drop.sum())} 筆無村里名圖斑")
             gdf = gdf[~_drop].copy().reset_index(drop=True)
 
-    gdf = strip_far_parts(gdf)
+    _d_nameless, _d_named = COUNTY_DIST_OVERRIDE.get(
+        county_canon, (REMOTE_MAX_DIST_M, NAMED_MAX_DIST_M))
+    gdf = strip_far_parts(gdf, max_dist_nameless=_d_nameless, max_dist_named=_d_named)
 
     gdf["county_core"] = gdf["COUNTYNAME"].apply(canon_county)
     gdf["town_core"] = gdf["TOWNNAME"].apply(strip_town_suffix)

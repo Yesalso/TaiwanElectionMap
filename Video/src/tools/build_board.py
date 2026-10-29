@@ -28,13 +28,12 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from boardlib import assets as assets_mod
-from boardlib import canonical, geo, manifest, naming, xlsx_read
+from boardlib import canonical, entry, geo, manifest, naming, xlsx_read
 
 
 # ------------------------------------------------------------------ 聚合
@@ -117,6 +116,25 @@ def fill_candidate_pct(candidates, meta):
     return out
 
 
+def geo_cache_path(want):
+    """geojson 快取的落點：dist/.cache/geo/<county>__<圖資>__s<simplify>__r<round>.json
+
+    ★ 2026-10-28：從「產物目錄裡的 .cache/geojson.json」搬出來集中管理。
+      舊做法落在 dist/boards/<id>/.cache/：台北 8 個場次各存一份內容完全
+      相同的 15KB 檔案，而且任何清理 dist 的動作都會連帶丟掉快取。
+      現在按「來源指紋」尋址，同一份圖資 + 同一個縣市 + 同一個簡化參數
+      只有一個檔案，台北 1994–2018 八場共用。
+
+    檔名用的就是 geo.PROVENANCE_KEYS（id/shp/county/simplify/round），
+    所以檔名相同 ⇔ 來源相同；provenance_matches() 仍保留做二次保護
+    （有人手動搬檔、或 key 規則改了都還擋得住）。
+    """
+    key = "%s__%s__s%g__r%d" % (want["county"], want["id"],
+                                want["simplify"], want["round"])
+    key = key.replace(os.sep, "_").replace("/", "_").replace("\\", "_")
+    return os.path.join(naming.VIDEO_ROOT, "dist", ".cache", "geo", key + ".json")
+
+
 # ------------------------------------------------------------------ 輸出
 def write_board_js(board, payload, out_dir):
     js = ("/* 自動產生，請勿手改。\n"
@@ -196,17 +214,16 @@ def write_board_assets_js(board, resolved, out_dir):
 
 
 def write_index_html(board, out_dir):
-    """把 index.html 模板複製成產物（渲染入口）。
+    """【已停用】逐場複製 index.html —— 2026-10-28 起改成全場共用入口。
 
-    ★ 2026-10-16 目錄重構：index.html 由「每場一份的人工檔」改成「產物」——
-    模板在 src/templates/index.html，引擎引用走 ../../../src/engine/…，
-    board.js / board.files.js 同目錄（./）。渲染器直接載 dist/boards/<id>/index.html。
+    舊行為：把 src/templates/index.html 複製一份到 dist/boards/<id>/index.html，
+    32 場就是 32 份 sha256 完全相同的檔案，模板一改要全部重建才會同步。
+
+    現在只有一份 dist/boards/_entry/index.html，用 `?board=<id>` 指定場次
+    （見 boardlib/entry.py）。這個函式留著只是為了不讓舊呼叫端炸掉，
+    呼叫它等於「確保共用入口存在」，回傳的是共用入口路徑。
     """
-    tpl = os.path.join(naming.VIDEO_ROOT, naming.TEMPLATE_DIR, "index.html")
-    dst = os.path.join(out_dir, "index.html")
-    os.makedirs(out_dir, exist_ok=True)
-    shutil.copyfile(tpl, dst)
-    return dst
+    return entry.write_entry_html()
 
 
 def resolve_assets(board):
@@ -317,33 +334,89 @@ def diff_against(path, payload):
     return problems
 
 
-# ------------------------------------------------------------------ main
-def main():
-    ap = argparse.ArgumentParser(description="建置單一選舉看板")
-    ap.add_argument("board_dir")
-    ap.add_argument("--skip-geo", action="store_true")
-    ap.add_argument("--diff", metavar="OLD_JS",
-                    help="與既有的 election-XXXX.js 比對")
-    ap.add_argument("--geo-cache", metavar="FILE",
-                    help="沿用既有的 geojson（不重跑 SHP）；"
-                         "預設讀 <board>/.cache/geojson.json，"
-                         "且來源與本次不符會自動重建，指定本參數則一律沿用")
-    ap.add_argument("--refresh-geo", action="store_true",
-                    help="忽略 .cache/geojson.json，強制重跑 SHP")
-    ap.add_argument("--shp", metavar="FILE",
-                    help="強制用這份村里界 SHP，覆寫「依選舉年挑圖資」的結果"
-                         "（<2019 預設用歷史圖資 106 VILLAGE_MOI_1070205）")
-    ap.add_argument("--embed", action="store_true",
-                    help="額外產出 board.assets.js（file:// 直接開 index.html 的"
-                         "內嵌備援，每場約 10 MB）。預設不產；"
-                         "index.html 模板也沒有載入它，正常（http）渲染用不到。")
-    args = ap.parse_args()
+def load_geojson(board, args, want, cache_path, memo=None,
+                 shp_override=None, simplify=None):
+    """取得這場要用的行政區 GeoJSON：本進程快取 → 磁碟快取 → 重跑 SHP。
 
-    board = manifest.resolve(args.board_dir)
+    三層優先序（越前面越便宜）：
+      1. memo（同一次 build_all 進程內，桃竹苗同年份的場次共用一份）
+      2. dist/.cache/geo/<來源指紋>.json（跨進程、跨場次共用，見 geo_cache_path）
+      3. geo.build()：讀全台村里界 SHP + dissolve，0.3–0.5s
+    """
+    memo_key = tuple(want.get(k) for k in geo.PROVENANCE_KEYS)
+
+    if memo is not None and not args.refresh_geo and memo_key in memo:
+        cached_memo = memo[memo_key]
+        print("geojson: 沿用（本批次已算過 %s，%d 個行政區）"
+              % (want.get("county"), len(cached_memo["features"])))
+        return cached_memo
+
+    cached = None
+    cached_prov = None
+    if os.path.isfile(cache_path):
+        with open(cache_path, encoding="utf-8") as f:
+            cached = json.load(f)
+        cached_prov = geo.provenance_of(cached)
+
+    if args.refresh_geo:
+        reuse, why = False, "--refresh-geo 指定重跑"
+    elif args.geo_cache:
+        # 明確指定 --geo-cache 時以使用者為準，不因來源不同而自動重建
+        reuse = cached is not None
+        why = "--geo-cache 指定沿用" if reuse else ""
+    elif cached is None:
+        reuse, why = False, "尚無快取"
+    elif geo.provenance_matches(cached_prov, want):
+        reuse, why = True, "圖資 %s" % cached_prov.get("shp")
+    elif not cached_prov:
+        reuse, why = False, "快取沒有來源資訊（舊格式，無法確認是哪一版圖資）"
+    else:
+        reuse, why = False, ("快取來自 %s，本次應為 %s"
+                             % (cached_prov.get("shp"), want.get("shp")))
+
+    if reuse:
+        geojson = cached
+        print("geojson: 沿用 %s（%d 個行政區，%s）"
+              % (os.path.relpath(cache_path), len(geojson["features"]), why))
+    else:
+        if cached is not None:
+            print("geojson: 快取失效 → 重建（%s）" % why)
+        geojson = geo.build(board.county,
+                            year=board.year,
+                            source_id=board.geo_source,
+                            shp=shp_override,
+                            simplify=simplify)
+        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump(geojson, f, ensure_ascii=False)
+        src = geo.provenance_of(geojson) or {}
+        print("geojson: 由 %s dissolve %d 個行政區，快取至 %s"
+              % (src.get("shp", "SHP"), len(geojson["features"]),
+                 os.path.relpath(cache_path)))
+
+    if memo is not None:
+        memo[memo_key] = geojson
+    return geojson
+
+
+# ------------------------------------------------------------------ 建置單場
+def build_one(board_dir, args, memo=None):
+    """建置單一場次，回傳 dict（不印總摘要，交給呼叫端決定怎麼報）。
+
+    ★ 2026-10-28：原本全部寫在 main() 裡，只能靠「起一個 Python 進程」呼叫，
+      批次建置就得付 N 次的 geopandas import（≈1.0s）+ 圖資載入代價。
+      抽成函式後 build_all.py 可以在同一個進程裡連跑多場。
+
+    args 需要這些欄位（argparse.Namespace 就夠）：
+      skip_geo / geo_cache / refresh_geo / shp / embed / diff
+    memo：可選 dict，讓同一進程內的場次共用 geojson（key = 來源指紋）。
+    """
+    board = manifest.resolve(board_dir)
     os.makedirs(board.out_dir, exist_ok=True)
     print("board:", manifest.describe(board))
     print("源碼:", os.path.relpath(board.board_dir, naming.VIDEO_ROOT),
           "→ 產物:", os.path.relpath(board.out_dir, naming.VIDEO_ROOT))
+
 
     missing = manifest.check_sources(board)
     if missing:
@@ -369,7 +442,6 @@ def main():
     for w in warns:
         print("  [提示] " + w)
 
-    cache_path = args.geo_cache or os.path.join(board.out_dir, ".cache", "geojson.json")
     if args.skip_geo:
         geojson = {"type": "FeatureCollection", "features": []}
         print("geojson: 略過")
@@ -387,50 +459,10 @@ def main():
                  "  ← region.shp 覆寫" if board.geo_shp else
                  "  ← region.geoSource 覆寫" if board.geo_source else ""))
 
-        cached = None
-        cached_prov = None
-        if os.path.isfile(cache_path):
-            with open(cache_path, encoding="utf-8") as f:
-                cached = json.load(f)
-            cached_prov = geo.provenance_of(cached)
-
-        if args.refresh_geo:
-            reuse, why = False, "--refresh-geo 指定重跑"
-        elif args.geo_cache:
-            # 明確指定 --geo-cache 時以使用者為準，不因來源不同而自動重建
-            reuse = cached is not None
-            why = "--geo-cache 指定沿用" if reuse else ""
-        elif cached is None:
-            reuse, why = False, "尚無快取"
-        elif geo.provenance_matches(cached_prov, want):
-            reuse, why = True, "圖資 %s" % cached_prov.get("shp")
-        elif not cached_prov:
-            reuse, why = False, "快取沒有來源資訊（舊格式，無法確認是哪一版圖資）"
-        else:
-            reuse, why = False, ("快取來自 %s，本次應為 %s"
-                                 % (cached_prov.get("shp"), want.get("shp")))
-
-        if reuse:
-            geojson = cached
-            print("geojson: 沿用 %s（%d 個行政區，%s）"
-                  % (os.path.relpath(cache_path), len(geojson["features"]), why))
-        else:
-            if cached is not None:
-                print("geojson: 快取失效 → 重建（%s）" % why)
-            geojson = geo.build(board.county,
-                                year=board.year,
-                                source_id=board.geo_source,
-                                shp=shp_override,
-                                simplify=simplify)
-            os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-            with open(cache_path, "w", encoding="utf-8") as f:
-                json.dump(geojson, f, ensure_ascii=False)
-            src = geo.provenance_of(geojson) or {}
-            print("geojson: 由 %s dissolve %d 個行政區，快取至 %s"
-                  % (src.get("shp", "SHP"), len(geojson["features"]),
-                     os.path.relpath(cache_path)))
-
-
+        # 快取落點：dist/.cache/geo/<來源指紋>.json（集中、按內容尋址、不被清 dist 誤刪）
+        cache_path = args.geo_cache or geo_cache_path(want)
+        geojson = load_geojson(board, args, want, cache_path, memo,
+                               shp_override=shp_override, simplify=simplify)
 
     meta = dict(board.meta)
     totals = xlsx_read.read_official_totals(xlsx)
@@ -491,11 +523,58 @@ def main():
         os.remove(p_embed)
         print("清除:", os.path.relpath(p_embed), "（board.assets.js 預設不產）")
 
-    p4 = write_index_html(board, board.out_dir)
-    print("輸出:", os.path.relpath(p4))
+    # ---- 入口：全場共用一份 dist/boards/_entry/index.html（不再逐場複製）----
+    p4 = entry.write_entry_html()
+    print("輸出:", os.path.relpath(p4), "（共用入口，全場一份）")
 
     if args.diff:
         diff_against(args.diff, payload)
+
+    return {
+        "ok": True,
+        "board": board.id,
+        "out_dir": board.out_dir,
+        "board_js": p1,
+        "district_count": len(districts),
+        "missing_assets": missing_assets,
+    }
+
+
+def default_args(**over):
+    """建置參數的預設值。
+
+    build_all.py 要在同一進程裡連跑多場，直接呼叫 build_one(dir, default_args(...))
+    就好，不必繞一次 argparse。
+    """
+    ns = argparse.Namespace(skip_geo=False, geo_cache=None, refresh_geo=False,
+                            shp=None, embed=False, diff=None)
+    for k, v in over.items():
+        setattr(ns, k, v)
+    return ns
+
+
+# ------------------------------------------------------------------ main
+def main():
+    ap = argparse.ArgumentParser(description="建置單一選舉看板")
+    ap.add_argument("board_dir")
+    ap.add_argument("--skip-geo", action="store_true")
+    ap.add_argument("--diff", metavar="OLD_JS",
+                    help="與既有的 election-XXXX.js 比對")
+    ap.add_argument("--geo-cache", metavar="FILE",
+                    help="沿用既有的 geojson（不重跑 SHP）；"
+                         "預設讀 dist/.cache/geo/<來源指紋>.json，"
+                         "且來源與本次不符會自動重建，指定本參數則一律沿用")
+    ap.add_argument("--refresh-geo", action="store_true",
+                    help="忽略 geojson 快取，強制重跑 SHP")
+    ap.add_argument("--shp", metavar="FILE",
+                    help="強制用這份村里界 SHP，覆寫「依選舉年挑圖資」的結果"
+                         "（<2019 預設用歷史圖資 106 VILLAGE_MOI_1070205）")
+    ap.add_argument("--embed", action="store_true",
+                    help="額外產出 board.assets.js（file:// 直接開 index.html 的"
+                         "內嵌備援，每場約 10 MB）。預設不產；"
+                         "index.html 模板也沒有載入它，正常（http）渲染用不到。")
+    args = ap.parse_args()
+    build_one(args.board_dir, args)
 
 
 if __name__ == "__main__":

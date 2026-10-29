@@ -1,0 +1,120 @@
+{
+  "id": "2022-yilan",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "宜蘭縣縣市長",
+    "officeEn": "County Magistrate / Mayor of 宜蘭縣",
+    "county": "宜蘭縣",
+    "countyShort": "宜蘭",
+    "electorate": 374779,
+    "turnout": 64.28,
+    "validVotes": 235281,
+    "invalidVotes": 5635,
+    "castVotes": 240916,
+    "header": {
+      "role": "時任縣市長",
+      "name": "林姿妙",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "林姿妙",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 1,
+      "votes": 119421,
+      "pct": 50.76,
+      "elected": true
+    },
+    {
+      "key": "c2",
+      "name": "朱振東",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 2,
+      "votes": 919,
+      "pct": 0.39,
+      "elected": false
+    },
+    {
+      "key": "c3",
+      "name": "許鋐哲",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 3,
+      "votes": 1036,
+      "pct": 0.44,
+      "elected": false
+    },
+    {
+      "key": "c4",
+      "name": "陳秋境",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 4,
+      "votes": 714,
+      "pct": 0.3,
+      "elected": false
+    },
+    {
+      "key": "c5",
+      "name": "江聰淵",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 5,
+      "votes": 96779,
+      "pct": 41.13,
+      "elected": false
+    },
+    {
+      "key": "c6",
+      "name": "陳琬惠",
+      "nameEn": "",
+      "party": "台灣民眾黨",
+      "partyShort": "TPP",
+      "partyEn": "Taiwan People's Party",
+      "number": 6,
+      "votes": 16412,
+      "pct": 6.98,
+      "elected": false
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560.0,
+      "y": 197.0,
+      "w": 894.1,
+      "h": 1032
+    },
+    "map2": {
+      "x": 1490.1,
+      "y": 416.4,
+      "w": 513.9,
+      "h": 593.1,
+      "enabled": true
+    }
+  }
+}

@@ -10,8 +10,9 @@
 
 数据从哪来
 ----------
-`node tools/render_boards.mjs` 默认会把每场看板的实际矩形导出到
-    out/layout/<board-id>.json
+`node src/tools/render_boards.mjs` 默认会把每场看板的实际矩形导出到
+    dist/boards/<board-id>/layout.json
+（PNG 走另一个出口 dist/dist_png/<id>.png；报告不是图片，跟看板产物放一起）
 内容包括：
   map.frame      Layout.map 的框（设定值）
   map.drawn      地图图片实际落点（MapLayer 记下来的值）

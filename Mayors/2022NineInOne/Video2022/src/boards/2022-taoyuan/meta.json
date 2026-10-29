@@ -1,0 +1,103 @@
+{
+  "id": "2022-taoyuan",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Local Elections",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "桃園市市長",
+    "officeEn": "Mayor of Taoyuan City",
+    "subtitle": "桃園市 · 第四屆市長選舉",
+    "statsRows": [
+      {
+        "label": "選舉人數",
+        "value": "182萬5127 人"
+      },
+      {
+        "label": "投票數",
+        "value": "108萬5225 票"
+      },
+      {
+        "label": "有效票",
+        "value": "107萬1763 票"
+      },
+      {
+        "label": "無效票",
+        "value": "1萬3462 票"
+      },
+      {
+        "label": "投票率",
+        "value": "59.46%"
+      }
+    ],
+    "header": {
+      "role": "當選人",
+      "name": "張善政",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    },
+    "electorate": 1825127,
+    "castVotes": 1085225,
+    "validVotes": 1071763,
+    "invalidVotes": 13462,
+    "turnout": 59.46,
+    "layout": {
+      "legend": {
+        "disabled": true
+      }
+    }
+  },
+  "candidates": [
+    {
+      "key": "c01",
+      "number": 1,
+      "name": "張善政",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "votes": 557572,
+      "pct": 52.02,
+      "elected": true
+    },
+    {
+      "key": "c02",
+      "number": 2,
+      "name": "賴香伶",
+      "nameEn": "",
+      "party": "台灣民眾黨",
+      "partyShort": "TPP",
+      "partyEn": "Taiwan People's Party",
+      "votes": 54926,
+      "pct": 5.12,
+      "elected": false
+    },
+    {
+      "key": "c03",
+      "number": 3,
+      "name": "鄭運鵬",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "votes": 428983,
+      "pct": 40.03,
+      "elected": false
+    },
+    {
+      "key": "c04",
+      "number": 4,
+      "name": "鄭寶清",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 30282,
+      "pct": 2.83,
+      "elected": false
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "id": "2022-changhua",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Local Elections",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "彰化縣縣長",
+    "officeEn": "Magistrate of Changhua County",
+    "subtitle": "彰化縣 · 第十九屆縣長選舉",
+    "statsRows": [
+      {
+        "label": "選舉人數",
+        "value": "102萬8606 人"
+      },
+      {
+        "label": "投票數",
+        "value": "66萬7519 票"
+      },
+      {
+        "label": "有效票",
+        "value": "65萬0424 票"
+      },
+      {
+        "label": "無效票",
+        "value": "1萬7095 票"
+      },
+      {
+        "label": "投票率",
+        "value": "64.90%"
+      }
+    ],
+    "header": {
+      "role": "當選人",
+      "name": "王惠美",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    },
+    "electorate": 1028606,
+    "castVotes": 667519,
+    "validVotes": 650424,
+    "invalidVotes": 17095,
+    "turnout": 64.9,
+    "layout": {
+      "legend": {
+        "disabled": true
+      }
+    }
+  },
+  "candidates": [
+    {
+      "key": "c01",
+      "number": 1,
+      "name": "王惠美",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "votes": 369133,
+      "pct": 56.75,
+      "elected": true
+    },
+    {
+      "key": "c02",
+      "number": 2,
+      "name": "黃秀芳",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "votes": 272817,
+      "pct": 41.94,
+      "elected": false
+    },
+    {
+      "key": "c03",
+      "number": 3,
+      "name": "蕭仁正",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 8474,
+      "pct": 1.3,
+      "elected": false
+    }
+  ]
+}

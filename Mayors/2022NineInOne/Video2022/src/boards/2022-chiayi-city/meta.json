@@ -1,0 +1,124 @@
+{
+  "id": "2022-chiayi-city",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Local Elections",
+    "year": 2022,
+    "date": "12月18日",
+    "dateEn": "18 Dec",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "嘉義市市長",
+    "officeEn": "Mayor of Chiayi City",
+    "subtitle": "嘉義市 · 第十九屆市長選舉",
+    "statsRows": [
+      {
+        "label": "選舉人數",
+        "value": "21萬4130 人"
+      },
+      {
+        "label": "投票數",
+        "value": "9萬4188 票"
+      },
+      {
+        "label": "有效票",
+        "value": "9萬3813 票"
+      },
+      {
+        "label": "無效票",
+        "value": "375 票"
+      },
+      {
+        "label": "投票率",
+        "value": "43.99%"
+      }
+    ],
+    "header": {
+      "role": "當選人",
+      "name": "黃敏惠",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    },
+    "electorate": 214130,
+    "castVotes": 94188,
+    "validVotes": 93813,
+    "invalidVotes": 375,
+    "turnout": 43.99,
+    "layout": {
+      "legend": {
+        "disabled": true
+      },
+      "map": {
+        "x": 576,
+        "y": 214,
+        "w": 1000,
+        "h": 880
+      },
+      "map2": {
+        "enabled": false
+      }
+    }
+  },
+  "candidates": [
+    {
+      "key": "c01",
+      "number": 1,
+      "name": "黃敏惠",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "votes": 59874,
+      "pct": 63.82,
+      "elected": true
+    },
+    {
+      "key": "c02",
+      "number": 2,
+      "name": "李俊俋",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "votes": 32790,
+      "pct": 34.95,
+      "elected": false
+    },
+    {
+      "key": "c03",
+      "number": 3,
+      "name": "陳泰山",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 246,
+      "pct": 0.26,
+      "elected": false
+    },
+    {
+      "key": "c04",
+      "number": 4,
+      "name": "黃宏成台灣阿成世界偉人財神總統",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 535,
+      "pct": 0.57,
+      "elected": false
+    },
+    {
+      "key": "c05",
+      "number": 5,
+      "name": "鄭凱升",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 368,
+      "pct": 0.39,
+      "elected": false
+    }
+  ]
+}

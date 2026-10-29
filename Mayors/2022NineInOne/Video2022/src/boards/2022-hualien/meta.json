@@ -1,0 +1,91 @@
+{
+  "id": "2022-hualien",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Local Elections",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "花蓮縣縣長",
+    "officeEn": "Magistrate of Hualien County",
+    "subtitle": "花蓮縣 · 第十九屆縣長選舉",
+    "statsRows": [
+      {
+        "label": "選舉人數",
+        "value": "26萬6058 人"
+      },
+      {
+        "label": "投票數",
+        "value": "15萬3138 票"
+      },
+      {
+        "label": "有效票",
+        "value": "14萬9307 票"
+      },
+      {
+        "label": "無效票",
+        "value": "3831 票"
+      },
+      {
+        "label": "投票率",
+        "value": "57.56%"
+      }
+    ],
+    "header": {
+      "role": "當選人",
+      "name": "徐榛蔚",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    },
+    "electorate": 266058,
+    "castVotes": 153138,
+    "validVotes": 149307,
+    "invalidVotes": 3831,
+    "turnout": 57.56,
+    "layout": {
+      "legend": {
+        "disabled": true
+      }
+    }
+  },
+  "candidates": [
+    {
+      "key": "c01",
+      "number": 1,
+      "name": "徐榛蔚",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "votes": 96645,
+      "pct": 64.73,
+      "elected": true
+    },
+    {
+      "key": "c02",
+      "number": 2,
+      "name": "黄師鵬",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 4817,
+      "pct": 3.23,
+      "elected": false
+    },
+    {
+      "key": "c03",
+      "number": 3,
+      "name": "谷辣斯．尤達卡 Kolas Yotaka",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "votes": 47845,
+      "pct": 32.04,
+      "elected": false
+    }
+  ]
+}

@@ -469,4 +469,25 @@
     }
   } catch (e) { /* 版面覆寫失敗不該毀掉整塊看板 */ }
 
+  /* --------------------- 渲染變體（URL ?mapVariant=map2） ---------------------
+     同一場選舉的「村里版 / 區級版」原本是兩個獨立場次：board.js、index.html、
+     layout.json 全部逐字節相同，唯一差別是主圖用 map.png 還是 map2.png。
+     改成「一場次 + 渲染變體」後，由網址參數決定主圖：
+
+       ...index.html?headless=1&mapVariant=map2
+
+     ★ 這裡只「打記號」（Layout.map.variant），不直接改 src。
+       原因：市長場的 board.files.js 沒有 map2.png 這一項（區級圖原本只給
+       總統場右欄用），把 src 改成邏輯名 'assets/map2.png' 會在解析時
+       找不到對照、原樣回傳，瀏覽器就去抓一個不存在的檔 → 地圖整片空白。
+       真正的換檔在 slide.js 的 _loadVoteMap 裡對「已解析的實際路徑」做
+       map.png → map2.png 的字串替換，兩張圖一定同目錄並排存在。
+     ★ 沒有這個參數時一行都不會動 —— 交付檔名與畫面與改造前一致。 */
+  try {
+    var mvq = /[?&]mapVariant=(map2|map)\b/.exec((global.location && global.location.search) || '');
+    if (mvq && mvq[1] === 'map2' && Layout.map) {
+      Layout.map.variant = 'map2';
+    }
+  } catch (e) { /* 參數解析失敗就照預設主圖走 */ }
+
 })(window);

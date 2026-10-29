@@ -1,0 +1,84 @@
+{
+  "id": "2022-changhua",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "彰化縣縣市長",
+    "officeEn": "County Magistrate / Mayor of 彰化縣",
+    "county": "彰化縣",
+    "countyShort": "彰化",
+    "electorate": 1028606,
+    "turnout": 64.9,
+    "validVotes": 650424,
+    "invalidVotes": 17095,
+    "castVotes": 667519,
+    "header": {
+      "role": "時任縣市長",
+      "name": "王惠美",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "王惠美",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 1,
+      "votes": 369133,
+      "pct": 56.75,
+      "elected": true
+    },
+    {
+      "key": "c2",
+      "name": "黃秀芳",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 2,
+      "votes": 272817,
+      "pct": 41.94,
+      "elected": false
+    },
+    {
+      "key": "c3",
+      "name": "蕭仁正",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 3,
+      "votes": 8474,
+      "pct": 1.3,
+      "elected": false
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560.0,
+      "y": 196.0,
+      "w": 904.6,
+      "h": 896
+    },
+    "map2": {
+      "x": 1500.6,
+      "y": 394.7,
+      "w": 503.4,
+      "h": 498.6,
+      "enabled": true
+    }
+  }
+}

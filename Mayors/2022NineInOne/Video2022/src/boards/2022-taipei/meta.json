@@ -1,0 +1,199 @@
+{
+  "id": "2022-taipei",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Local Elections",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "臺北市市長",
+    "officeEn": "Mayor of Taipei City",
+    "subtitle": "臺北市 · 第四屆市長選舉",
+    "statsRows": [
+      {
+        "label": "選舉人數",
+        "value": "202萬6769 人"
+      },
+      {
+        "label": "投票數",
+        "value": "137萬2179 票"
+      },
+      {
+        "label": "有效票",
+        "value": "136萬0951 票"
+      },
+      {
+        "label": "無效票",
+        "value": "1萬1228 票"
+      },
+      {
+        "label": "投票率",
+        "value": "67.70%"
+      }
+    ],
+    "header": {
+      "role": "當選人",
+      "name": "蔣萬安",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    },
+    "electorate": 2026769,
+    "castVotes": 1372179,
+    "validVotes": 1360951,
+    "invalidVotes": 11228,
+    "turnout": 67.7,
+    "layout": {
+      "legend": {
+        "disabled": true
+      }
+    }
+  },
+  "candidates": [
+    {
+      "key": "c01",
+      "number": 1,
+      "name": "張家豪",
+      "nameEn": "",
+      "party": "台灣動物保護黨",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 2367,
+      "pct": 0.17,
+      "elected": false
+    },
+    {
+      "key": "c02",
+      "number": 2,
+      "name": "王文娟",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 451,
+      "pct": 0.03,
+      "elected": false
+    },
+    {
+      "key": "c03",
+      "number": 3,
+      "name": "鄭匡宇",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 386,
+      "pct": 0.03,
+      "elected": false
+    },
+    {
+      "key": "c04",
+      "number": 4,
+      "name": "黃聖峰",
+      "nameEn": "",
+      "party": "台澎國際法法理建國黨",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 256,
+      "pct": 0.02,
+      "elected": false
+    },
+    {
+      "key": "c05",
+      "number": 5,
+      "name": "童文薰",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 2425,
+      "pct": 0.18,
+      "elected": false
+    },
+    {
+      "key": "c06",
+      "number": 6,
+      "name": "蔣萬安",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "votes": 575590,
+      "pct": 42.29,
+      "elected": true
+    },
+    {
+      "key": "c07",
+      "number": 7,
+      "name": "蘇煥智",
+      "nameEn": "",
+      "party": "台灣維新",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 1851,
+      "pct": 0.14,
+      "elected": false
+    },
+    {
+      "key": "c08",
+      "number": 8,
+      "name": "黃珊珊",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 342141,
+      "pct": 25.14,
+      "elected": false
+    },
+    {
+      "key": "c09",
+      "number": 9,
+      "name": "施奉先",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 383,
+      "pct": 0.03,
+      "elected": false
+    },
+    {
+      "key": "c10",
+      "number": 10,
+      "name": "唐新民",
+      "nameEn": "",
+      "party": "共和黨",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 316,
+      "pct": 0.02,
+      "elected": false
+    },
+    {
+      "key": "c11",
+      "number": 11,
+      "name": "謝立康",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 227,
+      "pct": 0.02,
+      "elected": false
+    },
+    {
+      "key": "c12",
+      "number": 12,
+      "name": "陳時中",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "votes": 434558,
+      "pct": 31.93,
+      "elected": false
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "id": "2022-hualien",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "花蓮縣縣市長",
+    "officeEn": "County Magistrate / Mayor of 花蓮縣",
+    "county": "花蓮縣",
+    "countyShort": "花蓮",
+    "electorate": 266058,
+    "turnout": 57.56,
+    "validVotes": 149307,
+    "invalidVotes": 3831,
+    "castVotes": 153138,
+    "header": {
+      "role": "時任縣市長",
+      "name": "徐榛蔚",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "徐榛蔚",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 1,
+      "votes": 96645,
+      "pct": 64.73,
+      "elected": true
+    },
+    {
+      "key": "c2",
+      "name": "黄師鵬",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 2,
+      "votes": 4817,
+      "pct": 3.23,
+      "elected": false
+    },
+    {
+      "key": "c3",
+      "name": "谷辣斯．尤達卡",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 3,
+      "votes": 47845,
+      "pct": 32.04,
+      "elected": false
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 729.1,
+      "y": 197.0,
+      "w": 584.8,
+      "h": 1032
+    },
+    "map2": {
+      "x": 1349.9,
+      "y": 236.0,
+      "w": 485.0,
+      "h": 856.0,
+      "enabled": true
+    }
+  }
+}

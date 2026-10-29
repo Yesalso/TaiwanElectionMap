@@ -1,0 +1,115 @@
+{
+  "id": "2022-tainan",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Local Elections",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "臺南市市長",
+    "officeEn": "Mayor of Tainan City",
+    "subtitle": "臺南市 · 第四屆市長選舉",
+    "statsRows": [
+      {
+        "label": "選舉人數",
+        "value": "154萬8203 人"
+      },
+      {
+        "label": "投票數",
+        "value": "90萬8533 票"
+      },
+      {
+        "label": "有效票",
+        "value": "88萬8674 票"
+      },
+      {
+        "label": "無效票",
+        "value": "1萬9859 票"
+      },
+      {
+        "label": "投票率",
+        "value": "58.68%"
+      }
+    ],
+    "header": {
+      "role": "當選人",
+      "name": "黃偉哲",
+      "party": "民主進步黨",
+      "partyShort": "DPP"
+    },
+    "electorate": 1548203,
+    "castVotes": 908533,
+    "validVotes": 888674,
+    "invalidVotes": 19859,
+    "turnout": 58.68,
+    "layout": {
+      "legend": {
+        "disabled": true
+      }
+    }
+  },
+  "candidates": [
+    {
+      "key": "c01",
+      "number": 1,
+      "name": "許忠信",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 38697,
+      "pct": 4.35,
+      "elected": false
+    },
+    {
+      "key": "c02",
+      "number": 2,
+      "name": "林義豐",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 24606,
+      "pct": 2.77,
+      "elected": false
+    },
+    {
+      "key": "c03",
+      "number": 3,
+      "name": "謝龍介",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "votes": 387731,
+      "pct": 43.63,
+      "elected": false
+    },
+    {
+      "key": "c04",
+      "number": 4,
+      "name": "吳炳輝",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 3956,
+      "pct": 0.45,
+      "elected": false
+    },
+    {
+      "key": "c05",
+      "number": 5,
+      "name": "黃偉哲",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "votes": 433684,
+      "pct": 48.8,
+      "elected": true
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "id": "2022-kinmen",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "金門縣縣市長",
+    "officeEn": "County Magistrate / Mayor of 金門縣",
+    "county": "金門縣",
+    "countyShort": "金門",
+    "electorate": 122294,
+    "turnout": 39.32,
+    "validVotes": 47114,
+    "invalidVotes": 975,
+    "castVotes": 48089,
+    "header": {
+      "role": "時任縣市長",
+      "name": "楊鎮浯",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "李應文",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 1,
+      "votes": 3459,
+      "pct": 7.34,
+      "elected": false
+    },
+    {
+      "key": "c2",
+      "name": "朱紀瑋",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 2,
+      "votes": 174,
+      "pct": 0.37,
+      "elected": false
+    },
+    {
+      "key": "c3",
+      "name": "林志錦",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 3,
+      "votes": 141,
+      "pct": 0.3,
+      "elected": false
+    },
+    {
+      "key": "c4",
+      "name": "楊鎮浯",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 4,
+      "votes": 19340,
+      "pct": 41.05,
+      "elected": false
+    },
+    {
+      "key": "c5",
+      "name": "陳福海",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 5,
+      "votes": 23248,
+      "pct": 49.34,
+      "elected": true
+    },
+    {
+      "key": "c6",
+      "name": "洪志恒",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 6,
+      "votes": 752,
+      "pct": 1.6,
+      "elected": false
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 620.0,
+      "y": 196.0,
+      "w": 1324,
+      "h": 613.1
+    },
+    "map2": {
+      "x": 1015.4,
+      "y": 845.1,
+      "w": 533.2,
+      "h": 246.9,
+      "enabled": true
+    }
+  }
+}

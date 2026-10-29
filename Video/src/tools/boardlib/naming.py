@@ -26,6 +26,7 @@ engine_field 是 board.assets.js 內嵌備援 window.NT_ASSETS 的欄位名，
 from __future__ import annotations
 
 import os
+import re
 from typing import Dict, List, NamedTuple, Optional
 
 # 透明化成品的統一落點（相對 Video/）。由 src/mapgen/tool/build_assets.py 產生，
@@ -41,6 +42,58 @@ DATA_ROOT = "data"
 # 產物根（相對 Video/）：看板成品 dist/boards/<id>/。
 DIST_ROOT = "dist"
 DIST_BOARDS_ROOT = os.path.join("dist", "boards")
+
+# 圖片唯一出口（相對 Video/）：渲染出來的看板 PNG 按**選舉項目**分資料夾放在
+# dist/dist_png/<項目>/ 下，同一項目的所有年份都在同一個資料夾：
+#
+#   dist/dist_png/taipei-mayor/1994.png … 2022.png
+#   dist/dist_png/president-north/1996.png、1996-map2.png … 2024-map2.png
+#   dist/dist_png/president-tzmm/1996.png … 2024.png
+#
+# **這個目錄（含各項目子目錄）只准有 .png** —— board.js / index.html /
+# layout.json / manifest.json 都不進來。
+# 由 src/tools/render_boards.mjs 寫入（見其 splitBoardId() / pngNameOf()）。
+DIST_PNG_ROOT = os.path.join("dist", "dist_png")
+
+
+def split_board_id(board_id: str):
+    """場次 id -> (項目名, 檔名主幹)。規則與 render_boards.mjs 的 splitBoardId() 一致。
+
+        1994-taipei-mayor        -> ("taipei-mayor",   "1994")
+        1996-president-north     -> ("president-north", "1996")
+        1996-president-north-map2-> ("president-north", "1996-map2")
+        1996-president-tzmm      -> ("president-tzmm",  "1996")
+
+    不合 `<四位年份>-<項目>` 格式的 id，原樣當項目名與檔名主幹，不猜。
+    """
+    m = re.match(r"^(\d{4})-(.+)$", board_id)
+    if not m:
+        return board_id, board_id
+    year, rest = m.group(1), m.group(2)
+    variant = ""
+    mv = re.match(r"^(.*)-map2$", rest)
+    if mv:
+        rest, variant = mv.group(1), "-map2"
+    return rest, year + variant
+
+
+def png_relpath(board_id: str, scale: int = 1) -> str:
+    """場次 id -> 看板 PNG 的相對路徑（相對 Video/）。
+
+    這條約定即「看板圖在哪裡」的唯一來源，與 render_boards.mjs 的
+    pngNameOf() 一體兩面：兩邊規則必須完全一致，否則下游找不到圖。
+
+        dist/dist_png/taipei-mayor/2022.png
+        dist/dist_png/taipei-mayor/2022_2x.png
+    """
+    group, stem = split_board_id(board_id)
+    name = "%s.png" % stem if scale == 1 else "%s_%dx.png" % (stem, scale)
+    return os.path.join(DIST_PNG_ROOT, group, name)
+
+
+def png_path(board_id: str, scale: int = 1) -> str:
+    """場次 id -> 看板 PNG 的絕對路徑（不存在也照樣回傳）。"""
+    return os.path.join(VIDEO_ROOT, png_relpath(board_id, scale))
 
 # 源碼根（相對 Video/）：src/{engine,boards,tools,mapgen,templates,president}。
 SRC_ROOT = "src"

@@ -1,0 +1,127 @@
+{
+  "id": "2022-hsinchu-city",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Local Elections",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "新竹市市長",
+    "officeEn": "Mayor of Hsinchu City",
+    "subtitle": "新竹市 · 第十九屆市長選舉",
+    "statsRows": [
+      {
+        "label": "選舉人數",
+        "value": "35萬0758 人"
+      },
+      {
+        "label": "投票數",
+        "value": "22萬0783 票"
+      },
+      {
+        "label": "有效票",
+        "value": "21萬7941 票"
+      },
+      {
+        "label": "無效票",
+        "value": "2842 票"
+      },
+      {
+        "label": "投票率",
+        "value": "62.94%"
+      }
+    ],
+    "header": {
+      "role": "當選人",
+      "name": "高虹安",
+      "party": "台灣民眾黨",
+      "partyShort": "TPP"
+    },
+    "electorate": 350758,
+    "castVotes": 220783,
+    "validVotes": 217941,
+    "invalidVotes": 2842,
+    "turnout": 62.94,
+    "layout": {
+      "legend": {
+        "disabled": true
+      }
+    }
+  },
+  "candidates": [
+    {
+      "key": "c01",
+      "number": 1,
+      "name": "黃源甫",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 1049,
+      "pct": 0.48,
+      "elected": false
+    },
+    {
+      "key": "c02",
+      "number": 2,
+      "name": "龔偉綸",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 508,
+      "pct": 0.23,
+      "elected": false
+    },
+    {
+      "key": "c03",
+      "number": 3,
+      "name": "林耕仁",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "votes": 39391,
+      "pct": 18.07,
+      "elected": false
+    },
+    {
+      "key": "c04",
+      "number": 4,
+      "name": "李驥羣",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 1108,
+      "pct": 0.51,
+      "elected": false
+    },
+    {
+      "key": "c05",
+      "number": 5,
+      "name": "沈慧虹",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "votes": 77764,
+      "pct": 35.68,
+      "elected": false
+    },
+    {
+      "key": "c06",
+      "number": 6,
+      "name": "高虹安",
+      "nameEn": "",
+      "party": "台灣民眾黨",
+      "partyShort": "TPP",
+      "partyEn": "Taiwan People's Party",
+      "votes": 98121,
+      "pct": 45.02,
+      "elected": true
+    }
+  ]
+}

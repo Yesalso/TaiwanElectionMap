@@ -1,0 +1,84 @@
+{
+  "id": "2022-lienchiang",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "連江縣縣市長",
+    "officeEn": "County Magistrate / Mayor of 連江縣",
+    "county": "連江縣",
+    "countyShort": "連江",
+    "electorate": 11810,
+    "turnout": 72.99,
+    "validVotes": 8505,
+    "invalidVotes": 115,
+    "castVotes": 8620,
+    "header": {
+      "role": "時任縣市長",
+      "name": "劉增應",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "李問",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 1,
+      "votes": 586,
+      "pct": 6.89,
+      "elected": false
+    },
+    {
+      "key": "c2",
+      "name": "曹爾元",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 2,
+      "votes": 3582,
+      "pct": 42.12,
+      "elected": false
+    },
+    {
+      "key": "c3",
+      "name": "王忠銘",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 3,
+      "votes": 4337,
+      "pct": 50.99,
+      "elected": true
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 948.2,
+      "y": 197.0,
+      "w": 345.3,
+      "h": 1032
+    },
+    "map2": {
+      "x": 1329.4,
+      "y": 236.0,
+      "w": 286.4,
+      "h": 856.0,
+      "enabled": true
+    }
+  }
+}

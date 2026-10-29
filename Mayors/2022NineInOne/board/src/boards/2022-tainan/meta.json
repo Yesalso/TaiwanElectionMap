@@ -1,0 +1,108 @@
+{
+  "id": "2022-tainan",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "臺南市縣市長",
+    "officeEn": "County Magistrate / Mayor of 臺南市",
+    "county": "臺南市",
+    "countyShort": "臺南",
+    "electorate": 1548203,
+    "turnout": 58.68,
+    "validVotes": 888674,
+    "invalidVotes": 19859,
+    "castVotes": 908533,
+    "header": {
+      "role": "時任縣市長",
+      "name": "黃偉哲",
+      "party": "民主進步黨",
+      "partyShort": "DPP"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "許忠信",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 1,
+      "votes": 38697,
+      "pct": 4.35,
+      "elected": false
+    },
+    {
+      "key": "c2",
+      "name": "林義豐",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 2,
+      "votes": 24606,
+      "pct": 2.77,
+      "elected": false
+    },
+    {
+      "key": "c3",
+      "name": "謝龍介",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 3,
+      "votes": 387731,
+      "pct": 43.63,
+      "elected": false
+    },
+    {
+      "key": "c4",
+      "name": "吳炳輝",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 4,
+      "votes": 3956,
+      "pct": 0.45,
+      "elected": false
+    },
+    {
+      "key": "c5",
+      "name": "黃偉哲",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 5,
+      "votes": 433684,
+      "pct": 48.8,
+      "elected": true
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560.0,
+      "y": 261.0,
+      "w": 1001.4,
+      "h": 904
+    },
+    "map2": {
+      "x": 1597.4,
+      "y": 529.5,
+      "w": 406.6,
+      "h": 367.1,
+      "enabled": true
+    }
+  }
+}

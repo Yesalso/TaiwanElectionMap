@@ -318,6 +318,36 @@
     return !!files[key];
   };
 
+  /**
+   * 素材 URL 的「快取破壞碼」。
+   *
+   * 原本 6 處各自寫 `src + '?t=' + Date.now()`，用意是「換了圖、刷頁就該看到新版」，
+   * 對互動式預覽是對的；但批次渲染時每一場都換一次 URL，瀏覽器 HTTP 快取必然
+   * miss —— 每場都要重新下載並解碼 street_bg.png（3.5–5.6MB）、地圖、徽章、圖例。
+   *
+   * 現在集中成一個常數：
+   *   headless（URL 帶 headless=1）：用該批的 `v` 參數（沒給就 '0'）→ 同批內固定，
+   *     第二場起全部命中快取。素材真的換了？渲染器每批會換一個新的 runId。
+   *   互動式：仍是 Date.now()，行為與改動前完全一致。
+   */
+  var BUILD_TOKEN = (function () {
+    var q = (global.location && global.location.search) || '';
+    if (q.indexOf('headless=1') < 0) return String(Date.now());
+    var m = /[?&]v=([\w.-]+)/.exec(q);
+    return m ? m[1] : '0';
+  })();
+
+  /**
+   * 需要「換圖即刷新」的素材 URL 都走這裡（已帶 query 的原樣回傳）。
+   * @param {string} src
+   * @returns {string}
+   */
+  Utils.stampUrl = function (src) {
+    if (!src) return src;
+    if (src.indexOf('?') >= 0) return src;
+    return src + '?t=' + BUILD_TOKEN;
+  };
+
   /* ------------------------------ 影像 ------------------------------ */
 
   /**

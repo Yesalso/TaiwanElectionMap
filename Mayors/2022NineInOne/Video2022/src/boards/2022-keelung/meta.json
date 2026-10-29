@@ -1,0 +1,115 @@
+{
+  "id": "2022-keelung",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Local Elections",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "基隆市市長",
+    "officeEn": "Mayor of Keelung City",
+    "subtitle": "基隆市 · 第十九屆市長選舉",
+    "statsRows": [
+      {
+        "label": "選舉人數",
+        "value": "30萬7913 人"
+      },
+      {
+        "label": "投票數",
+        "value": "18萬5241 票"
+      },
+      {
+        "label": "有效票",
+        "value": "18萬2893 票"
+      },
+      {
+        "label": "無效票",
+        "value": "2348 票"
+      },
+      {
+        "label": "投票率",
+        "value": "60.16%"
+      }
+    ],
+    "header": {
+      "role": "當選人",
+      "name": "謝國樑",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    },
+    "electorate": 307913,
+    "castVotes": 185241,
+    "validVotes": 182893,
+    "invalidVotes": 2348,
+    "turnout": 60.16,
+    "layout": {
+      "legend": {
+        "disabled": true
+      }
+    }
+  },
+  "candidates": [
+    {
+      "key": "c01",
+      "number": 1,
+      "name": "謝國樑",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "votes": 96784,
+      "pct": 52.92,
+      "elected": true
+    },
+    {
+      "key": "c02",
+      "number": 2,
+      "name": "陳薇仲",
+      "nameEn": "",
+      "party": "時代力量",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 12000,
+      "pct": 6.56,
+      "elected": false
+    },
+    {
+      "key": "c03",
+      "number": 3,
+      "name": "蔡適應",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "votes": 71354,
+      "pct": 39.01,
+      "elected": false
+    },
+    {
+      "key": "c04",
+      "number": 4,
+      "name": "曾國民",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 619,
+      "pct": 0.34,
+      "elected": false
+    },
+    {
+      "key": "c05",
+      "number": 5,
+      "name": "黃希賢",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 2136,
+      "pct": 1.17,
+      "elected": false
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "id": "2022-penghu",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "澎湖縣縣市長",
+    "officeEn": "County Magistrate / Mayor of 澎湖縣",
+    "county": "澎湖縣",
+    "countyShort": "澎湖",
+    "electorate": 90360,
+    "turnout": 58.51,
+    "validVotes": 51242,
+    "invalidVotes": 1628,
+    "castVotes": 52870,
+    "header": {
+      "role": "時任縣市長",
+      "name": "賴峰偉",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "陳光復",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 1,
+      "votes": 18777,
+      "pct": 36.64,
+      "elected": true
+    },
+    {
+      "key": "c2",
+      "name": "賴峰偉",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 2,
+      "votes": 17081,
+      "pct": 33.33,
+      "elected": false
+    },
+    {
+      "key": "c3",
+      "name": "葉竹林",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 3,
+      "votes": 15384,
+      "pct": 30.02,
+      "elected": false
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 684.5,
+      "y": 197.0,
+      "w": 633.5,
+      "h": 1032
+    },
+    "map2": {
+      "x": 1354.0,
+      "y": 236,
+      "w": 525.5,
+      "h": 856.0,
+      "enabled": true
+    }
+  }
+}

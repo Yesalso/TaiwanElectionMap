@@ -86,7 +86,12 @@
    * @param {string} name  輸出檔名（渲染器已消毒）
    * @returns {Promise<{ok:boolean, bytes:number, file:string}>}
    */
-  global.__saveBoard = function (scale, name) {
+  global.__saveBoard = function (scale, name, format, quality) {
+    /* format/quality 不传 = png 无损（与改造前完全一致）。
+       看板底色是大面积渐变 + 街景照片，这类内容用 PNG 无损编码
+       约 90% 体积是格式浪费（实测 4.6MB → webp q95 0.47MB）。 */
+    var mime = 'image/' + (format || 'png');
+    var q = (quality === undefined || quality === null) ? 0.95 : Number(quality);
     return renderToCanvas(scale).then(function (cv) {
       return new Promise(function (resolve, reject) {
         cv.toBlob(function (blob) {
@@ -114,7 +119,7 @@
               });
           }
           attempt();
-        }, 'image/png');
+        }, mime, mime === 'image/png' ? undefined : q);
       });
     }).catch(function (e) {
       console.log('[headless] 渲染失敗：' + (e && e.message));

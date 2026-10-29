@@ -1,0 +1,91 @@
+{
+  "id": "2022-nantou",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Local Elections",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "南投縣縣長",
+    "officeEn": "Magistrate of Nantou County",
+    "subtitle": "南投縣 · 第十九屆縣長選舉",
+    "statsRows": [
+      {
+        "label": "選舉人數",
+        "value": "40萬6195 人"
+      },
+      {
+        "label": "投票數",
+        "value": "28萬0596 票"
+      },
+      {
+        "label": "有效票",
+        "value": "27萬5499 票"
+      },
+      {
+        "label": "無效票",
+        "value": "5097 票"
+      },
+      {
+        "label": "投票率",
+        "value": "69.08%"
+      }
+    ],
+    "header": {
+      "role": "當選人",
+      "name": "許淑華",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    },
+    "electorate": 406195,
+    "castVotes": 280596,
+    "validVotes": 275499,
+    "invalidVotes": 5097,
+    "turnout": 69.08,
+    "layout": {
+      "legend": {
+        "disabled": true
+      }
+    }
+  },
+  "candidates": [
+    {
+      "key": "c01",
+      "number": 1,
+      "name": "蔡培慧",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "votes": 117993,
+      "pct": 42.83,
+      "elected": false
+    },
+    {
+      "key": "c02",
+      "number": 2,
+      "name": "許淑華",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "votes": 154256,
+      "pct": 55.99,
+      "elected": true
+    },
+    {
+      "key": "c03",
+      "number": 3,
+      "name": "王永慶",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 3250,
+      "pct": 1.18,
+      "elected": false
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "id": "2022-chiayicity",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "12月18日",
+    "dateEn": "18 Dec",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "嘉義市縣市長",
+    "officeEn": "County Magistrate / Mayor of 嘉義市",
+    "county": "嘉義市",
+    "countyShort": "嘉義市",
+    "electorate": 214130,
+    "turnout": 43.99,
+    "validVotes": 93813,
+    "invalidVotes": 375,
+    "castVotes": 94188,
+    "header": {
+      "role": "時任縣市長",
+      "name": "黃敏惠",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "黃敏惠",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 1,
+      "votes": 59874,
+      "pct": 63.82,
+      "elected": true
+    },
+    {
+      "key": "c2",
+      "name": "李俊俋",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 2,
+      "votes": 32790,
+      "pct": 34.95,
+      "elected": false
+    },
+    {
+      "key": "c3",
+      "name": "陳泰山",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 3,
+      "votes": 246,
+      "pct": 0.26,
+      "elected": false
+    },
+    {
+      "key": "c4",
+      "name": "黃宏成台灣阿成\n世界偉人財神總統",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 4,
+      "votes": 535,
+      "pct": 0.57,
+      "elected": false
+    },
+    {
+      "key": "c5",
+      "name": "鄭凱升",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 5,
+      "votes": 368,
+      "pct": 0.39,
+      "elected": false
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560.0,
+      "y": 355.0,
+      "w": 1005.0,
+      "h": 716
+    },
+    "map2": {
+      "x": 1601.0,
+      "y": 569.4,
+      "w": 403.0,
+      "h": 287.1,
+      "enabled": true
+    }
+  }
+}

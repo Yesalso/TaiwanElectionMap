@@ -1,0 +1,96 @@
+{
+  "id": "2022-kaohsiung",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "高雄市縣市長",
+    "officeEn": "County Magistrate / Mayor of 高雄市",
+    "county": "高雄市",
+    "countyShort": "高雄",
+    "electorate": 2282623,
+    "turnout": 58.61,
+    "validVotes": 1318733,
+    "invalidVotes": 19086,
+    "castVotes": 1337819,
+    "header": {
+      "role": "時任縣市長",
+      "name": "陳其邁",
+      "party": "民主進步黨",
+      "partyShort": "DPP"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "鄭宇翔",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 1,
+      "votes": 8394,
+      "pct": 0.64,
+      "elected": false
+    },
+    {
+      "key": "c2",
+      "name": "曾尹儷",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 2,
+      "votes": 14585,
+      "pct": 1.11,
+      "elected": false
+    },
+    {
+      "key": "c3",
+      "name": "柯志恩",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 3,
+      "votes": 529607,
+      "pct": 40.16,
+      "elected": false
+    },
+    {
+      "key": "c4",
+      "name": "陳其邁",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 4,
+      "votes": 766147,
+      "pct": 58.1,
+      "elected": true
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560.0,
+      "y": 197.0,
+      "w": 834.0,
+      "h": 1032
+    },
+    "map2": {
+      "x": 1430.0,
+      "y": 357.9,
+      "w": 574.0,
+      "h": 710.3,
+      "enabled": true
+    }
+  }
+}

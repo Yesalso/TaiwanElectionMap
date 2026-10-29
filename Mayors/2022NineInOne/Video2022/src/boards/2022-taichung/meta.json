@@ -1,0 +1,100 @@
+{
+  "id": "2022-taichung",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Local Elections",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "臺中市市長",
+    "officeEn": "Mayor of Taichung City",
+    "subtitle": "臺中市 · 第四屆市長選舉",
+    "statsRows": [
+      {
+        "label": "選舉人數",
+        "value": "227萬4107 人"
+      },
+      {
+        "label": "投票數",
+        "value": "136萬4629 票"
+      },
+      {
+        "label": "有效票",
+        "value": "134萬6471 票"
+      },
+      {
+        "label": "無效票",
+        "value": "1萬8158 票"
+      },
+      {
+        "label": "投票率",
+        "value": "60.01%"
+      }
+    ],
+    "header": {
+      "role": "當選人",
+      "name": "盧秀燕",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    },
+    "electorate": 2274107,
+    "castVotes": 1364629,
+    "validVotes": 1346471,
+    "invalidVotes": 18158,
+    "turnout": 60.01,
+    "layout": {
+      "legend": {
+        "disabled": true
+      },
+      "map": {
+        "x": 576,
+        "y": 214,
+        "w": 1000,
+        "h": 880
+      },
+      "map2": {
+        "enabled": false
+      }
+    }
+  },
+  "candidates": [
+    {
+      "key": "c01",
+      "number": 1,
+      "name": "陳美妃",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 23140,
+      "pct": 1.72,
+      "elected": false
+    },
+    {
+      "key": "c02",
+      "number": 2,
+      "name": "蔡其昌",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "votes": 524224,
+      "pct": 38.93,
+      "elected": false
+    },
+    {
+      "key": "c03",
+      "number": 3,
+      "name": "盧秀燕",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "votes": 799107,
+      "pct": 59.35,
+      "elected": true
+    }
+  ]
+}

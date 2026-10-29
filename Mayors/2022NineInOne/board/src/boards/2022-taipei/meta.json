@@ -1,0 +1,192 @@
+{
+  "id": "2022-taipei",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "臺北市縣市長",
+    "officeEn": "County Magistrate / Mayor of 臺北市",
+    "county": "臺北市",
+    "countyShort": "臺北",
+    "electorate": 2026769,
+    "turnout": 67.7,
+    "validVotes": 1360951,
+    "invalidVotes": 11228,
+    "castVotes": 1372179,
+    "header": {
+      "role": "時任縣市長",
+      "name": "柯文哲",
+      "party": "台灣民眾黨",
+      "partyShort": "TPP"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "張家豪",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 1,
+      "votes": 2367,
+      "pct": 0.17,
+      "elected": false
+    },
+    {
+      "key": "c2",
+      "name": "王文娟",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 2,
+      "votes": 451,
+      "pct": 0.03,
+      "elected": false
+    },
+    {
+      "key": "c3",
+      "name": "鄭匡宇",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 3,
+      "votes": 386,
+      "pct": 0.03,
+      "elected": false
+    },
+    {
+      "key": "c4",
+      "name": "黃聖峰",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 4,
+      "votes": 256,
+      "pct": 0.02,
+      "elected": false
+    },
+    {
+      "key": "c5",
+      "name": "童文薰",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 5,
+      "votes": 2425,
+      "pct": 0.18,
+      "elected": false
+    },
+    {
+      "key": "c6",
+      "name": "蔣萬安",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 6,
+      "votes": 575590,
+      "pct": 42.29,
+      "elected": true
+    },
+    {
+      "key": "c7",
+      "name": "蘇煥智",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 7,
+      "votes": 1851,
+      "pct": 0.14,
+      "elected": false
+    },
+    {
+      "key": "c8",
+      "name": "黃珊珊",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 8,
+      "votes": 342141,
+      "pct": 25.14,
+      "elected": false
+    },
+    {
+      "key": "c9",
+      "name": "施奉先",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 9,
+      "votes": 383,
+      "pct": 0.03,
+      "elected": false
+    },
+    {
+      "key": "c10",
+      "name": "唐新民",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 10,
+      "votes": 316,
+      "pct": 0.02,
+      "elected": false
+    },
+    {
+      "key": "c11",
+      "name": "謝立康",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 11,
+      "votes": 227,
+      "pct": 0.02,
+      "elected": false
+    },
+    {
+      "key": "c12",
+      "name": "陳時中",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 12,
+      "votes": 434558,
+      "pct": 31.93,
+      "elected": false
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 645.0,
+      "y": 197.0,
+      "w": 788.3,
+      "h": 1032
+    },
+    "map2": {
+      "x": 1469.3,
+      "y": 363.0,
+      "w": 534.7,
+      "h": 700.1,
+      "enabled": true
+    }
+  }
+}

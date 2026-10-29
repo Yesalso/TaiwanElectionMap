@@ -67,3 +67,11 @@ _tmp*.txt
 
 # ���������زģ�Լ 105 MB������⣩
 /Video/MP3/
+
+# 2022 九合一看板／影片專案：建置產物與大體積圖檔（本機保留，不入庫）
+/Mayors/2022NineInOne/board/dist/
+/Mayors/2022NineInOne/Video2022/dist/
+/Mayors/2022NineInOne/Video2022/assets/
+
+# 影片配樂（大體積，本機保留，不入庫）
+/Video/*.mp3

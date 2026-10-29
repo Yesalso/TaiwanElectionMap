@@ -1,0 +1,96 @@
+{
+  "id": "2022-taoyuan",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "桃園市縣市長",
+    "officeEn": "County Magistrate / Mayor of 桃園市",
+    "county": "桃園市",
+    "countyShort": "桃園",
+    "electorate": 1825127,
+    "turnout": 59.46,
+    "validVotes": 1071763,
+    "invalidVotes": 13462,
+    "castVotes": 1085225,
+    "header": {
+      "role": "時任縣市長",
+      "name": "鄭文燦",
+      "party": "民主進步黨",
+      "partyShort": "DPP"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "張善政",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 1,
+      "votes": 557572,
+      "pct": 52.02,
+      "elected": true
+    },
+    {
+      "key": "c2",
+      "name": "賴香伶",
+      "nameEn": "",
+      "party": "台灣民眾黨",
+      "partyShort": "TPP",
+      "partyEn": "Taiwan People's Party",
+      "number": 2,
+      "votes": 54926,
+      "pct": 5.12,
+      "elected": false
+    },
+    {
+      "key": "c3",
+      "name": "鄭運鵬",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 3,
+      "votes": 428983,
+      "pct": 40.03,
+      "elected": false
+    },
+    {
+      "key": "c4",
+      "name": "鄭寶清",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 4,
+      "votes": 30282,
+      "pct": 2.83,
+      "elected": false
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560.0,
+      "y": 197.0,
+      "w": 874.8,
+      "h": 1032
+    },
+    "map2": {
+      "x": 1470.8,
+      "y": 398.5,
+      "w": 533.2,
+      "h": 629.0,
+      "enabled": true
+    }
+  }
+}

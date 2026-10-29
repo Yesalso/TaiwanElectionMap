@@ -1,0 +1,109 @@
+{
+  "id": "2022-keelung",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "基隆市縣市長",
+    "officeEn": "County Magistrate / Mayor of 基隆市",
+    "county": "基隆市",
+    "countyShort": "基隆",
+    "electorate": 307913,
+    "turnout": 60.16,
+    "validVotes": 182893,
+    "invalidVotes": 2348,
+    "castVotes": 185241,
+    "header": {
+      "role": "時任縣市長",
+      "name": "林右昌",
+      "party": "民主進步黨",
+      "partyShort": "DPP"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "謝國樑",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 1,
+      "votes": 96784,
+      "pct": 52.92,
+      "elected": true
+    },
+    {
+      "key": "c2",
+      "name": "陳薇仲",
+      "nameEn": "",
+      "party": "時代力量",
+      "partyShort": "NPP",
+      "partyEn": "New Power Party",
+      "number": 2,
+      "votes": 12000,
+      "pct": 6.56,
+      "elected": false,
+      "color": "#FFBE00"
+    },
+    {
+      "key": "c3",
+      "name": "蔡適應",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 3,
+      "votes": 71354,
+      "pct": 39.01,
+      "elected": false
+    },
+    {
+      "key": "c4",
+      "name": "曾國民",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 4,
+      "votes": 619,
+      "pct": 0.34,
+      "elected": false
+    },
+    {
+      "key": "c5",
+      "name": "黃希賢",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 5,
+      "votes": 2136,
+      "pct": 1.17,
+      "elected": false
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560.0,
+      "y": 337.0,
+      "w": 1000.9,
+      "h": 752
+    },
+    "map2": {
+      "x": 1596.9,
+      "y": 560.1,
+      "w": 407.1,
+      "h": 305.9,
+      "enabled": true
+    }
+  }
+}

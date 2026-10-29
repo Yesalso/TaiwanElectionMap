@@ -1,0 +1,85 @@
+{
+  "id": "2022-pingtung",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "屏東縣縣市長",
+    "officeEn": "County Magistrate / Mayor of 屏東縣",
+    "county": "屏東縣",
+    "countyShort": "屏東",
+    "electorate": 679330,
+    "turnout": 67.18,
+    "validVotes": 443153,
+    "invalidVotes": 13229,
+    "castVotes": 456382,
+    "header": {
+      "role": "時任縣市長",
+      "name": "潘孟安",
+      "party": "民主進步黨",
+      "partyShort": "DPP"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "詹智鈞",
+      "nameEn": "",
+      "party": "時代力量",
+      "partyShort": "NPP",
+      "partyEn": "New Power Party",
+      "number": 1,
+      "votes": 19156,
+      "pct": 4.32,
+      "elected": false,
+      "color": "#FFBE00"
+    },
+    {
+      "key": "c2",
+      "name": "蘇清泉",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 2,
+      "votes": 206460,
+      "pct": 46.59,
+      "elected": false
+    },
+    {
+      "key": "c3",
+      "name": "周春米",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 3,
+      "votes": 217537,
+      "pct": 49.09,
+      "elected": true
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 774.8,
+      "y": 197.0,
+      "w": 534.8,
+      "h": 1032
+    },
+    "map2": {
+      "x": 1345.6,
+      "y": 236.0,
+      "w": 443.6,
+      "h": 856.0,
+      "enabled": true
+    }
+  }
+}

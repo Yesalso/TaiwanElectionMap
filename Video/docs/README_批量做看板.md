@@ -145,7 +145,8 @@ done
   tools/render_boards.mjs --all --scale 1 --out ./out
 ```
 
-- `build_board.py` 每場寫出 `board.js` / `board.files.js`（+ `index.html`）。
+- `build_board.py` 每場寫出 `board.js` / `board.files.js`；入口頁**全場共用一份**
+  `dist/boards/_entry/index.html`（渲染時帶 `?board=<id>`，2026-10-28 起不再逐場複製）。
   `board.assets.js` **預設不產**（每場約 10 MB，模板也沒載入它）；要 file:// 直開才加 `--embed`。
 - `render_boards.mjs --all` 掃 `boards/` 下所有含 `meta.json` 的目錄；
   有 `.skip` 標記的會**自動跳過**（`2014-newtpei-mayor` 就是這樣被排除的）。
@@ -167,7 +168,7 @@ done
 boards/<id>/
   meta.json          ★ 人工維護：選舉名稱／年份／候選人（key/姓名/政黨/號次/總票/當選）
                       + region.county=臺北市, unitLevel=village, mapVariant=map|map2
-  index.html         薄殼，複製 boards/_template/index.html
+  index.html         【已停產】入口頁改為全場共用 dist/boards/_entry/index.html
   source/
     data.xlsx        逐里得票（從 NewSolution/data/ 複製對應檔）
     map.png          得票率地圖 = processed/map/<year>/map.png（或 map2）
@@ -192,6 +193,13 @@ boards/<id>/
 要清掉既有加 `--retire-map2`。`台北市民的选择.mp4` 用的區級圖是
 `dist/final/taipeimayor/` 的獨立 PNG，不受影響。
 
+> ★ 2026-10-25 起看板 PNG 改落 `dist/dist_png/<项目>/<年份>.png`（按选举项目分文件夹，
+> 同一选举的所有年份同框，例如 `taipei-mayor/1994.png … 2022.png`；只放图片，
+> 用 `--format webp` 时是 `.webp`）；
+> `dist/boards/<id>/` 只剩 `board.js` / `board.files.js` / `layout.json`
+> （入口页 2026-10-28 起改為全場共用 `dist/boards/_entry/index.html`）。
+> 舊筆記若寫 `dist/boards/<id>/board.png`，那是舊路徑。
+
 ---
 
 ## 5. 常見坑（照著避開）
@@ -203,7 +211,7 @@ boards/<id>/
 | 圖例整片不見 | 把 `legend.png` 也做了白→透明 | 它 `how=copy`，原樣搬即可 |
 | 看板整場變灰 | 早年資料欄位只有人名、無政黨 | 見 `Converge_to_map_taipei.py` 的 `PARTY_COLOR_GROUPS`；姓名要能對到政黨 |
 | 村里對不到、留白 | 早年里界與圖資不符 | 圖資按年份切：`<2019` 用 106（cp950）、`≥2019` 用 111（UTF-8） |
-| 單場渲染後其他場消失 | `--boards` 會把 `manifest.json` 覆寫成只有該場 | 要全量就重跑 `--all` |
+| 單場渲染後其他場消失 | 舊版 `--boards` 會把 `manifest.json` 覆寫成只有該場 | 2026-10-25 起渲染器增量合併，不再發生；要整份重寫加 `--no-merge` |
 
 ---
 

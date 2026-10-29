@@ -1,0 +1,84 @@
+{
+  "id": "2022-nantou",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "南投縣縣市長",
+    "officeEn": "County Magistrate / Mayor of 南投縣",
+    "county": "南投縣",
+    "countyShort": "南投",
+    "electorate": 406195,
+    "turnout": 69.08,
+    "validVotes": 275499,
+    "invalidVotes": 5097,
+    "castVotes": 280596,
+    "header": {
+      "role": "時任縣市長",
+      "name": "林明溱",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "蔡培慧",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 1,
+      "votes": 117993,
+      "pct": 42.83,
+      "elected": false
+    },
+    {
+      "key": "c2",
+      "name": "許淑華",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 2,
+      "votes": 154256,
+      "pct": 55.99,
+      "elected": true
+    },
+    {
+      "key": "c3",
+      "name": "王永慶",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 3,
+      "votes": 3250,
+      "pct": 1.18,
+      "elected": false
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560.0,
+      "y": 197.0,
+      "w": 858.7,
+      "h": 1032
+    },
+    "map2": {
+      "x": 1454.7,
+      "y": 382.9,
+      "w": 549.3,
+      "h": 660.2,
+      "enabled": true
+    }
+  }
+}

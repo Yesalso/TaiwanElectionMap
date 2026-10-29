@@ -1,0 +1,72 @@
+{
+  "id": "2022-newtaipei",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "新北市縣市長",
+    "officeEn": "County Magistrate / Mayor of 新北市",
+    "county": "新北市",
+    "countyShort": "新北",
+    "electorate": 3316517,
+    "turnout": 56.6,
+    "validVotes": 1846531,
+    "invalidVotes": 30655,
+    "castVotes": 1877186,
+    "header": {
+      "role": "時任縣市長",
+      "name": "侯友宜",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "林佳龍",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 1,
+      "votes": 693976,
+      "pct": 37.58,
+      "elected": false
+    },
+    {
+      "key": "c2",
+      "name": "侯友宜",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 2,
+      "votes": 1152555,
+      "pct": 62.42,
+      "elected": true
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560.0,
+      "y": 237.0,
+      "w": 1002.8,
+      "h": 952
+    },
+    "map2": {
+      "x": 1598.8,
+      "y": 520.6,
+      "w": 405.2,
+      "h": 384.7,
+      "enabled": true
+    }
+  }
+}

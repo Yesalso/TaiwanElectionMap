@@ -80,6 +80,18 @@
     var A = global.NT_ASSETS || {};
     var src = U.resolveAsset((L.map && L.map.src) || '');
 
+    /* 渲染變體（?mapVariant=map2）：把主圖換成同目錄的區級版。
+       ★ 為什麼是在「已解析的實際路徑」上換，而不是改邏輯名：
+         市長場的 board.files.js 沒有 map2.png 這一項（區級圖原本只給
+         總統場右欄用）。若把 src 設成 'assets/map2.png'，resolveAsset
+         找不到對照就會原樣回傳，瀏覽器去抓不存在的檔 → 地圖整片空白
+         （2026-10-28 踩過一次，2022 市長場的區級版渲染出來沒有地圖）。
+         ../../assets/map/2022/map.png → ../../assets/map/2022/map2.png
+         兩張圖永遠同目錄、同尺寸並排存在，換結尾最穩。 */
+    if (L.map && L.map.variant === 'map2' && src) {
+      src = src.replace(/map\.png$/i, 'map2.png');
+    }
+
     function useEmbedded(reason) {
       if (!A.voteMap) {
         console.warn('[Slide] 地圖不可用：' + reason + '，且沒有內嵌備援。');
@@ -102,11 +114,9 @@
       });
     }
 
-    /* http(s) 下加時間戳，避免換了圖還看到快取 */
-    var url = src;
-    if (src.indexOf('?') < 0) {
-      url += '?t=' + Date.now();
-    }
+    /* http(s) 下加時間戳，避免換了圖還看到快取（集中走 U.stampUrl，
+       headless 批次時同一批固定一個 v，讓瀏覽器快取真正命中） */
+    var url = U.stampUrl(src);
 
     return U.loadImage(url).then(function (img) {
       self.assets.mapSource = 'file';
@@ -134,6 +144,8 @@
   Slide.prototype._loadMap2 = function () {
     var src = (L.map2 && L.map2.src) || '';
     var main = (L.map && L.map.src) || '';
+    /* 主圖已經是區級版（?mapVariant=map2）→ 右欄不必再畫同一張。 */
+    if (L.map && L.map.variant === 'map2') return Promise.resolve(null);
     if (!src) return Promise.resolve(null);
     /* 這場的 board.files.js 沒有這一項 → 直接跳過（市長場不產區級圖；
        硬去讀一個不存在的檔只會在每張市長看板上噴一次警告）。 */
@@ -175,7 +187,7 @@
     if (!src) return Promise.resolve(giveUp('未設定 Layout.header.seal.src'));
 
     /* http(s) 下加時間戳，避免換了圖還看到快取 */
-    var url = src.indexOf('?') < 0 ? src + '?t=' + Date.now() : src;
+    var url = U.stampUrl(src);
 
     return U.loadImage(url).then(function (img) {
       self.assets.sealSource = 'file';
@@ -214,7 +226,7 @@
     if (!src) return Promise.resolve(giveUp('未設定 Layout.header.dateBlock.disc.src'));
 
     /* http(s) 下加時間戳，避免換了圖還看到快取 */
-    var url = src.indexOf('?') < 0 ? src + '?t=' + Date.now() : src;
+    var url = U.stampUrl(src);
 
     return U.loadImage(url).then(function (img) {
       self.assets.emblemSource = 'file';
@@ -294,7 +306,7 @@
       var src = U.resolveAsset(conf[key] || ('assets/party_' + key + '.png'));
       if (!src || underFile) return fromEmbedded(key);
 
-      var url = src.indexOf('?') < 0 ? src + '?t=' + Date.now() : src;
+      var url = U.stampUrl(src);
       return U.loadImage(url).then(function (img) {
         self.assets.partyMarkSource[key] = 'file';
         return img;
@@ -343,7 +355,7 @@
     if (!src) return Promise.resolve(giveUp('未設定 Layout.legend.src'));
 
     /* http(s) 下加時間戳，避免換了圖還看到快取 */
-    var url = src.indexOf('?') < 0 ? src + '?t=' + Date.now() : src;
+    var url = U.stampUrl(src);
 
     return U.loadImage(url).then(function (img) {
       self.assets.legendSource = 'file';
@@ -383,7 +395,7 @@
 
     if (!src) return Promise.resolve(giveUp('未設定路徑'));
 
-    var url = src.indexOf('?') < 0 ? src + '?t=' + Date.now() : src;
+    var url = U.stampUrl(src);
     return U.loadImage(url).then(function (img) {
       self.assets[sourceField] = 'file';
       return img;

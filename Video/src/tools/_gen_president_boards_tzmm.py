@@ -36,16 +36,17 @@
 import glob
 import json
 import os
-import shutil
 import sys
 
 import pandas as pd
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from boardlib import entry  # noqa: E402  共用入口頁（不依賴 geopandas）
 
 VIDEO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PRECIDENT = r"D:/Windows/TaiwanElection/Precident"
 BOARDS = os.path.join(VIDEO, "src", "boards")        # 源碼場次目錄（meta.json）
 DIST_BOARDS = os.path.join(VIDEO, "dist", "boards")  # 產物（board.js / index.html / PNG）
-ENGINE_INDEX = os.path.join(VIDEO, "src", "templates", "index.html")
 
 REGION_LABEL = "桃竹苗"
 REGION_COUNTIES = {"桃園縣", "桃園市", "新竹市", "新竹縣", "苗栗縣"}
@@ -305,7 +306,8 @@ def build(year):
             f.write("window.BOARD_FILES = " +
                     json.dumps({"files": files}, ensure_ascii=False, indent=2) + ";\n")
 
-        shutil.copyfile(ENGINE_INDEX, os.path.join(out_dir, "index.html"))
+        # 入口不再逐場複製：全場共用 dist/boards/_entry/index.html
+        entry.write_entry_html()
         print("  ✓", bid)
 
     # 對照輸出（人眼比對 src/president/maps/<year>/*五大分區得票統計.md）

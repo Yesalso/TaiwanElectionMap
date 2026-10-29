@@ -1,0 +1,251 @@
+{
+  "id": "2022-national",
+  "meta": {
+    "election": "2022年縣市長選舉",
+    "electionEn": "2022 Local Elections — County Magistrates & Mayors",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "figures": "display",
+    "office": "全國 22 縣市長",
+    "officeEn": "County Magistrates & Mayors, All 22",
+    "county": "全國",
+    "countyShort": "全國",
+    "electorate": 19181901,
+    "turnout": 60.97,
+    "validVotes": 11490975,
+    "invalidVotes": 204635,
+    "castVotes": 11695610,
+    "header": {
+      "role": "時任總統",
+      "name": "蔡英文",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "stats": [
+        {
+          "label": "投票率",
+          "value": "60.97%"
+        },
+        {
+          "label": "有效票",
+          "value": "1149萬0975 票"
+        },
+        {
+          "label": "無效票",
+          "value": "20萬4635 票"
+        },
+        {
+          "label": "選舉人數",
+          "value": "1918萬1901 人"
+        }
+      ]
+    }
+  },
+  "candidates": [
+    {
+      "key": "kmt",
+      "name": "中國國民黨",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 1,
+      "votes": 5761851,
+      "pct": 50.14,
+      "elected": false,
+      "seats": 14,
+      "sub": "朱立倫",
+      "leader": "朱立倫"
+    },
+    {
+      "key": "dpp",
+      "name": "民主進步黨",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 2,
+      "votes": 4776258,
+      "pct": 41.57,
+      "elected": false,
+      "seats": 5,
+      "sub": "蔡英文",
+      "leader": "蔡英文"
+    },
+    {
+      "key": "ind",
+      "name": "無黨籍",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 3,
+      "votes": 705872,
+      "pct": 6.19,
+      "elected": false,
+      "seats": 2,
+      "sub": ""
+    },
+    {
+      "key": "tpp",
+      "name": "台灣民眾黨",
+      "nameEn": "",
+      "party": "台灣民眾黨",
+      "partyShort": "TPP",
+      "partyEn": "Taiwan People's Party",
+      "number": 4,
+      "votes": 169459,
+      "pct": 1.49,
+      "elected": false,
+      "seats": 1,
+      "sub": "柯文哲",
+      "leader": "柯文哲"
+    },
+    {
+      "key": "npp",
+      "name": "時代力量",
+      "nameEn": "",
+      "party": "時代力量",
+      "partyShort": "NPP",
+      "partyEn": "New Power Party",
+      "number": 5,
+      "votes": 70503,
+      "pct": 0.62,
+      "elected": false,
+      "seats": 0,
+      "sub": "陳椒華",
+      "leader": "陳椒華",
+      "color": "#FFBE00"
+    },
+    {
+      "key": "oth6",
+      "name": "台灣動物保護黨",
+      "nameEn": "",
+      "party": "其他政黨",
+      "partyShort": "OTH",
+      "partyEn": "",
+      "number": 6,
+      "votes": 2367,
+      "pct": 0.02,
+      "elected": false,
+      "seats": 0,
+      "sub": "",
+      "color": "#5f6779"
+    },
+    {
+      "key": "oth7",
+      "name": "台灣維新",
+      "nameEn": "",
+      "party": "其他政黨",
+      "partyShort": "OTH",
+      "partyEn": "",
+      "number": 7,
+      "votes": 1851,
+      "pct": 0.02,
+      "elected": false,
+      "seats": 0,
+      "sub": "",
+      "color": "#5f6779"
+    },
+    {
+      "key": "oth8",
+      "name": "天一黨",
+      "nameEn": "",
+      "party": "其他政黨",
+      "partyShort": "OTH",
+      "partyEn": "",
+      "number": 8,
+      "votes": 919,
+      "pct": 0.01,
+      "elected": false,
+      "seats": 0,
+      "sub": "",
+      "color": "#5f6779"
+    },
+    {
+      "key": "oth9",
+      "name": "共和黨",
+      "nameEn": "",
+      "party": "其他政黨",
+      "partyShort": "OTH",
+      "partyEn": "",
+      "number": 9,
+      "votes": 316,
+      "pct": 0.0,
+      "elected": false,
+      "seats": 0,
+      "sub": "",
+      "color": "#5f6779"
+    },
+    {
+      "key": "oth10",
+      "name": "台澎黨",
+      "nameEn": "",
+      "party": "其他政黨",
+      "partyShort": "OTH",
+      "partyEn": "",
+      "number": 10,
+      "votes": 256,
+      "pct": 0.0,
+      "elected": false,
+      "seats": 0,
+      "sub": "",
+      "color": "#5f6779"
+    },
+    {
+      "key": "oth11",
+      "name": "龍黨",
+      "nameEn": "",
+      "party": "其他政黨",
+      "partyShort": "OTH",
+      "partyEn": "",
+      "number": 11,
+      "votes": 174,
+      "pct": 0.0,
+      "elected": false,
+      "seats": 0,
+      "sub": "",
+      "color": "#5f6779"
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "x": 1600,
+      "y": 62,
+      "w": 480,
+      "h": 118,
+      "disabled": false,
+      "inner": 0,
+      "title": "",
+      "allowInHeader": true
+    },
+    "map": {
+      "x": 624.0,
+      "y": 248,
+      "w": 640.0,
+      "h": 854,
+      "src": "assets/map.png"
+    },
+    "map2": {
+      "x": 1300.0,
+      "y": 248,
+      "w": 640.0,
+      "h": 854,
+      "src": "assets/map2.png",
+      "enabled": true,
+      "allowWithLegend": true
+    },
+    "ribbon": {
+      "disabled": true
+    },
+    "minors": {
+      "smallMax": 2,
+      "groupGap": 36,
+      "subInk": "rgba(255,255,255,0.86)",
+      "othersMaxTextW": 338
+    }
+  }
+}

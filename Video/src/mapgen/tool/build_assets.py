@@ -40,6 +40,7 @@
     python tool/build_assets.py --force             # 已存在的成品也重做
     python tool/build_assets.py --dry-run           # 只列出會做什麼
     python tool/build_assets.py --check             # 只檢查成品是否齊備（CI 用）
+    python tool/build_assets.py --check-drift       # 只查「成品與現配方是否一致」（不寫檔）
 """
 
 from __future__ import annotations
@@ -49,6 +50,7 @@ import json
 import os
 import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parents[1]        # .../src/mapgen
@@ -206,6 +208,61 @@ def run_one(task, force: bool, dry: bool):
             % (src.relative_to(VIDEO_ROOT), dst.relative_to(VIDEO_ROOT), note))
 
 
+# ----------------------------------------------------------------- 漂移检查
+def drift_one(task, tmpdir: Path):
+    """重算一次成品（寫到臨時目錄）並與既有成品比對，**不碰 dist/assets/**。
+
+    為什麼需要這個：`--force` 一律重做，但如果源圖或配方在上次建置之後變過，
+    重做就會**改掉畫面** —— 而看板是拿 dist/assets/ 的成品渲染的，等於三張
+    看板會跟著變。2026-10-28 就踩過：2022 的 map/legend/map2 成品比源頭舊，
+    按配方重做後 DPP 的綠色明顯變深（map 71 萬像素不同）。
+
+    這支只「報告」，不動任何檔案，讓「成品到底有沒有過期」變成可查的事實。
+    """
+    kind, src, dst, how = task
+    if not src.is_file():
+        return ("missing", "%s 不存在" % src.relative_to(VIDEO_ROOT), None)
+    if not dst.is_file():
+        return ("nodst", "%s 尚無成品" % dst.relative_to(VIDEO_ROOT), None)
+
+    tmp = tmpdir / ("%s__%s.png" % (kind, dst.stem))
+    if how == "copy":
+        shutil.copyfile(src, tmp)
+    elif how == "white":
+        build_white(src, tmp)
+    elif how == "whiteblack":
+        build_white_black(src, tmp)
+    else:
+        build_static(src, tmp, dst.name)
+
+    if how == "copy":
+        same = tmp.read_bytes() == dst.read_bytes()
+        return ("same" if same else "drift",
+                "%s -> %s" % (src.relative_to(VIDEO_ROOT),
+                              dst.relative_to(VIDEO_ROOT)),
+                None if same else "字节不同（copy 配方应该是逐字节相同）")
+
+    import numpy as np
+    from PIL import Image
+
+    a = np.asarray(Image.open(tmp).convert("RGBA")).astype(np.int16)
+    b = np.asarray(Image.open(dst).convert("RGBA")).astype(np.int16)
+    if a.shape != b.shape:
+        return ("drift", "%s -> %s" % (src.relative_to(VIDEO_ROOT),
+                                       dst.relative_to(VIDEO_ROOT)),
+                "尺寸不同 %s vs %s" % (a.shape, b.shape))
+    d = np.abs(a - b)
+    n = int((d.sum(axis=2) > 0).sum())
+    if n == 0:
+        return ("same", "%s -> %s" % (src.relative_to(VIDEO_ROOT),
+                                      dst.relative_to(VIDEO_ROOT)), None)
+    detail = "像素不同 %s 个（%.2f%%），最大差 %d（%s 通道）" % (
+        format(n, ","), n * 100.0 / (a.shape[0] * a.shape[1]),
+        int(d.max()), "RGBA"[int(d.max(axis=(0, 1)).argmax())])
+    return ("drift", "%s -> %s" % (src.relative_to(VIDEO_ROOT),
+                                   dst.relative_to(VIDEO_ROOT)), detail)
+
+
 # ----------------------------------------------------------------- main
 def main():
     ap = argparse.ArgumentParser(description="素材透明化管線（成品只寫 png/processed/）")
@@ -221,6 +278,10 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="只列出會做什麼")
     ap.add_argument("--check", action="store_true",
                     help="只檢查成品齊備（不做任何寫檔）；缺件退出碼 1")
+    ap.add_argument("--check-drift", action="store_true",
+                    help="只檢查「既有成品是否仍等於現配方算出來的結果」（不寫檔）。"
+                         "有漂移表示源圖或配方在上次建置後改過，"
+                         "此時跑 --force 會改動看板畫面。有漂移退出碼 1")
     args = ap.parse_args()
 
     cfg = load_map()
@@ -231,6 +292,28 @@ def main():
     print("成品根：%s" % OUT_ROOT.relative_to(VIDEO_ROOT))
     print("原始素材：%s" % PNG_DIR.relative_to(VIDEO_ROOT))
     print("共 %d 個項目\n" % len(tasks))
+
+    if args.check_drift:
+        stats = {"same": 0, "drift": 0, "missing": 0, "nodst": 0}
+        drifted = []
+        with tempfile.TemporaryDirectory() as td:
+            for task in tasks:
+                state, note, detail = drift_one(task, Path(td))
+                stats[state] += 1
+                mark = {"same": "·", "drift": "≠", "missing": "!", "nodst": "?"}[state]
+                print("  %s %s" % (mark, note))
+                if detail:
+                    print("      " + detail)
+                if state == "drift":
+                    drifted.append(task[1])
+        print("\n一致 %d / 漂移 %d / 缺原圖 %d / 無成品 %d"
+              % (stats["same"], stats["drift"], stats["missing"], stats["nodst"]))
+        if drifted:
+            print("\n[漂移] 这些成品与现配方不符（跑 --force 会改变看板画面）：")
+            for p in drifted:
+                print("  - %s" % p.relative_to(VIDEO_ROOT))
+            print("建议：先确认源图是不是最新意图，再决定 --force 重做 + 重渲受影响看板。")
+        sys.exit(1 if drifted else 0)
 
     stats = {"built": 0, "skip": 0, "missing": 0, "would": 0}
     for task in tasks:

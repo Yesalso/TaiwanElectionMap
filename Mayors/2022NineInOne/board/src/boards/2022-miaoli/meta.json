@@ -1,0 +1,109 @@
+{
+  "id": "2022-miaoli",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Nine-in-One Election",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "苗栗縣縣市長",
+    "officeEn": "County Magistrate / Mayor of 苗栗縣",
+    "county": "苗栗縣",
+    "countyShort": "苗栗",
+    "electorate": 443908,
+    "turnout": 67.2,
+    "validVotes": 292100,
+    "invalidVotes": 6219,
+    "castVotes": 298319,
+    "header": {
+      "role": "時任縣市長",
+      "name": "徐耀昌",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    }
+  },
+  "candidates": [
+    {
+      "key": "c1",
+      "name": "鍾東錦",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 1,
+      "votes": 124603,
+      "pct": 42.66,
+      "elected": true
+    },
+    {
+      "key": "c2",
+      "name": "謝福弘",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "number": 2,
+      "votes": 32026,
+      "pct": 10.96,
+      "elected": false
+    },
+    {
+      "key": "c3",
+      "name": "吳盛聖",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "number": 3,
+      "votes": 4864,
+      "pct": 1.67,
+      "elected": false
+    },
+    {
+      "key": "c4",
+      "name": "徐定禎",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "number": 4,
+      "votes": 91260,
+      "pct": 31.24,
+      "elected": false
+    },
+    {
+      "key": "c5",
+      "name": "宋國鼎",
+      "nameEn": "",
+      "party": "時代力量",
+      "partyShort": "NPP",
+      "partyEn": "New Power Party",
+      "number": 5,
+      "votes": 39347,
+      "pct": 13.47,
+      "elected": false,
+      "color": "#FFBE00"
+    }
+  ],
+  "districts": [],
+  "layout": {
+    "legend": {
+      "disabled": true
+    },
+    "map": {
+      "x": 560.0,
+      "y": 327.0,
+      "w": 1000.6,
+      "h": 772
+    },
+    "map2": {
+      "x": 1596.6,
+      "y": 555.8,
+      "w": 407.4,
+      "h": 314.4,
+      "enabled": true
+    }
+  }
+}

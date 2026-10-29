@@ -1,0 +1,79 @@
+{
+  "id": "2022-newtaipei",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Local Elections",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "新北市市長",
+    "officeEn": "Mayor of New Taipei City",
+    "subtitle": "新北市 · 第四屆市長選舉",
+    "statsRows": [
+      {
+        "label": "選舉人數",
+        "value": "331萬6517 人"
+      },
+      {
+        "label": "投票數",
+        "value": "187萬7186 票"
+      },
+      {
+        "label": "有效票",
+        "value": "184萬6531 票"
+      },
+      {
+        "label": "無效票",
+        "value": "3萬0655 票"
+      },
+      {
+        "label": "投票率",
+        "value": "56.60%"
+      }
+    ],
+    "header": {
+      "role": "當選人",
+      "name": "侯友宜",
+      "party": "中國國民黨",
+      "partyShort": "KMT"
+    },
+    "electorate": 3316517,
+    "castVotes": 1877186,
+    "validVotes": 1846531,
+    "invalidVotes": 30655,
+    "turnout": 56.6,
+    "layout": {
+      "legend": {
+        "disabled": true
+      }
+    }
+  },
+  "candidates": [
+    {
+      "key": "c01",
+      "number": 1,
+      "name": "林佳龍",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "votes": 693976,
+      "pct": 37.58,
+      "elected": false
+    },
+    {
+      "key": "c02",
+      "number": 2,
+      "name": "侯友宜",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "votes": 1152555,
+      "pct": 62.42,
+      "elected": true
+    }
+  ]
+}

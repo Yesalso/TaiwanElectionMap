@@ -1,0 +1,103 @@
+{
+  "id": "2022-kaohsiung",
+  "meta": {
+    "election": "2022年九合一選舉",
+    "electionEn": "2022 Local Elections",
+    "year": 2022,
+    "date": "11月26日",
+    "dateEn": "26 Nov",
+    "country": "中華民國（台灣）",
+    "countryEn": "Republic of China (Taiwan)",
+    "office": "高雄市市長",
+    "officeEn": "Mayor of Kaohsiung City",
+    "subtitle": "高雄市 · 第四屆市長選舉",
+    "statsRows": [
+      {
+        "label": "選舉人數",
+        "value": "228萬2623 人"
+      },
+      {
+        "label": "投票數",
+        "value": "133萬7819 票"
+      },
+      {
+        "label": "有效票",
+        "value": "131萬8733 票"
+      },
+      {
+        "label": "無效票",
+        "value": "1萬9086 票"
+      },
+      {
+        "label": "投票率",
+        "value": "58.61%"
+      }
+    ],
+    "header": {
+      "role": "當選人",
+      "name": "陳其邁",
+      "party": "民主進步黨",
+      "partyShort": "DPP"
+    },
+    "electorate": 2282623,
+    "castVotes": 1337819,
+    "validVotes": 1318733,
+    "invalidVotes": 19086,
+    "turnout": 58.61,
+    "layout": {
+      "legend": {
+        "disabled": true
+      }
+    }
+  },
+  "candidates": [
+    {
+      "key": "c01",
+      "number": 1,
+      "name": "鄭宇翔",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 8394,
+      "pct": 0.64,
+      "elected": false
+    },
+    {
+      "key": "c02",
+      "number": 2,
+      "name": "曾尹儷",
+      "nameEn": "",
+      "party": "無黨籍",
+      "partyShort": "IND",
+      "partyEn": "Independent",
+      "votes": 14585,
+      "pct": 1.11,
+      "elected": false
+    },
+    {
+      "key": "c03",
+      "number": 3,
+      "name": "柯志恩",
+      "nameEn": "",
+      "party": "中國國民黨",
+      "partyShort": "KMT",
+      "partyEn": "Kuomintang",
+      "votes": 529607,
+      "pct": 40.16,
+      "elected": false
+    },
+    {
+      "key": "c04",
+      "number": 4,
+      "name": "陳其邁",
+      "nameEn": "",
+      "party": "民主進步黨",
+      "partyShort": "DPP",
+      "partyEn": "Democratic Progressive Party",
+      "votes": 766147,
+      "pct": 58.1,
+      "elected": true
+    }
+  ]
+}

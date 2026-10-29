@@ -66,6 +66,95 @@ def mid_after(k):
     return acc - k * FADE + FADE / 2
 
 
+# ------------------------------------------------------------------ 输入帧定位
+# TIMELINE 的档名主干是旧编号：831 = 民国 83 年（1994）第 1 张（区级图），
+# 832 = 同年第 2 张（村里图）。民国年 = 西元 - 1911，所以 831/1112 这类名字
+# 可以直接反推回年份，也就能对到 dist/dist_png/taipei-mayor/ 的产物。
+STEM_RE = re.compile(r"^(\d{2,3})([12])$")
+
+
+def stem_year(stem):
+    m = STEM_RE.match(stem)
+    return 1911 + int(m.group(1)) if m else None
+
+
+def draft_paths(stem):
+    """--draft 用：把旧编号对到 dist/dist_png 的看板产物（按优先级）。
+
+    区级图（后缀 1）优先找 `<年>-map2.png`（2026-10-28 起可用
+    `render_boards.mjs --variants map,map2` 产出），没有就退回村里版
+    `<年>.png` 并告警 —— 宁可先出一版草稿，也不要整条链路停着。
+    """
+    year = stem_year(stem)
+    if not year:
+        return []
+    base = os.path.join(VIDEO_ROOT, "dist", "dist_png", "taipei-mayor")
+    if stem.endswith("1"):
+        return [os.path.join(base, f"{year}-map2.png"),
+                os.path.join(base, f"{year}.png")]
+    return [os.path.join(base, f"{year}.png")]
+
+
+def resolve_frames(draft=False):
+    """回传 [(stem, 实际路径, 是否草稿替代, 备注)]，缺的路径是 None。"""
+    out = []
+    for stem, _dur in TIMELINE:
+        want = os.path.join(FINAL_DIR, stem + ".png")
+        if os.path.isfile(want):
+            out.append((stem, want, False, ""))
+            continue
+        alts = draft_paths(stem) if draft else []
+        hit = next((p for p in alts if os.path.isfile(p)), None)
+        note = ""
+        if hit and alts and hit != alts[0]:
+            note = "区级版缺失，暂用村里版"
+        out.append((stem, hit, bool(hit), note))
+    return out
+
+
+def preflight(draft=False, music=True, verbose=True):
+    """合成前先点清家底：缺图/缺音乐一次说完，别等 ffmpeg 才报错。
+
+    返回 (frames, missing_images, missing_music)。
+    """
+    frames = resolve_frames(draft=draft)
+    missing = [s for s, p, _d, _n in frames if not p]
+    missing_music = []
+    if music:
+        for stem, _start, _a, _b in MUSIC:
+            if not os.path.isfile(os.path.join(MP3_DIR, stem + ".mp3")):
+                missing_music.append(stem)
+
+    if verbose:
+        print("输入帧（%d 张）：" % len(frames))
+        for stem, path, is_draft, note in frames:
+            if path:
+                mark = "草稿" if is_draft else "  ✓ "
+                rel = os.path.relpath(path, VIDEO_ROOT)
+                print("  %s %-5s %s%s" % (mark, stem, rel, ("  ← " + note) if note else ""))
+            else:
+                print("  ✗  %-5s 缺 %s" % (stem, os.path.join(FINAL_DIR, stem + ".png")))
+        if music:
+            print("配乐（%d 首）：%s" % (
+                len(MUSIC),
+                "齐备" if not missing_music
+                else "缺 " + "、".join(s + ".mp3" for s in missing_music)))
+    return frames, missing, missing_music
+
+
+def report_gap(missing, missing_music):
+    """缺件时给可执行的下一步，而不是一句「缺图」。"""
+    print("\n[无法合成] 缺 %d 张图、%d 首配乐。" % (len(missing), len(missing_music)))
+    if missing:
+        print("  图：把后期合成好的看板放到 dist/final/<编号>.png（编号见 TIMELINE）")
+        print("     或加 --draft 先用 dist/dist_png/taipei-mayor/<年份>[-map2].png 出草稿")
+        print("     区级图（编号末位 1）可用：node src/tools/render_boards.mjs \\")
+        print("         --boards <8 场 taipei-mayor> --variants map,map2")
+    if missing_music:
+        print("  配乐：把 mp3 放到 dist/final/MP3/<年份>.mp3（1994/1998/2006/2014/2018/2022）")
+        print("        先出无声版可加 --no-music")
+
+
 def durations():
     """返回 (画面总时长, 各音乐段应取用的长度)。"""
     total = sum(d for _, d in TIMELINE) - FADE * (len(TIMELINE) - 1)
@@ -140,6 +229,11 @@ def main():
                     help="逐段响度拉平（六首曲子音量差很多时用）")
     ap.add_argument("--target-mean", type=float, default=-14.0,
                     help="--level 的目标平均音量 dB（默认 -14）")
+    ap.add_argument("--check", action="store_true",
+                    help="只检查输入是否齐备（不合成）；缺件退出码 2")
+    ap.add_argument("--draft", action="store_true",
+                    help="缺 dist/final/<编号>.png 时，用 dist/dist_png/taipei-mayor/"
+                         "的看板产物顶替出一版草稿（没有后期合成的照片）")
     args = ap.parse_args()
 
     os.makedirs(args.out, exist_ok=True)
@@ -147,11 +241,20 @@ def main():
     n = len(TIMELINE)
     total, lens = durations()
 
+    # 先把家底点清：缺什么一次说完，不要等 ffmpeg 跑到一半才报错
+    frames, missing, missing_music = preflight(draft=args.draft,
+                                               music=not args.no_music)
+    if missing or missing_music:
+        report_gap(missing, missing_music)
+        sys.exit(2)
+    if args.check:
+        print("\n[检查通过] 输入齐备，可以合成（画面 %.2f 秒）。" % total)
+        return
+    if args.draft and args.name == "臺北市長選舉1994-2022_2560x1440_配樂版.mp4":
+        args.name = "臺北市長選舉1994-2022_2560x1440_草稿.mp4"   # 别覆盖正式成品
+
     cmd = [FFMPEG, "-y", "-loglevel", "error", "-stats"]
-    for stem, dur in TIMELINE:
-        img = os.path.join(FINAL_DIR, stem + ".png")
-        if not os.path.isfile(img):
-            sys.exit(f"缺图: {img}")
+    for (stem, dur), (_s, img, _is_draft, _note) in zip(TIMELINE, frames):
         cmd += ["-loop", "1", "-framerate", str(FPS), "-t", str(dur), "-i", img]
 
     gains = None
@@ -159,8 +262,6 @@ def main():
         print("音乐段：")
         for (stem, start, a, b), ln in zip(MUSIC, lens):
             f = os.path.join(MP3_DIR, stem + ".mp3")
-            if not os.path.isfile(f):
-                sys.exit(f"缺音乐: {f}")
             cmd += ["-ss", str(start), "-t", str(ln), "-i", f]
             print(
                 "  %s.mp3  %d:%04.1f → %d:%04.1f  取 %6.2fs  (画面 %d-%d 张)"
