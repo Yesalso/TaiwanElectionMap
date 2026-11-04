@@ -1,6 +1,41 @@
 # 2008 立委地圖項目 —— 長期記憶（繪圖管線與鐵律）
 
 ## 專案定位
+- 腳本 E `scripts/atlarge/Draw_Taiwan_AtLarge_2008.py`：**全臺單張圖**（2008 立委不分區政黨票，村里層，
+  12 政黨）；輸出 `LegislationYuan/maps/全臺灣2008年立法委員不分區選舉_政黨票得票率地圖.png`（9077×12500）。
+  底圖＝全臺 `twvillage2012.json`，**只有嘉義市**改用 `twVillage_pre2010.geo.json`；**連江在上、金門在下、
+  兩框右緣對齊**放大後平移到左上角作附圖（烏坵 2px 小方框嵌在金門框**右上角**）；**所有界線一律
+  `#FCFCFC`**（`LINE_COLOR`，含海岸線與附圖外框）；村里界 1px（Bresenham+thin）、鄉鎮界 2px、
+  **縣市界 6px（只畫內陸交界；加嚴：全段保留＋linemerge 接合，6px 均勻連續）、海岸線 1px（本島也改
+  金馬同款：1px 直繪→thin，不再 matplotlib 3px）**；**澎湖／金門／連江的海岸線與無名礁石全部 1px（同村里界畫法）**；
+  畫布上限 10000×12500。加 `--test` 只畫離島三縣市（輸出 `…_離島測試_澎湖金門馬祖.png`）；
+  加 `--boundaries` 只輸出「縣市界 6px＋海岸線 1px」測試圖（`…_縣市界海岸線測試圖.png`）並列印
+  縣市界稽核表（每段以中點定兩側縣市，37 組相鄰對應與 2008 行政區一致；三縣交會點的 0.0x km 微段屬正常 ⚠️）。
+  縣市界幾何抽取＝`compute_county_boundary()`（正式圖與測試圖共用）；`audit_county_segments()` 自檢「不多選不少選」。
+  **鐵律（2026-11-03 二次修正）：海岸線必須取聯集各部件的 `polygon.exterior`（外環），
+  絕不能用 `union.boundary`——本島 20 縣市聯集內部有 7251 個村里圖資跨縣市細縫內環（1403 km），
+  混進海岸線會使 `difference(coast.buffer(6m))` 沿細縫整段誤刪縣市界
+  （3524 km 被刪剩 2035 km → 宜蘭/雲林/屏東/臺北縣界大量缺段）。**
+  詳見 `docs/縣市界與海岸線繪製改造經驗總結.md`。
+  `resolve_cross_county_overlaps()` 以 111 年 SHP 縣市範圍仲裁跨縣市重疊（臺中/苗栗 34.9 ha），
+  避免縣市界出現平行雙線。
+  鄉鎮市區版：`scripts/atlarge/Draw_Taiwan_AtLarge_2008_Township.py`（填色單位＝鄉鎮、不畫村里界、
+  畫布減半 4539×6250），import 村里版模組重用其餘全部機制；367 鄉鎮全有資料。
+  **縣市版（2026-11-04）**：`scripts/atlarge/Draw_Taiwan_AtLarge_2008_County.py`（填色單位＝**2008 年 25 縣市**，
+  不畫鄉鎮界也不畫村里界；只有縣市界 6px ＋ 海岸線 1px 兩層；畫布 3000×3750 → 實際 2725×3751、約 175 m/px），
+  import 村里版（底圖／版面／縣市界幾何／自檢）＋鄉鎮版（未編定村里併回、逐部件離島清理）重用全部機制；
+  輸出 `maps/全臺灣2008年立法委員不分區選舉_政黨票得票率地圖_縣市版.png` ＋ `maps/全臺灣2008_縣市版_稽核.md`。
+  **關鍵設計**：縣市歸屬純由資料側決定（`old_county_of`：五都依 CITY_TOWNS 分市／縣、新北市→臺北縣），
+  不依賴地圖圖斑對位，故 25 縣市 100% 有資料、票數不會因對不上而漏；
+  `clean_county_parts` 只清微孔、**不丟 <1ha 小圖斑**（縣市版每個礁石都屬有資料的縣市，留白會變白斑）；
+  自檢 368 鄉鎮、25 縣市、全國有效票 9,790,411（KMT 51.24%、DPP 36.90%）皆與中選會一致。
+  比對：沿革合併（北北基宜 `village_lineage_north4` 23 筆 ＋ 桃竹苗 `village_lineage_tcm4` 20 筆，讀
+  `1996Precident/maps/村里对应关系.md`）→ 跨里合併 → 萬用字元／消去法 → `nat.fuzzy_lookup`；
+  **比對範圍一律限同縣市＋同鄉鎮**（腳本內建「跨鄉鎮誤配自檢」，須為 0）。目前留白僅 19 村里圖斑。
+  **龜山島補漏（2026-11-03）**：2012 json 缺頭城鎮龜山里之龜山島 → `add_gueishan_island()` 取自
+  106 年 SHP（只補距宜蘭**最大連通塊** >2km 的部件；判「本體」不可用全縣聯集，否則島距離恆 0）；
+  `--gueishan` 出補漏測試圖。執行環境：py launcher 預設 3.15 已失效，用
+  `C:/Users/Windows/PyCharmMiscProject/.venv/Scripts/python.exe`。
 - 腳本 A `scripts/Draw_Kaohsiung_Legislator_2008.py`：高雄**市**（舊 11 區、5 選區）；輸出 `LegislationYuan/maps/高雄市2008年立法委員選舉_政黨色塊地圖.png`（1588×2945px）。
 - 腳本 B `scripts/Draw_KaohsiungCounty_Legislator_2008.py`：高雄**縣**（27 鄉鎮市、4 選區，2026-10-11 新增）；輸出 `LegislationYuan/maps/高雄縣2008年立法委員選舉_得票率地圖.png`（9327×11542px）。
 - 腳本 C `scripts/Draw_Taichung_Legislator_2008.py`：臺中**市**（舊 8 區、3 選區，2026-10-11 新增）；輸出 `LegislationYuan/maps/臺中市2008年立法委員選舉_得票率地圖.png`（2414×1321px）。
@@ -24,6 +59,26 @@
 4. **線寬量測用 skeletonize + distance_transform_edt（骨架處距離×2）**；列掃描連續黑段長度會被斜線投影撐長而失真。
 5. **粗白線必須用 buffer 成像，禁用「線稿 extract + 逐段畫線」**（退化迴針會被放大成肉眼可見死線）。
 6. 輸出 PNG 可能被預覽器占用 → `OSError [Errno 22]`，需重試兜底。
+7. **「某縣市線寬要比別人細」不能只加一層細線，必須把粗的那一層拿掉**：`render_boundary_layer` 的
+   `towns.plot(edgecolor="black")` 會對每個鄉鎮面描 2px 邊（含海岸線），上面再疊 1px 層也只會被
+   2px 吞掉。正解＝底層只填白不描邊（`edgecolor="none"`），小島縣市的外緣全交給村里界 1px 層。
+8. **附圖縣市的島礁圖斑一律全部保留**：舊版 `trim_far_islets` 按「距最大塊距離」剔除（金門 >15km、
+   連江 >60km），一次砍掉金門 7 塊、連江 73 塊無名礁石，且「最大塊」若取單一面積最大多邊形會
+   抓到遠方小島（連江誤判基準），莒光鄉礁石被誤刪。現改為完全不剔除（含東碇島等偏遠島礁），
+   代價是金門框由 27×16km 變成 37.5×41.1km（下方留白）；使用者確認「圖不要變小」，故不可再剔。
+   自檢 `check_reef_drawn`：145 塊無名礁石必須 0 塊漏畫。
+9. **縣市界 5px／海岸線 3px 要「幾何分離」再各自成像**：縣市界＝各縣市 boundary 扣掉
+   `coast.buffer(6.0)`（6m 緩衝吸收 `resolve_cross_county_overlaps` 清理後的亞米級落差，
+   不會斷線、也不殘留海岸線）；海岸線＝本島縣市聯集的外輪廓。千萬別「先畫 5px 全部再用 3px 蓋海岸」，
+   5px 會露出 1px 邊。
+10. **上萬段線條不可逐段 plot**：`for seg in segs: gpd.GeoSeries([seg]).plot(...)` 在 9077×12500
+   畫布上會反覆重建 collection（實測 15294 段 → 整支腳本從 7.5 分暴增到 >15 分未完成）。
+   一律 `gpd.GeoSeries(segs).plot(...)` 一次畫完。
+11. **附圖框不得壓到其他縣市**：`layout_insets` 以 `unary_union(其他縣市).buffer(250m)`
+   為避讓基準、從 `ISLAND_SCALE` 每 0.05 一階往下試，取「放得進左上空白海域的最大倍率」
+   （連江含東引與礁石達 60.4×49.1 km，1.6× 會蓋到臺灣西北海岸 → 實際 1.50×）。
+   全國聯集 `buffer(250m)` 實測約 8 秒，可接受；慢的是逐段 plot（見 10）。
+   版面：`INSET_ORDER=(連江, 金門)` 由上而下、`INSET_ALIGN="右"` 右緣對齊、烏坵嵌金門框右上角。
 
 ## 填色方案（2026-10-11 起：按得票率配色）
 - 原為「按政黨固定色」（KMT #004E9E / DPP #1B9431 / 其他 #9E9E9E），已改為**按得票率配色**。

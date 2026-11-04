@@ -7,7 +7,8 @@
   -----------------------------------   ------------------------------
   map/2022县市.png                      county.png  （縣市級：當選政黨）
   map/2022縣市長選舉_鄉鎮市區得票率.png   town.png    （鄉鎮級：得票率深淺）
-  （現畫）                               legend.png  （透明底圖例）
+  （現畫）                               legend.png  （透明底圖例：四家）
+  （現畫）                               legend2.png （透明底圖例：只有兩黨、40% 起）
 
 四種處理（全部按 national_map.py 的常數）：
   1. **底色轉透明**：來源底色是淺灰 (120,120,120) / #323232 (50,50,50)，
@@ -22,8 +23,9 @@
      位置、放大框全部對得齊。
 
 執行：
-    python src/tools/build_national_assets.py            # 地圖 + 圖例
-    python src/tools/build_national_assets.py --legend    # 只重畫圖例
+    python src/tools/build_national_assets.py            # 地圖 + 兩張圖例
+    python src/tools/build_national_assets.py --legend    # 只重畫四家圖例
+    python src/tools/build_national_assets.py --legend2   # 只重畫兩黨圖例
 """
 import json
 import os
@@ -212,17 +214,96 @@ def build_legend():
             "box": dict(NM.LEGEND_BOX)}
 
 
+def build_legend2(start=None, parties=None, scale=None, ruler=True,
+                  out=None, ink=(255, 255, 255)):
+    """兩黨獨立圖例（2026-11-03）：透明底、只有國民黨＋民進黨、色階從 40% 起。
+
+    與 `build_legend()` 的差別只有三點，其餘視覺語言（左黨名／右色階／頂部刻度尺
+    對齊格線）刻意保持一致：
+      · 只列 `LEGEND2_PARTIES` 兩家（不畫民眾黨、無黨籍）；
+      · 只取 `pct >= LEGEND2_START` 的階 → 35% 那格不出現（KMT／DPP 各 11 格）；
+      · 尺寸自成一組（邏輯 1200 寬、2× 繪製），**不進看板版面**。
+
+    畫布是純透明 RGBA，文字／刻度預設純白 —— 貼在深色底上才看得見，
+    貼到白底上會消失（這是刻意配合看板底色，不是漏畫）。
+    """
+    S = scale or NM.LEGEND2_SCALE
+    start = NM.LEGEND2_START if start is None else start
+    parties = list(parties or NM.LEGEND2_PARTIES)
+    dst = out or NM.OUT_LEGEND2
+    ramps = NM.load_ramps()
+
+    def px(v):                       # 邏輯單位 → 實際像素
+        return int(round(v * S))
+
+    cells = {p: [(pct, hx) for pct, hx in ramps[p] if pct >= start] for p in parties}
+    n = max(len(v) for v in cells.values())
+    ticks_src = cells[max(parties, key=lambda p: len(cells[p]))]
+
+    name_w, cell = px(NM.LEGEND2_NAME_W), px(NM.LEGEND2_CELL)
+    pitch, gap = px(NM.LEGEND2_PITCH), px(NM.LEGEND2_CELL_GAP)
+    rh = pitch - gap
+    ruler_h = px(NM.LEGEND2_RULER_H) if ruler else 0
+    W = name_w + n * cell
+    H = ruler_h + pitch * len(parties)
+
+    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    f_name = _font(px(NM.LEGEND2_FONT["name"]))
+    f_tick = _font(px(NM.LEGEND2_FONT["tick"]))
+    f_unit = _font(px(NM.LEGEND2_FONT["unit"]))
+    white = tuple(ink) + (255,)
+
+    # ---- 頂部比例尺：每 10 個百分點標一次，刻度線對齊色階格線 ----
+    if ruler:
+        base_y = ruler_h - px(14)     # 文字基線：% 與「以上」共用同一條，避免一高一低
+        for j, (pct, _) in enumerate(ticks_src):
+            if pct % NM.LEGEND2_TICK_MAJOR or pct > NM.LEGEND2_TICK_MAX:
+                continue
+            x0 = name_w + j * cell
+            d.line([x0, base_y + px(4), x0, ruler_h - px(1)],
+                   fill=tuple(ink) + (110,), width=max(2, px(0.75)))
+            d.text((x0 + px(4), base_y), "%d%%" % pct, font=f_tick,
+                   fill=tuple(ink) + (210,), anchor="ls")
+        _t = "以上"                   # 最後兩格是 85／100（100＝85 以上），不標 100%
+        d.text((W - px(6) - d.textlength(_t, font=f_unit), base_y), _t,
+               font=f_unit, fill=tuple(ink) + (130,), anchor="ls")
+
+    # ---- 兩列色階 ----
+    for i, party in enumerate(parties):
+        top = ruler_h + i * pitch
+        cy = top + rh // 2
+        d.text((px(4), cy), party, font=f_name, fill=white, anchor="lm")
+        for j, (_, hexv) in enumerate(cells[party]):
+            col = tuple(int(hexv[k:k + 2], 16) for k in (1, 3, 5))
+            x0 = name_w + j * cell
+            d.rectangle([x0, top, x0 + cell - 2, top + rh - 1], fill=col + (255,))
+
+    img.save(dst, "PNG", optimize=True)
+    print("  ✓ legend2 %s  %d×%d  （%s，%d 列 × 各 %s 格，%d%% 起，透明底，%d KB）"
+          % (os.path.basename(dst), W, H, "／".join(parties), len(parties),
+             "/".join(str(len(cells[p])) for p in parties), start,
+             os.path.getsize(dst) // 1024))
+    return {"file": os.path.basename(dst), "w": W, "h": H, "parties": parties,
+            "start": start, "cells": {p: len(cells[p]) for p in parties}}
+
+
 def main():
-    only_legend = "--legend" in sys.argv[1:]
+    argv = sys.argv[1:]
+    only_legend = "--legend" in argv
+    only_legend2 = "--legend2" in argv
     print("全國看板素材")
     info = {"maps": {}, "crop": None}
-    if only_legend:
+    if only_legend or only_legend2:
         if os.path.isfile(NM.OUT_META):
             with open(NM.OUT_META, encoding="utf-8") as f:
                 info = json.load(f)
     else:
         info = build_maps()
-    info["legend"] = build_legend()
+    if not only_legend2:
+        info["legend"] = build_legend()
+    if not only_legend:
+        info["legend2"] = build_legend2(ruler="--no-ruler" not in argv)
     with open(NM.OUT_META, "w", encoding="utf-8") as f:
         json.dump(info, f, ensure_ascii=False, indent=2)
     print("  ✓ 尺寸表 %s" % os.path.relpath(NM.OUT_META, NM.ROOT))

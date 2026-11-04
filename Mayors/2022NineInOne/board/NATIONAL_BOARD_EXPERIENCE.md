@@ -75,6 +75,7 @@
   小党各占清单一行。那张表是刻意与 §2.1／§2.2 不同的口径（大党沿用广义口径、其余按登记党籍），
   并替代了早期「解析注脚 ‡、再把 5,883 票摊回 6 家」的做法。
 - **图例**：色阶直接读 `color.txt`（四家：国民党/民进党/民众党/无党籍，各 12/12/12/11 阶），顶部加一条比例尺（`LEGEND_TICK_STEP=2` → 每 10 个百分点标一次 35/45/55…）。
+- **两党独立图例**（`legend2.png`，2026-11-03 追加）：同一套画法另出一张**不進看板**的透明底图例 —— 只列中国国民党／民主进步党，色阶**从 40% 那一格起**（`LEGEND2_START`，35% 那格不画，各 11 格），尺寸自成一組（逻辑 1200 宽 ×2 → 2392×312）。刻度只标到 80%：`color.txt` 最后两格是 85／100，而 100 那阶其实代表「85 以上」，标「100%」会误导 → 右下角用「以上」收尾。文字/刻度一律纯白，**贴深底才看得见**（贴白底会消失）；两党最深那格 `#001F2E`／`#0F210A`（乃至 100 阶的 `#010D29`／`#071A09`）与深色底板几乎同色，这是数据本色，不是漏画。
 - **底部得票比例带关掉**：小卡带已讲完席次/得票率/票数，比例带只是重复。
 
 ---
@@ -146,7 +147,7 @@ PY="C:/Users/Windows/AppData/Local/Programs/Python/Python313/python.exe"
 NODE="C:/Users/Windows/.workbuddy/binaries/node/versions/22.22.2-6/node.exe"
 cd Mayors/2022NineInOne/board
 
-PYTHONIOENCODING=utf-8 $PY src/tools/build_national_assets.py   # ① 素材（只改图例加 --legend）
+PYTHONIOENCODING=utf-8 $PY src/tools/build_national_assets.py   # ① 素材（只改图例加 --legend；两党图例 --legend2）
 PYTHONIOENCODING=utf-8 $PY src/tools/_gen_national.py           # ② 建 board.js
 $NODE src/tools/render_boards.mjs --boards 2022-national --scales 1.5   # ③ 渲染 3840×2160
 PYTHONIOENCODING=utf-8 $PY src/tools/verify_layout.py           # ④ 期望 23 份 0 未通过

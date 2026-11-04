@@ -360,9 +360,10 @@ $NODE src/tools/render_boards.mjs --boards 2022-taipei
 | 檔案 | 作用 |
 |---|---|
 | `src/tools/national_map.py` | 統一配置表：來源路徑、去底／裁切參數、色階、政黨簡繁對照、版面常數 |
-| `src/tools/build_national_assets.py` | 素材管線：兩張地圖去底→挖掉大陸輪廓→黑線轉白加粗→共用裁切框；另出 `legend.png` |
+| `src/tools/build_national_assets.py` | 素材管線：兩張地圖去底→挖掉大陸輪廓→黑線轉白加粗→共用裁切框；另出 `legend.png`（四家）與 `legend2.png`（只有兩黨、40% 起、不進看板） |
 | `src/tools/_gen_national.py` | 建看板：解析簡報 md → `src/boards/2022-national/meta.json` ＋ `dist/boards/2022-national/{board.js,board.files.js,index.html}` |
 | `dist/assets/national/{county,town,legend}.png` | 成品素材（合計 436 KB），`maps.json` 記成品尺寸與裁切框 |
+| `dist/assets/national/legend2.png` | 獨立兩黨圖例（2392×312，透明底，中國國民黨／民主進步黨 × 40–100%，不進看板版面） |
 
 `board.files.js` 的對應：`assets/map.png → national/county.png`、`assets/map2.png → national/town.png`、
 `assets/legend.png → national/legend.png`（引擎的邏輯名不變，只是指到別的檔）。
@@ -375,7 +376,7 @@ PY="C:/Users/Windows/AppData/Local/Programs/Python/Python313/python.exe"
 NODE="C:/Users/Windows/.workbuddy/binaries/node/versions/22.22.2-6/node.exe"
 cd Mayors/2022NineInOne/board
 
-# ① 素材（地圖 + 圖例）；只改圖例用 --legend
+# ① 素材（地圖 + 圖例）；只改圖例用 --legend；兩黨獨立圖例用 --legend2
 PYTHONIOENCODING=utf-8 $PY src/tools/build_national_assets.py
 # ② 建看板資料
 PYTHONIOENCODING=utf-8 $PY src/tools/_gen_national.py

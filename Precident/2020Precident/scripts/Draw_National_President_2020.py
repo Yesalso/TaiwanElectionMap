@@ -583,10 +583,14 @@ def apply_tie_stripes(arr, records, w_px, h_px, minx, maxy, sx, sy,
 
 
 def full_geom_check(img, records, w_px, h_px, minx, maxy, sx, sy,
-                    lines_mask=None):
+                    lines_mask=None, ignore_mask=None):
     """全圖逐像素幾何參考比對（獨立方法：GDAL/rasterio 像素中心規則）。
 
-    黑線像素不計。回傳 (與幾何參考不同色的像素數, 無圖斑處非白的像素數)。"""
+    黑線像素不計。回傳 (與幾何參考不同色的像素數, 無圖斑處非白的像素數)。
+
+    ignore_mask：額外不計入的像素（線稿若不是純黑——例如使用者指定 #FCFCFC 的近白線
+    ——這些像素本來就不是填色，也不算「村外非白」）。預設 None → 行為與舊版完全相同。
+    """
     from rasterio.features import rasterize
     from affine import Affine
     ids = rasterize(((g, i + 1) for i, g in enumerate(records.geometry)),
@@ -618,6 +622,8 @@ def full_geom_check(img, records, w_px, h_px, minx, maxy, sx, sy,
             exp[m] = tvals[tids[m] - 1]
     black = img.sum(axis=2) == 0
     wrong = (img != exp).any(axis=2) & ~black
+    if ignore_mask is not None:
+        wrong &= ~np.asarray(ignore_mask, dtype=bool)
     return int(wrong.sum()), int((wrong & ~inside).sum())
 
 

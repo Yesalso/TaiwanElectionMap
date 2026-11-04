@@ -183,6 +183,26 @@ LEGEND_SCALE = 2            # 圖例 PNG 以 2× 繪製（960×236），contain 
 # color.txt 的階距是 5%，所以 2 階剛好 10%。
 LEGEND_TICK_STEP = 2
 
+# ---------------------------------------------------------------- 兩黨獨立圖例
+# ★ 2026-11-03（使用者要求）：另外單獨出一張**透明底**圖例，只放中國國民黨／
+#   民主進步黨兩家，色階**從 40% 那一格起畫**（color.txt 的 35% 那格不畫）。
+#   不放進看板 → 不佔 LEGEND_BOX，尺寸自己一套（邏輯 1200 寬、2× 繪製 2400）。
+OUT_LEGEND2 = os.path.join(OUT_ASSETS, "legend2.png")
+LEGEND2_PARTIES = ["中國國民黨", "民主進步黨"]
+LEGEND2_START = 40          # 起始百分比：只畫 >= 40 的階（KMT／DPP 各 11 格）
+LEGEND2_SCALE = 2           # 2× 繪製 → 2400px 寬
+LEGEND2_W = 1200            # 邏輯寬（1×）；實際寬 = 黨名欄 + 格數 × 格寬
+LEGEND2_NAME_W = 250        # 黨名欄寬（5 字 × 40px ≈ 200，留呼吸）
+LEGEND2_CELL = 86           # 每格寬（11 格 = 946）
+LEGEND2_PITCH = 56          # 每列高（格高 = PITCH − 10）
+LEGEND2_CELL_GAP = 10
+LEGEND2_RULER_H = 44        # 頂部比例尺帶高
+LEGEND2_FONT = {"name": 38, "tick": 26, "unit": 22}
+# 刻度只標到 80%：最後兩格是 85／100（color.txt 的 100 那階＝85 以上），
+# 標「100%」會誤導，改成右下角「以上」收尾。
+LEGEND2_TICK_MAJOR = 10     # 只標 % 為 10 倍數且在 LEGEND2_TICK_MAX 以下的格
+LEGEND2_TICK_MAX = 80
+
 
 def font_path():
     for p in FONT_CANDIDATES:
