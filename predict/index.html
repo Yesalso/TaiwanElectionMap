@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基隆市 · 政治光谱 × 候选人得票结构</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "Microsoft YaHei", Roboto, sans-serif;
+            background-color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            margin: 0;
+            color: #1e293b;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            margin-bottom: 24px;
+            width: 100%;
+            max-width: 880px;
+        }
+        h2 { margin-top: 0; font-size: 20px; color: #0f172a; }
+        .desc { font-size: 14px; color: #64748b; margin-bottom: 20px; line-height: 1.75; }
+        .desc strong { color: #334155; }
+        .desc em { color: #94a3b8; font-style: normal; }
+
+        #svg-container { position: relative; display: flex; justify-content: center; margin-top: 10px; }
+        svg { display: block; overflow: visible; }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.95);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            line-height: 1.8;
+            white-space: nowrap;
+        }
+        .tooltip b { color: #fff; font-size: 14px; display: block; margin-bottom: 4px; }
+        .tooltip .row { display: flex; justify-content: space-between; gap: 24px; color: #cbd5e1; }
+        .tooltip .row span { color: #f8fafc; font-weight: 500; }
+        .tooltip .sep { height: 1px; background: rgba(255,255,255,.15); margin: 6px 0; }
+
+        .legend { margin-top: 26px; display: flex; flex-direction: column; gap: 10px; }
+        .legend-row { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; justify-content: center; }
+        .legend-label { flex: 0 0 100%; font-size: 12px; color: #94a3b8; text-align: center; margin-bottom: 2px; }
+        .legend-item { display: flex; align-items: center; font-size: 13px; color: #475569; }
+        .legend-color { width: 14px; height: 14px; border-radius: 4px; margin-right: 8px; box-shadow: inset 0 0 0 1px rgba(15,23,42,.08); }
+        .legend-item .w { color: #94a3b8; font-size: 12px; margin-left: 5px; }
+        .legend-scale { width: 90px; height: 10px; border-radius: 5px; margin-right: 8px; box-shadow: inset 0 0 0 1px rgba(15,23,42,.08); }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2 id="title">基隆市 · 政治光谱 × 候选人得票结构</h2>
+        <div class="desc">
+            <strong>内圈（圆环）：</strong>8 个群体按选民占比平分 180°（角度＝群体权重）；环内是<strong>完全支持本阵营</strong>的部分——即该群体把票投给本阵营候选人的比例。<br>
+            <strong>外圈：</strong>该群体里<strong>没有投本阵营</strong>的剩余部分：贴环的深色细边是转投对方阵营的，外面浅灰是不投票 / 未表态。<br>
+            <strong>配色：</strong>谢国樑走蓝色阶、童子玮走绿色阶，内圈色深＝该群体内的得票率（越深得票越高）；外圈贴环的深色细边为转投对方的票，外面浅灰为不投票 / 未表态。<br>
+            <em>例：深蓝群体 100% 投谢国樑，因此它只有内圈、没有外环；浅蓝只投了 46.07%，外环就很厚。径向按面积等比（√）映射。</em>
+        </div>
+
+        <div id="svg-container">
+            <svg id="chart" width="800" height="420"></svg>
+            <div class="tooltip" id="tooltip"></div>
+        </div>
+
+        <div class="legend" id="legend"></div>
+    </div>
+
+<script>
+    /* =========================================================
+       数据源：predict/Keelong.md（转置表格）
+       第1行：| 城市 | 8 个群体权重 |
+       第2行：分隔线
+       第3行：|      | 群体名 × 8 |
+       第4行起：| 候选人 | 各群体支持率 × 8 |
+       ========================================================= */
+    const mdData = `
+| 基隆市 | 18.46 | 8.8 | 11.43 | 11.34 | 26.38 | 2.88 | 7.81 | 12.95 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| | **深蓝** | **正蓝** | **浅蓝** | **台湾民众党** | **三类中立群** | **浅绿** | **正绿** | **深绿** |
+| **童子玮** | 0 | 0 | 1.49 | 3.52 | 5.74 | 23.09 | 92.95 | 100 |
+| **谢国樑** | 100 | 94.94 | 46.07 | 52.73 | 16.59 | 2.78 | 0 | 0 |
+`;
+
+    const stripMd = s => String(s).replace(/\*\*/g, '').replace(/`/g, '').trim();
+
+    // 先去掉首尾竖线再切分，避免首列为空时错位
+    function splitRow(line) {
+        let s = line.trim();
+        if (s.startsWith('|')) s = s.slice(1);
+        if (s.endsWith('|')) s = s.slice(0, -1);
+        return s.split('|').map(c => c.trim());
+    }
+
+    function parseMD(md) {
+        const rows = md.split('\n').map(l => l.trim())
+            .filter(l => l.startsWith('|'))
+            .map(splitRow);
+        const isSep = r => r.length > 1 && r.every(c => /^:?-{2,}:?$/.test(c));
+        const sepIdx = rows.findIndex(isSep);
+        if (sepIdx < 1) throw new Error('未找到表格分隔行');
+
+        const head = rows[sepIdx - 1];
+        const city = stripMd(head[0]) || '未命名';
+        const weights = head.slice(1).map(v => parseFloat(v) || 0);
+        const names = rows[sepIdx + 1].slice(1).map(stripMd);
+
+        const candidates = [];
+        for (let i = sepIdx + 2; i < rows.length; i++) {
+            const r = rows[i];
+            if (!r || r.length < 2) continue;
+            const name = stripMd(r[0]);
+            if (!name) continue;
+            candidates.push({ name, values: r.slice(1).map(v => parseFloat(v) || 0) });
+        }
+        return { city, weights, names, candidates };
+    }
+
+    const data = parseMD(mdData);
+    const { city, weights, names, candidates } = data;
+    const totalW = weights.reduce((a, b) => a + b, 0);
+
+    const totalOf = c => weights.reduce((s, w, j) => s + w * (c.values[j] || 0) / 100, 0);
+    candidates.sort((a, b) => totalOf(b) - totalOf(a));
+
+    document.getElementById('title').textContent = `${city} · 政治光谱 × 候选人得票结构`;
+
+    /* =========================================================
+       得票率色阶：blue / green / gray / teal，色深随得票率上升
+       ========================================================= */
+    const RAMPS = {
+        blue: [[35, '#A6E9FF'], [40, '#73D9FF'], [45, '#40C8FF'], [50, '#00C0F4'], [55, '#00A2E8'],
+               [60, '#0080B8'], [65, '#006591'], [70, '#004B6B'], [75, '#003247'], [80, '#00283A'],
+               [85, '#001F2E'], [100, '#010D29']],
+        green: [[35, '#E8FFE0'], [40, '#CEFFC2'], [45, '#C0FFB1'], [50, '#A4FF90'], [55, '#78FF4F'],
+                [60, '#68DE45'], [65, '#54B337'], [70, '#3C8027'], [75, '#2B5C1C'], [80, '#1D3D13'],
+                [85, '#0F210A'], [100, '#071A09']],
+        gray: [[35, '#D9D9D9'], [40, '#C9C9C9'], [45, '#B6B6B6'], [50, '#A0A0A0'], [55, '#898989'],
+               [60, '#727272'], [65, '#5B5B5B'], [70, '#464646'], [75, '#333333'], [80, '#232323'],
+               [85, '#151515'], [100, '#0A0A0A']],
+        teal: [[35, '#00D9CA'], [40, '#00BFB2'], [45, '#00A89C'], [50, '#008080'], [55, '#006666'],
+               [60, '#004C4C'], [65, '#003838'], [70, '#003030'], [75, '#002626'], [80, '#021F1F'],
+               [85, '#001919'], [100, '#000808']]
+    };
+
+    const hex2rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+    const rgb2hex = a => '#' + a.map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+
+    // 在色阶上按得票率取色（分段线性插值，低于首档取下限色）
+    function rampColor(stops, rate) {
+        if (rate <= stops[0][0]) return stops[0][1];
+        for (let i = 1; i < stops.length; i++) {
+            if (rate <= stops[i][0]) {
+                const [x0, c0] = stops[i - 1], [x1, c1] = stops[i];
+                const t = (rate - x0) / (x1 - x0);
+                const A = hex2rgb(c0), B = hex2rgb(c1);
+                return rgb2hex([0, 1, 2].map(k => A[k] + (B[k] - A[k]) * t));
+            }
+        }
+        return stops[stops.length - 1][1];
+    }
+
+    const PARTY_RAMP = { '谢国樑': 'blue', '童子玮': 'green' };
+    const RAMP_ORDER = ['blue', 'green', 'gray', 'teal'];
+    const rampOf = name => RAMPS[PARTY_RAMP[name]] || RAMPS[RAMP_ORDER[candidates.findIndex(c => c.name === name) % RAMP_ORDER.length]];
+    const colorFor = (name, rate) => rampColor(rampOf(name), rate);
+
+    const srgb = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    const relLum = hex => {
+        const [r, g, b] = hex2rgb(hex);
+        return 0.2126 * srgb(r) + 0.7152 * srgb(g) + 0.0722 * srgb(b);
+    };
+    const textOn = hex => (1.05 / (relLum(hex) + 0.05)) >= ((relLum(hex) + 0.05) / 0.05) ? '#ffffff' : '#0f172a';
+    const strokeOn = hex => relLum(hex) > 0.9 ? 'rgba(15,23,42,0.22)'
+                      : relLum(hex) > 0.72 ? 'rgba(15,23,42,0.14)' : '#ffffff';
+
+    // 转投对方阵营的细边用固定中间色：票量本来就只有 1~6%，用色阶会浅到看不见
+    const DEFECT_TONE = { '谢国樑': '#4E86C4', '童子玮': '#57A873' };
+    const defectColor = name => DEFECT_TONE[name] || '#8C9AA8';
+
+    /* =========================================================
+       尺寸与半径
+       内圈 80 → 170 固定，表示"完全支持"；
+       外圈从 170 向外，按"未投本阵营的百分点"面积等比延伸。
+       ========================================================= */
+    const svg = document.getElementById('chart');
+    const tooltip = document.getElementById('tooltip');
+    const legend = document.getElementById('legend');
+    const NS = 'http://www.w3.org/2000/svg';
+
+    const width = 800, height = 420;
+    const cx = width / 2;
+    const cy = height - 40;
+
+    const R0 = 80;      // 中心留白
+    const R_IN = 170;   // 内圈外缘（所有扇形共用 → 完整圆环）
+    const R_MAX = 300;  // 未投本阵营 100% 时的半径
+    const SPAN = R_MAX * R_MAX - R_IN * R_IN;
+
+    // 未投本阵营 d 个百分点 → 半径
+    const rForDeficit = d => Math.sqrt(R_IN * R_IN + SPAN * Math.max(0, d) / 100);
+
+    const GRAY = '#E4E9F0';   // 不投票 / 未表态
+    const GRAY_STROKE = 'rgba(15,23,42,0.10)';
+
+    function polarToCartesian(radius, angleInDegrees) {
+        const a = angleInDegrees * Math.PI / 180;
+        return { x: cx + radius * Math.cos(a), y: cy - radius * Math.sin(a) };
+    }
+
+    // 环形扇形路径。startAngle > endAngle（从 180° 向 0° 铺）
+    // 外弧角度递减 → sweep=1；内弧角度递增 → sweep=0。两者必须相反，否则弧会反向凹陷。
+    function getSectorPath(innerR, outerR, startAngle, endAngle) {
+        const p1 = polarToCartesian(outerR, startAngle);
+        const p2 = polarToCartesian(outerR, endAngle);
+        const p3 = polarToCartesian(innerR, endAngle);
+        const p4 = polarToCartesian(innerR, startAngle);
+        const largeArcFlag = (startAngle - endAngle) <= 180 ? 0 : 1;
+        return [
+            `M ${p1.x} ${p1.y}`,
+            `A ${outerR} ${outerR} 0 ${largeArcFlag} 1 ${p2.x} ${p2.y}`,
+            `L ${p3.x} ${p3.y}`,
+            `A ${innerR} ${innerR} 0 ${largeArcFlag} 0 ${p4.x} ${p4.y}`,
+            'Z'
+        ].join(' ');
+    }
+
+    function arcPath(r) {
+        const a = polarToCartesian(r, 180), b = polarToCartesian(r, 0);
+        return `M ${a.x} ${a.y} A ${r} ${r} 0 0 1 ${b.x} ${b.y}`;
+    }
+
+    function mk(tag, attrs) {
+        const n = document.createElementNS(NS, tag);
+        for (const k in attrs) n.setAttribute(k, attrs[k]);
+        return n;
+    }
+
+    const f2 = n => (Math.round(n * 100) / 100).toFixed(2);
+
+    /* ---------------- 渲染 ---------------- */
+    function render() {
+        svg.innerHTML = '';
+        legend.innerHTML = '';
+
+        // 1) 背景刻度弧：未投本阵营 25 / 50 / 75 / 100%
+        [25, 50, 75, 100].forEach(d => {
+            svg.appendChild(mk('path', {
+                d: arcPath(rForDeficit(d)), fill: 'none',
+                stroke: '#eef1f5', 'stroke-width': 1, 'stroke-dasharray': '3 5'
+            }));
+        });
+
+        // 2) 中心留白（上半圆）
+        svg.appendChild(mk('path', {
+            d: `M ${cx - R0} ${cy} A ${R0} ${R0} 0 0 1 ${cx + R0} ${cy} Z`,
+            fill: '#fff'
+        }));
+
+        // 3) 基准线 + 径向刻度
+        svg.appendChild(mk('line', {
+            x1: cx - R_MAX - 10, y1: cy, x2: cx + R_MAX + 10, y2: cy,
+            stroke: '#e2e8f0', 'stroke-width': 2
+        }));
+        [25, 50, 75, 100].forEach(d => {
+            const r = rForDeficit(d);
+            svg.appendChild(mk('line', { x1: cx + r, y1: cy, x2: cx + r, y2: cy + 4, stroke: '#cbd5e1', 'stroke-width': 1 }));
+            const t = mk('text', { x: cx + r, y: cy + 16, fill: '#94a3b8', 'font-size': 9.5, 'text-anchor': 'middle' });
+            t.textContent = d + '%';
+            svg.appendChild(t);
+        });
+        const axisTitle = mk('text', { x: cx + R_MAX + 10, y: cy + 32, fill: '#b0b6bf', 'font-size': 9.5, 'text-anchor': 'end' });
+        axisTitle.textContent = '径向刻度＝未投本阵营的比例（外环厚度）';
+        svg.appendChild(axisTitle);
+
+        // 4) 逐个群体绘制
+        const groups = [];
+        let currentAngle = 180;
+
+        names.forEach((name, j) => {
+            const w = weights[j];
+            const angle = 180 * w / totalW;
+            const startAngle = currentAngle;
+            const endAngle = currentAngle - angle;
+            currentAngle = endAngle;
+
+            const g = mk('g', {});
+            svg.appendChild(g);
+            groups.push(g);
+
+            // 本阵营候选人 = 该群体得票最高者
+            const lead = candidates.reduce((a, b) => (b.values[j] > a.values[j] ? b : a), candidates[0]);
+            const other = candidates.find(c => c !== lead);
+            const sLead = lead.values[j] || 0;
+            const sOther = other ? (other.values[j] || 0) : 0;
+            const und = Math.max(0, 100 - sLead - sOther);
+
+            const ringColor = colorFor(lead.name, sLead);
+
+            // 4.1 内圈 80 → 170：完全支持本阵营
+            const ring = mk('path', {
+                d: getSectorPath(R0, R_IN, startAngle, endAngle),
+                fill: ringColor, stroke: strokeOn(ringColor), 'stroke-width': 1.5
+            });
+
+            // 4.2 外圈：转投对方阵营（贴环的细边）+ 不投票/未表态（浅灰）
+            const rOther = sOther > 0.05 ? rForDeficit(sOther) : R_IN;
+            const rUnd = rForDeficit(100 - sLead);
+
+            const outer = [];
+            if (sOther > 0.05) {
+                const c = defectColor(other.name);
+                outer.push({ rIn: R_IN, rOut: rOther, fill: c, stroke: strokeOn(c), kind: 'other' });
+            }
+            if (und > 0.05) {
+                outer.push({ rIn: rOther, rOut: rUnd, fill: GRAY, stroke: GRAY_STROKE, kind: 'und' });
+            }
+
+            const paths = [ring];
+            outer.forEach(o => {
+                paths.push(mk('path', {
+                    d: getSectorPath(o.rIn, o.rOut, startAngle, endAngle),
+                    fill: o.fill, stroke: o.stroke, 'stroke-width': o.kind === 'und' ? 1 : 1.2
+                }));
+            });
+            paths.forEach(p => {
+                p.style.cursor = 'pointer';
+                p.style.transition = 'opacity .18s, filter .18s';
+                g.appendChild(p);
+            });
+
+            // 4.3 交互
+            const enter = () => {
+                groups.forEach(gg => gg.style.opacity = (gg === g) ? 1 : 0.28);
+                g.style.filter = 'brightness(1.04)';
+                tooltip.style.opacity = '1';
+                tooltip.innerHTML = `
+                    <b>${name}</b>
+                    <div class="row">选民占比<span>${f2(w)}%</span></div>
+                    <div class="sep"></div>
+                    <div class="row">投 ${lead.name}（本阵营）<span>${f2(sLead)}%</span></div>
+                    <div class="row">转投 ${other.name}<span>${f2(sOther)}%</span></div>
+                    <div class="row">不投票 / 未表态<span>${f2(und)}%</span></div>`;
+            };
+            const move = e => {
+                const rect = svg.getBoundingClientRect();
+                let left = e.clientX - rect.left + 16;
+                let top = e.clientY - rect.top - 30;
+                if (left + 260 > width) left = e.clientX - rect.left - 270;
+                tooltip.style.left = left + 'px';
+                tooltip.style.top = top + 'px';
+            };
+            const leave = () => {
+                groups.forEach(gg => gg.style.opacity = 1);
+                g.style.filter = 'none';
+                tooltip.style.opacity = '0';
+            };
+            paths.forEach(p => {
+                p.addEventListener('mouseenter', enter);
+                p.addEventListener('mousemove', move);
+                p.addEventListener('mouseleave', leave);
+            });
+
+            // 4.4 群体标签：环内沿半径旋转
+            const mid = (startAngle + endAngle) / 2;
+            const lp = polarToCartesian((R0 + R_IN) / 2, mid);
+            const rot = mid > 90 ? 180 - mid : -mid;
+            const label = mk('text', {
+                x: lp.x, y: lp.y,
+                transform: `rotate(${rot} ${lp.x} ${lp.y})`,
+                'text-anchor': 'middle', 'dominant-baseline': 'middle',
+                fill: textOn(ringColor), 'font-size': 10.5, 'font-weight': 700
+            });
+            label.textContent = name;
+            label.style.pointerEvents = 'none';
+            svg.appendChild(label);
+        });
+
+        // 5) 同心圆描边：内孔 + 内圈外缘
+        svg.appendChild(mk('path', { d: arcPath(R0), fill: 'none', stroke: '#e2e8f0', 'stroke-width': 1.5 }));
+        svg.appendChild(mk('path', { d: arcPath(R_IN), fill: 'none', stroke: '#ffffff', 'stroke-width': 1.5, opacity: 0.85 }));
+
+        // 6) 圆心文字
+        const cName = mk('text', {
+            x: cx, y: cy - R0 / 2 - 2, 'text-anchor': 'middle',
+            fill: '#0f172a', 'font-size': 15, 'font-weight': 700
+        });
+        cName.textContent = city;
+        svg.appendChild(cName);
+        const cSub = mk('text', {
+            x: cx, y: cy - R0 / 2 + 17, 'text-anchor': 'middle',
+            fill: '#94a3b8', 'font-size': 9.5
+        });
+        cSub.textContent = '光谱结构';
+        svg.appendChild(cSub);
+
+        // 7) 图例
+        const row1 = document.createElement('div');
+        row1.className = 'legend-row';
+        row1.innerHTML = `<span class="legend-label">光谱群体（角度＝选民占比；环色＝本阵营得票率，越深得票越高）</span>`;
+        names.forEach((n, j) => {
+            const lead = candidates.reduce((a, b) => (b.values[j] > a.values[j] ? b : a), candidates[0]);
+            row1.insertAdjacentHTML('beforeend',
+                `<span class="legend-item">
+                    <span class="legend-color" style="background:${colorFor(lead.name, lead.values[j])}"></span>
+                    ${n}<span class="w">${f2(weights[j])}% · ${lead.name.slice(0, 1)}${f2(lead.values[j])}%</span>
+                 </span>`);
+        });
+
+        const row2 = document.createElement('div');
+        row2.className = 'legend-row';
+        row2.innerHTML = `<span class="legend-label">色阶与图元</span>`;
+        const RAMP_LABEL = { blue: ['#A6E9FF', '#010D29'], green: ['#E8FFE0', '#071A09'] };
+        candidates.forEach(c => {
+            const [lo, hi] = RAMP_LABEL[PARTY_RAMP[c.name] || 'blue'];
+            row2.insertAdjacentHTML('beforeend',
+                `<span class="legend-item">
+                    <span class="legend-scale" style="background:linear-gradient(90deg,${lo},${hi})"></span>
+                    ${c.name}<span class="w">加权 ${f2(totalOf(c) / totalW * 100)}%</span>
+                 </span>`);
+        });
+        row2.insertAdjacentHTML('beforeend',
+            `<span class="legend-item"><span class="legend-color" style="background:${GRAY}"></span>不投票 / 未表态</span>`);
+
+        legend.appendChild(row1);
+        legend.appendChild(row2);
+    }
+
+    render();
+</script>
+</body>
+</html>
