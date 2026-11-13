@@ -92,7 +92,14 @@ if SCRIPT_DIR not in sys.path:
 _NAT_DIR = r"D:\Windows\TaiwanElection\Precident\2024Precident\scripts\20"
 if _NAT_DIR not in sys.path:
     sys.path.insert(0, _NAT_DIR)
-import Draw_National_President_2024 as nat
+if os.path.isdir(_NAT_DIR):
+    import Draw_National_President_2024 as nat
+else:
+    # 舊模組已整併為 President2024_Common（API 相同），作為回退
+    _COMMON_DIR = r"D:\Windows\TaiwanElection\Precident\2024Precident\scripts"
+    if _COMMON_DIR not in sys.path:
+        sys.path.insert(0, _COMMON_DIR)
+    import President2024_Common as nat
 
 # ===================== 配置 =====================
 # 2008 高雄市立委選舉資料（5 選區）

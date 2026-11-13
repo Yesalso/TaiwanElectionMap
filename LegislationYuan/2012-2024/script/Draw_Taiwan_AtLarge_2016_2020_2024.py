@@ -33,6 +33,18 @@
    中國國民黨＝1 藍、民主進步黨＝2 綠、台灣民眾黨＝5 青綠、新黨＝3 黃，
    其餘政黨一律第 0 組灰階），透過 monkey-patch `base.PARTIES／base.PARTY_STOPS`
    餵給重用的比對／填色函式。
+4. 飛地村里「改當一般村里」機制（2026-11-13 自 2008 版
+   `docs/軍事用地留白圖斑改一般村里_經驗總結.md` 移植，同日已移植到
+   `Draw_Taiwan_AtLarge_2012.py`）：底圖若把某村里圖斑編在它實際不接壤的
+   鄉鎮（同鄉鎮共邊 0 m 的飛地），dissolve 後該鄉鎮有孤懸部件，② 鄉鎮層會
+   沿它整圈描 2px，圖上成了「一塊留白被粗線整圈框住」。對策＝只改
+   COUNTYNAME/TOWNNAME 兩個欄位（不動幾何），把它改掛到實際所在的鄉鎮。
+   **106/108/111 三份官方 SHP 已逐里掃過（audit_exclave_villages）：飛地候選
+   只有 3 筆真行政飛地**（高雄市桃源區建山里、臺東縣金峰鄉正興村／賓茂村，
+   與 2012 版掃描結論一致），改掛反而會弄錯 → 一律不動，故逐年修正表皆為空。
+   官方圖資亦無 2008 版那種「軍事用地被編錯鄉鎮」的留白圖斑
+   （清泉崗基地在官方 SHP 本來就屬清水區）→ 本屆「不需修改」。
+   日後換底圖若出現同類留白，先跑 `--audit-exclave` 量化，再填 EXCLAVE_TOWN_FIX。
 
 輸出（map/）：
   全臺灣{2016,2020,2024}年立法委員不分區選舉_政黨票得票率地圖.png
@@ -42,6 +54,8 @@
 執行：py script/Draw_Taiwan_AtLarge_2016_2020_2024.py            # 三屆全跑
       py script/Draw_Taiwan_AtLarge_2016_2020_2024.py 2016       # 只跑指定屆
       py script/Draw_Taiwan_AtLarge_2016_2020_2024.py 2020 --test  # 只畫澎湖金門連江
+      py script/Draw_Taiwan_AtLarge_2016_2020_2024.py --audit-exclave 2024
+                                                                 # 只掃飛地村里候選，不出圖
 """
 import os
 import re
@@ -54,6 +68,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import geopandas as gpd
+import shapely
 import xlrd
 from shapely.geometry import MultiPolygon
 from shapely.ops import unary_union
@@ -529,31 +544,150 @@ def strip_far_parts_by_part(gdf, max_km=None):
     return out
 
 
+# ---------------------- 飛地村里「改當一般村里」（2026-11-13 經驗移植） ----------------------
+# 經驗來源：2008 版 docs/軍事用地留白圖斑改一般村里_經驗總結.md（教訓 #1「先量化、
+# 再改」、#3「飛地是 dissolve 類管線的隱形地雷」、#6「改資料欄位比改渲染邏輯安全」、
+# #7「『不需修改』也是一種結論」）。
+#
+# 機制：底圖把某村里圖斑編在它實際不接壤的鄉鎮（與同鄉鎮其他里共邊 0 m 的飛地）→
+#   dissolve 後該鄉鎮有孤懸部件 → ② 鄉鎮層 boundary.plot() 沿孤懸部件**整圈**描 2px，
+#   圖上就是「一塊留白被粗線整圈框住」（肉眼極像縣市界）。對策＝只改
+#   COUNTYNAME/TOWNNAME（同縣市內），把它掛回實際所在的鄉鎮（取共邊最長者），
+#   不動幾何 → 它與新鄉鎮各里之間只剩 1px 村里界，即「當成一般的村里處理」。
+#
+# 106/108/111 三份官方 SHP 掃描結論（audit_exclave_villages，2026-11-13）：
+#   三年的飛地候選**完全相同、只有 3 筆**，且全部是**真行政飛地**，改掛反而弄錯：
+#     高雄市桃源區建山里  （貼六龜區 19.77 km＝周長 173%、甲仙區 3.01 km）
+#     臺東縣金峰鄉正興村  （貼太麻里鄉 3.65 km＝周長 200%）
+#     臺東縣金峰鄉賓茂村  （貼太麻里鄉 3.03 km＝周長 200%）
+#   與 2012 版（twvillage2012.json）的全臺掃描結論一致。官方圖資亦無 2008 版
+#   「軍事用地被編錯鄉鎮」的留白圖斑（清泉崗基地在官方 SHP 本就屬清水區）。
+#   → 逐年修正表皆為空；日後換底圖若出現同類留白，先跑 `--audit-exclave` 量化
+#     （周長佔比 >90% 貼其他鄉鎮、且該圖斑留白），確認非真行政飛地後再填表。
+EXCLAVE_TOWN_FIX = {
+    2016: {},    # （2026-11-13 掃描：無需修正；飛地候選 3 筆皆真行政飛地）
+    2020: {},    # 同上
+    2024: {},    # 同上
+}
+
+
+def fix_exclave_village_towns(gdf, year=None, table=None):
+    """把「飛地村里」改掛到實際所在的鄉鎮市區（見 EXCLAVE_TOWN_FIX 的說明）。
+
+    只改 COUNTYNAME／TOWNNAME 兩個欄位（同年表鍵值限定同縣市，OLD_COUNTY
+    同步改寫），**不動幾何**：改完之後 dissolve 出來的鄉鎮面不再有孤懸部件，
+    ② 鄉鎮層不會沿該圖斑整圈描 2px，它與新鄉鎮的其他里之間只剩 1px 村里界。
+    這類圖斑通常本就無得票資料（留白），故不影響任何統計與配色。
+    與 2012 版 `Draw_Taiwan_AtLarge_2012.py` 的同名函式一致。
+    """
+    if table is None:
+        table = EXCLAVE_TOWN_FIX.get(year, {})
+    if not table:
+        print(f"  飛地村里歸屬修正（{year}）：修正表為空 → 不動任何圖斑"
+              f"（{year - 1911} 年官方 SHP 掃描無需修正；"
+              "重掃請跑 --audit-exclave）")
+        return gdf
+    out = gdf.copy()
+    for (c, t, v), (nc, nt) in table.items():
+        m = ((out["COUNTYNAME"] == c) & (out["TOWNNAME"] == t)
+             & (out["VILLNAME"] == v))
+        k = int(m.sum())
+        if not k:
+            print(f"  ⚠️ 飛地村里歸屬修正：底圖找不到 {c}{t}{v}（略過）")
+            continue
+        out.loc[m, "COUNTYNAME"] = nc
+        out.loc[m, "TOWNNAME"] = nt
+        if "OLD_COUNTY" in out.columns and nc != c:
+            out.loc[m, "OLD_COUNTY"] = nc
+        print(f"  飛地村里歸屬修正：{c}{t}{v} → {nc}{nt}"
+              f"（{k} 個圖斑；原本與 {t} 其他里共邊 0 m）")
+    return out
+
+
+# 飛地掃描剔除的離島縣市：單村島嶼（望安花嶼、琉球等）必然「同鄉鎮共邊 0 m」，
+# 屬偽陽性，與正式出圖的 1px 描邊縣市（THIN_COUNTIES）一致。
+AUDIT_EXCLAVE_ISLAND_COUNTIES = set(base.THIN_COUNTIES)
+
+
+def audit_exclave_villages(years=None):
+    """掃描「與同鄉鎮其他里共邊 0 m」的飛地村里候選（可重跑的診斷工具）。
+
+    方法＝經驗總結 §5.4：對每個村里圖斑量「與各鄰接鄉鎮的共邊長度」，
+    同鄉鎮共邊 ≈0 m 即飛地候選；再列它與各鄰接鄉鎮的共邊長度與周長佔比，
+    供判斷該掛到哪個鄉鎮（或根本是真行政飛地，不可改）。
+    預處理鏈與 run_year() ② 完全一致（同一 load_year_base），確保量到的
+    幾何與正式出圖相同。只列印報告，不改任何資料；配合 `--audit-exclave` 使用。
+    """
+    if years is None:
+        years = sorted(YEAR_SHP)
+    for year in years:
+        gdf = load_year_base(year)
+        sub = gdf[~gdf["COUNTYNAME"].isin(AUDIT_EXCLAVE_ISLAND_COUNTIES)].copy()
+        sub = sub[~sub.geometry.isna() & ~sub.geometry.is_empty].copy()
+        sub = sub.reset_index(drop=True)
+        geoms = list(sub.geometry)
+        counties = sub["COUNTYNAME"].tolist()
+        towns = sub["TOWNNAME"].tolist()
+        vills = sub["VILLNAME"].tolist()
+
+        # shapely 2 對向量輸入回傳 (2, n)：第 0 列＝輸入索引、第 1 列＝樹索引
+        tree = shapely.STRtree(geoms)
+        pairs = tree.query(geoms, predicate="intersects")
+        same_len = [0.0] * len(geoms)          # 與同鄉鎮其他里的共邊
+        town_len = [dict() for _ in geoms]     # 與各鄰接鄉鎮的共邊
+        for a, b in pairs.T:
+            if a == b:
+                continue
+            i, j = (int(a), int(b)) if a < b else (int(b), int(a))
+            inter = shapely.intersection(geoms[i], geoms[j])
+            ln = inter.length
+            if ln <= 1.0:                      # <1 m 視為切點雜訊
+                continue
+            if shapely.area(inter) > 1.0:      # 面積重疊 → 非純共邊，略過
+                continue
+            if counties[i] == counties[j] and towns[i] == towns[j]:
+                same_len[i] += ln
+                same_len[j] += ln
+            else:
+                k = f"{counties[j]}{towns[j]}"
+                town_len[i][k] = town_len[i].get(k, 0.0) + ln
+                k = f"{counties[i]}{towns[i]}"
+                town_len[j][k] = town_len[j].get(k, 0.0) + ln
+
+        merged = unary_union(geoms)
+        comps = list(merged.geoms) if hasattr(merged, "geoms") else [merged]
+        main = max(comps, key=lambda z: z.area)
+
+        cands = [i for i in range(len(geoms)) if same_len[i] < 1.0]
+        print(f"\n===== {year} 飛地村里掃描 =====")
+        print(f"村里圖斑（本島縣市）：{len(geoms)}；"
+              f"同鄉鎮共邊 0 m 候選：{len(cands)}")
+        for i in sorted(cands, key=lambda z: -sum(town_len[z].values())):
+            nb = sorted(town_len[i].items(), key=lambda kv: -kv[1])
+            per = geoms[i].length
+            d = geoms[i].distance(main) / 1000.0
+            print(f"  [{counties[i]}｜{towns[i]}｜{vills[i]}] "
+                  f"面積 {geoms[i].area / 1e6:.2f} km²、周長 {per / 1000:.2f} km、"
+                  f"距本島 {d:.1f} km")
+            if nb:
+                for k, v in nb:
+                    print(f"      貼 {k}: {v / 1000:.2f} km"
+                          f"（佔周長 {v / per * 100:.0f}%）")
+            else:
+                print("      （不貼任何其他鄉鎮＝孤島／獨立圖斑）")
+        print("  判讀：周長 >90% 貼同一外鄉鎮且該圖斑留白（無得票資料）→ 可考慮"
+              "填 EXCLAVE_TOWN_FIX；\n        多段貼不同鄉鎮、或該里確為行政飛地"
+              "（如建山里）→ 不可改（經驗總結教訓 #7）")
+
+
 # ---------------------- 主流程（逐年；鏡像 base.main ①→⑤） ----------------------
-def run_year(year, test_only=False):
-    t0 = time.time()
-    _CUR_YEAR[0] = year
-    out = year_outputs(year)
-    out_png = out["test_png"] if test_only else out["png"]
-    miss_md = out["test_missing"] if test_only else out["missing"]
+def load_year_base(year, test_only=False):
+    """② 底圖：讀逐年 SHP → 剝括號／正名 → add_old_county → 跨縣市重疊仲裁
+    → 逐部件遠島剔除（→ 測試模式只留澎湖金門連江）。
 
-    print("=" * 66)
-    print(f"  全臺灣 {year} 立法委員不分區（政黨票）村里得票率地圖"
-          + ("　【測試模式：只畫澎湖／金門／連江】" if test_only else ""))
-    print("=" * 66)
-
-    # ---- ① 得票資料 ----
-    by_key, by_town, vote_display, cnt_by_key, n_total, parties = \
-        LOADERS[year](YEAR_DATA_GLOB[year])
-    if not parties:
-        raise ValueError(f"{year} 未解析到任何政黨欄位")
-    # monkey-patch：把逐年政黨表／色階餵給重用的比對／填色函式
-    base.PARTIES = parties
-    base.PARTY_STOPS = make_stops(parties)
-    print(f"  得票資料：{n_total} 個村里列 → {len(by_key)} 個村里、"
-          f"{len(parties)} 個政黨：{'、'.join(parties)}")
-
-    # ---- ② 底圖（逐年 SHP；補漏機制不再需要） ----
+    正式出圖（run_year）與飛地掃描（audit_exclave_villages）共用同一條鏈，
+    確保診斷量到的幾何與正式出圖完全相同。
+    """
     gdf = base._read_shp_base(YEAR_SHP[year])
     # MOI 罕見字標記：剝除村名中的字面方括號（灰[瑤]里 → 灰瑤里），與資料側對位
     _br = gdf["VILLNAME"].astype(str).str.contains(_BRACKET_RE, regex=True)
@@ -594,6 +728,35 @@ def run_year(year, test_only=False):
         print(f"  測試模式：只保留 {'、'.join(TEST_COUNTIES)} → "
               f"{int(_m.sum())} 個村里圖斑（原 {len(gdf)}）")
         gdf = gdf[_m].copy().reset_index(drop=True)
+    return gdf
+
+
+def run_year(year, test_only=False):
+    t0 = time.time()
+    _CUR_YEAR[0] = year
+    out = year_outputs(year)
+    out_png = out["test_png"] if test_only else out["png"]
+    miss_md = out["test_missing"] if test_only else out["missing"]
+
+    print("=" * 66)
+    print(f"  全臺灣 {year} 立法委員不分區（政黨票）村里得票率地圖"
+          + ("　【測試模式：只畫澎湖／金門／連江】" if test_only else ""))
+    print("=" * 66)
+
+    # ---- ① 得票資料 ----
+    by_key, by_town, vote_display, cnt_by_key, n_total, parties = \
+        LOADERS[year](YEAR_DATA_GLOB[year])
+    if not parties:
+        raise ValueError(f"{year} 未解析到任何政黨欄位")
+    # monkey-patch：把逐年政黨表／色階餵給重用的比對／填色函式
+    base.PARTIES = parties
+    base.PARTY_STOPS = make_stops(parties)
+    print(f"  得票資料：{n_total} 個村里列 → {len(by_key)} 個村里、"
+          f"{len(parties)} 個政黨：{'、'.join(parties)}")
+
+    # ---- ② 底圖（逐年 SHP；補漏機制不再需要）＋ 飛地村里歸屬修正 ----
+    gdf = load_year_base(year, test_only=test_only)
+    gdf = fix_exclave_village_towns(gdf, year)
 
     # ---- ③ 比對（沿革合併 → 跨里合併 → 萬用字元 → 異體模糊） ----
     lin_idx = base.build_lineage_index(by_key)
@@ -835,13 +998,18 @@ def cv2_CC_AREA():
 
 # ---------------------- 入口 ----------------------
 def main():
-    years, test_only = [], False
+    years, test_only, audit_exclave = [], False, False
     for a in sys.argv[1:]:
         la = str(a).lower()
-        if la in ("--test", "--only-islands", "-t"):
+        if la in ("--audit-exclave", "--audit"):
+            audit_exclave = True          # 只掃飛地村里候選、列印報告，不出圖
+        elif la in ("--test", "--only-islands", "-t"):
             test_only = True
         elif la.isdigit() and int(la) in YEAR_SHP:
             years.append(int(la))
+    if audit_exclave:
+        audit_exclave_villages(sorted(set(years)) if years else None)
+        return
     if not years:
         years = sorted(YEAR_SHP)
     for y in years:

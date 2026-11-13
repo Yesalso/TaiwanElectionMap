@@ -116,6 +116,17 @@
     另修掉來源表殘留的編號前綴（中壢「2龍德里」→ 龍德里、大林「0內林里」→ 內林里）。
     仍對不上者留白，並逐筆寫入 Markdown 稽核報告。
 
+軍事用地（2026-11-13 使用者指定 → 「當成一般村里處理」）：
+    圖上有兩塊無村里名／無得票資料而留白的軍事用地：臺中「清泉崗軍事基地」、
+    高雄岡山「軍事用地」。其中 2012 圖資把清泉崗那塊編在**梧棲區**，但它與梧棲區
+    其他里共邊 0 m（飛地），四面貼著清水區 7.65 km／沙鹿區 2.92 km／神岡區 2.25 km
+    → ② 鄉鎮層沿它整圈描 2px 鄉鎮界，圖上變成「一塊空白被粗線圈起來」，看起來像
+    縣市界。改以 `EXCLAVE_TOWN_FIX` 把它掛回實際所在的**清水區**（基地門牌本即清水區），
+    於是與清水區各里之間只畫 1px 村里界、與沙鹿／神岡之間才是 2px 鄉鎮界，
+    即「正常的村里界線＋鄉鎮市區界線」。岡山那塊本即岡山區的里（同區共邊 4.63 km），
+    靠彌陀區／梓官區兩段才是 2px 鄉鎮界，屬正常村里畫法，不需修正。
+    兩塊皆無 2008 得票資料，填色仍留白，統計與配色不受影響。
+
 輸出：LegislationYuan/maps/全臺灣2008年立法委員不分區選舉_政黨票得票率地圖.png
       LegislationYuan/maps/全臺灣2008_無資料與未匹配村里.md
 執行：py scripts/atlarge/Draw_Taiwan_AtLarge_2008.py            # 全臺正式圖
@@ -277,6 +288,22 @@ GUEISHAN_KEY = ("宜蘭縣", "頭城鎮", "龜山里")
 GUEISHAN_MIN_OFFSHORE_M = 2000.0          # 距宜蘭縣本體 >2 km 的部件才視為龜山島
                                           #     （本島沿岸部分 2012 json 已有，不重複補）
 GUEISHAN_TEST_OUT = os.path.join(OUT_DIR, "全臺灣2008_龜山島補漏測試圖.png")
+
+# 村里圖斑的鄉鎮歸屬修正（飛地 → 改掛到實際所在的鄉鎮）
+# 2026-11-13 使用者指定：「臺中／高雄那兩塊軍事用地，就當成一般的村里處理」。
+#   2012 圖資把「清泉崗軍事基地」這一個村里圖斑編在**臺中市梧棲區**，實測它與
+#   梧棲區其他里的共邊是 **0 m**，四面分別貼著清水區 7.65 km、沙鹿區 2.92 km、
+#   神岡區 2.25 km → 是梧棲區的一塊飛地。② 鄉鎮層於是沿它**整圈**畫 2px 鄉鎮界，
+#   圖上就成了「一塊空白被粗線整個圈起來」，看起來像縣市界（使用者反映的現象）。
+#   改掛到實際所在的鄉鎮（清泉崗 → 清水區；基地門牌本即「清水區」）後：
+#     與清水區各里之間 → 1px 村里界（一般村里面）
+#     與沙鹿區／神岡區之間 → 2px 鄉鎮市區界（真正的行政界）
+#   即「正常的村里界線＋鄉鎮市區界線」，不再是整圈 2px 的飛地邊界。
+#   註：岡山「軍事用地」本來就是岡山區的里（與岡山區其他里共邊 4.63 km），
+#   不必修正；它靠彌陀區（3.48 km）／梓官區（0.87 km）那兩段才是 2px 鄉鎮界。
+EXCLAVE_TOWN_FIX = {
+    ("臺中市", "梧棲區", "清泉崗軍事基地"): ("臺中市", "清水區"),
+}
 
 # 縣市界依 2008 年行政區還原（2010 五都升格前的臺中/臺南/高雄縣市）
 SPLIT_COUNTY = {"臺中市": ("臺中市", "臺中縣"),
@@ -909,6 +936,28 @@ def add_gueishan_island(gdf, key=GUEISHAN_KEY, min_offshore_m=GUEISHAN_MIN_OFFSH
     return out
 
 
+def fix_exclave_village_towns(gdf, table=EXCLAVE_TOWN_FIX):
+    """把「飛地村里」改掛到實際所在的鄉鎮市區（見 EXCLAVE_TOWN_FIX 的說明）。
+
+    只改 TOWNNAME／COUNTYNAME 兩個欄位，不動幾何：改完之後 dissolve 出來的鄉鎮面
+    不再有孤懸部件，② 鄉鎮層也就不會沿著這個村里圖斑整圈描 2px，
+    它與新鄉鎮的其他里之間只剩 1px 村里界 —— 即「當成一般村里」。
+    這些圖斑都沒有 2008 得票資料，故不影響任何統計與配色。
+    """
+    out = gdf.copy()
+    for (c, t, v), (nc, nt) in table.items():
+        m = ((out["COUNTYNAME"] == c) & (out["TOWNNAME"] == t) & (out["VILLNAME"] == v))
+        k = int(m.sum())
+        if not k:
+            print(f"  ⚠️ 飛地村里歸屬修正：底圖找不到 {c}{t}{v}（略過）")
+            continue
+        out.loc[m, "COUNTYNAME"] = nc
+        out.loc[m, "TOWNNAME"] = nt
+        print(f"  飛地村里歸屬修正：{c}{t}{v} → {nc}{nt}"
+              f"（{k} 個圖斑；原本與 {t} 其他里共邊 0 m）")
+    return out
+
+
 def load_base_map(path=MAP_JSON):
     """讀入 2012 村里界底圖（全臺 22 縣市），再把嘉義市換成 pre2010 村里層。
 
@@ -940,6 +989,7 @@ def load_base_map(path=MAP_JSON):
     gdf = add_gueishan_island(gdf)
     gdf = _apply_city_geojson(gdf, CITY_GEOJSON)
     gdf = repair_base_names(gdf)
+    gdf = fix_exclave_village_towns(gdf)
     return gdf
 
 

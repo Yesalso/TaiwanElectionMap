@@ -24,10 +24,12 @@
 
 其餘一切沿用 2008 版：
     金門／連江 → 106 年村里界（1070205）拼接；烏坵鄉由 111 年 SHP 補漏；
-    宜蘭縣頭城鎮龜山里之龜山島由 106 年 SHP 補漏；縣市界、海岸線、線寬
-    （村里 1px／鄉鎮 2px／縣市 6px）、附圖嵌合佈局（連江框左上、金門框嵌右下、
-    烏坵 2px 框嵌金門框右下）、線色 #FCFCFC＋附圖外框黑線、平票斜線紋、
-    金馬澎空白島嶼填鄉鎮色、洪水填充與全套自檢 —— 全部原樣重用。
+    宜蘭縣頭城鎮龜山里之龜山島由 106 年 SHP 補漏；**村里圖斑的鄉鎮歸屬修正
+    （`EXCLAVE_TOWN_FIX`：清泉崗軍事基地 梧棲區→清水區，2026-11-13 使用者指定
+    「當成一般村里處理」）**；縣市界、海岸線、線寬（村里 1px／鄉鎮 2px／縣市 6px）、
+    附圖嵌合佈局（連江框左上、金門框嵌右下、烏坵 2px 框嵌金門框右下）、
+    線色 #FCFCFC＋附圖外框黑線、平票斜線紋、金馬澎空白島嶼填鄉鎮色、
+    洪水填充與全套自檢 —— 全部原樣重用。
 
 輸出：LegislationYuan/2012-2024/map/全臺灣2012年立法委員不分區選舉_政黨票得票率地圖.png
       LegislationYuan/2012-2024/map/全臺灣2012_無資料與未匹配村里.md
@@ -184,6 +186,26 @@ GUEISHAN_KEY = ("宜蘭縣", "頭城鎮", "龜山里")
 GUEISHAN_MIN_OFFSHORE_M = 2000.0          # 距宜蘭縣本體 >2 km 的部件才視為龜山島
                                           #     （本島沿岸部分 2012 json 已有，不重複補）
 GUEISHAN_TEST_OUT = os.path.join(OUT_DIR, "全臺灣2012_龜山島補漏測試圖.png")
+
+# 村里圖斑的鄉鎮歸屬修正（飛地 → 改掛到實際所在的鄉鎮）
+#   2026-11-13 使用者指定：「臺中／高雄那兩塊軍事用地，就當成一般的村里處理」。
+#   twvillage2012.json 把「清泉崗軍事基地」這一個村里圖斑編在**臺中市梧棲區**，
+#   實測它與梧棲區其他里的共邊是 **0 m**，四面分別貼著清水區 7.64 km、沙鹿區 2.92 km、
+#   神岡區 2.24 km → 是梧棲區的一塊飛地（梧棲區 dissolve 後有孤懸部件）。
+#   ② 鄉鎮層是「每個鄉鎮面整圈描 2px」，於是沿它**整圈**畫了鄉鎮界，圖上就成了
+#   「一塊空白被粗線整個圈起來」，看起來像縣市界（使用者反映的現象）。
+#   改掛到實際所在的鄉鎮（清泉崗 → 清水區；基地門牌本即「清水區」）後：
+#     與清水區各里之間 → 1px 村里界（一般村里面，佔邊界 59%）
+#     與沙鹿區／神岡區之間 → 2px 鄉鎮市區界（真正的行政界，佔 41%）
+#   即「正常的村里界線＋鄉鎮市區界線」，不再是整圈 2px 的飛地邊界。
+#   註 1：岡山「軍事用地」本來就是岡山區的里（與岡山區其他里共邊 4.63 km），
+#         不必修正；它靠彌陀區（3.48 km）／梓官區（0.87 km）那兩段才是 2px 鄉鎮界。
+#   註 2：全臺 7692 個村里圖斑已逐一掃過「同鄉鎮共邊 0 m 且周長 >90% 貼其他鄉鎮」，
+#         另有 4 筆命中但**都是真的行政飛地**（高雄市桃源區建山里四面貼六龜區；
+#         臺東縣金峰鄉正興村／賓茂村貼太麻里鄉），改掛反而會弄錯 → 一律不動。
+EXCLAVE_TOWN_FIX = {
+    ("臺中市", "梧棲區", "清泉崗軍事基地"): ("臺中市", "清水區"),
+}
 
 # 2012 選舉已為 2010 五都合併後的 22 縣市，與 twvillage2012.json 同一套縣市 →
 # 不需要 2008 版的 縣市切分（SPLIT_COUNTY／CITY_TOWNS）與 臺北縣還原（RENAME_2008）；
@@ -733,6 +755,31 @@ def add_gueishan_island(gdf, key=GUEISHAN_KEY, min_offshore_m=GUEISHAN_MIN_OFFSH
     return out
 
 
+def fix_exclave_village_towns(gdf, table=EXCLAVE_TOWN_FIX):
+    """把「飛地村里」改掛到實際所在的鄉鎮市區（見 EXCLAVE_TOWN_FIX 的說明）。
+
+    只改 TOWNNAME／COUNTYNAME 兩個欄位，**不動幾何**：改完之後 dissolve 出來的
+    鄉鎮面不再有孤懸部件，② 鄉鎮層也就不會沿著這個村里圖斑整圈描 2px，
+    它與新鄉鎮的其他里之間只剩 1px 村里界 —— 即「當成一般村里」。
+    這些圖斑本來就沒有 2012 得票資料（留白），故不影響任何統計與配色。
+
+    與 2008 版 `Draw_Taiwan_AtLarge_2008.py` 的同名函式一致（經驗總結見
+    `docs/軍事用地留白圖斑改一般村里_經驗總結.md`）：底圖相同，故修正表相同。
+    """
+    out = gdf.copy()
+    for (c, t, v), (nc, nt) in table.items():
+        m = ((out["COUNTYNAME"] == c) & (out["TOWNNAME"] == t) & (out["VILLNAME"] == v))
+        k = int(m.sum())
+        if not k:
+            print(f"  ⚠️ 飛地村里歸屬修正：底圖找不到 {c}{t}{v}（略過）")
+            continue
+        out.loc[m, "COUNTYNAME"] = nc
+        out.loc[m, "TOWNNAME"] = nt
+        print(f"  飛地村里歸屬修正：{c}{t}{v} → {nc}{nt}"
+              f"（{k} 個圖斑；原本與 {t} 其他里共邊 0 m）")
+    return out
+
+
 def load_base_map(path=MAP_JSON):
     """讀入 2012 村里界底圖（全臺 22 縣市）。
 
@@ -765,6 +812,7 @@ def load_base_map(path=MAP_JSON):
     gdf = supplement_missing_towns(gdf)
     gdf = add_gueishan_island(gdf)
     gdf = repair_base_names(gdf)
+    gdf = fix_exclave_village_towns(gdf)
     return gdf
 
 
