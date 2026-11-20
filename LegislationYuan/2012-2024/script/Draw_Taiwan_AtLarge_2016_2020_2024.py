@@ -43,8 +43,22 @@
    只有 3 筆真行政飛地**（高雄市桃源區建山里、臺東縣金峰鄉正興村／賓茂村，
    與 2012 版掃描結論一致），改掛反而會弄錯 → 一律不動，故逐年修正表皆為空。
    官方圖資亦無 2008 版那種「軍事用地被編錯鄉鎮」的留白圖斑
-   （清泉崗基地在官方 SHP 本來就屬清水區）→ 本屆「不需修改」。
+   （清泉崗基地在官方 SHP 本來就屬清水區）→ 逐年修正表皆為空。
    日後換底圖若出現同類留白，先跑 `--audit-exclave` 量化，再填 EXCLAVE_TOWN_FIX。
+5. 軍事用地「改當一般村里」（2026-11-14 同經驗第二次移植）：106/108/111 三份
+   官方 SHP 把清泉崗機場（臺中市 66000120S02）與岡山軍事用地（高雄市
+   64000190S01）編成 VILLNAME 為空的「未編定村里」（NOTE＝未編定村里），
+   `base._read_shp_base()` 的 drop_nan_village_parts 會把它們連同港區碎塊
+   一併剔除（臺中市／高雄市不在 NAN_KEEP_COUNTIES）→ 村里版圖上出現兩塊
+   整圈被界線圍住的白色缺口（視覺與 2008 版的軍事用地留白問題相同）。
+   對策＝參考 Township 版 `reattach_unassigned_villages` 的識別方式
+   **按 VILLCODE** 併回（VILLNAME 為空按名字找不到；底圖逐年不同、
+   VILLCODE 才是跨年穩定鍵），掛回實際所在的 清水區／岡山區（官方 SHP
+   本就編對鄉鎮，無需 EXCLAVE_TOWN_FIX），依 2008 版地圖的村里名命名
+   （清泉崗軍事基地／軍事用地）→ 中選會不對軍事用地開票 → 仍留白，
+   但界線回歸「1px 村里界 ＋ 2px 鄉鎮市區界」的正常村里畫法，
+   即「就當成一般的村里處理」（2008 版經驗教訓 #6：改資料欄位比改渲染
+   邏輯安全；教訓 #7：與 2008 版一致，兩塊維持留白、不動填色）。
 
 輸出（map/）：
   全臺灣{2016,2020,2024}年立法委員不分區選舉_政黨票得票率地圖.png
@@ -564,6 +578,9 @@ def strip_far_parts_by_part(gdf, max_km=None):
 #   「軍事用地被編錯鄉鎮」的留白圖斑（清泉崗基地在官方 SHP 本就屬清水區）。
 #   → 逐年修正表皆為空；日後換底圖若出現同類留白，先跑 `--audit-exclave` 量化
 #     （周長佔比 >90% 貼其他鄉鎮、且該圖斑留白），確認非真行政飛地後再填表。
+#   （2026-11-14 補充：軍事用地在 106/108/111 SHP 的問題不是「編錯鄉鎮」，
+#     而是「未編定村里被 drop_nan_village_parts 整塊剔除」→ 見
+#     reattach_military_villages，與本表無關。）
 EXCLAVE_TOWN_FIX = {
     2016: {},    # （2026-11-13 掃描：無需修正；飛地候選 3 筆皆真行政飛地）
     2020: {},    # 同上
@@ -680,15 +697,92 @@ def audit_exclave_villages(years=None):
               "（如建山里）→ 不可改（經驗總結教訓 #7）")
 
 
+# ---------------------- 軍事用地「改當一般村里」（2026-11-14 經驗移植） ----------------------
+# 經驗來源：2008 版 docs/軍事用地留白圖斑改一般村里_經驗總結.md
+# （教訓 #2「留白先查稽核報告」、#6「改資料欄位比改渲染邏輯安全」、
+#   #7「不需修改也是一種結論」——2008 版兩塊軍事用地改當一般村里後仍留白）。
+#
+# 106/108/111 三份官方 SHP 逐份核實（2026-11-14，_diag 臨時腳本）：兩塊軍事
+# 用地在 SHP 皆為 VILLCODE「S」尾碼、VILLNAME 為空、NOTE＝「未編定村里」：
+#     66000120S02  臺中市 清水區（清泉崗機場，約 7.13 km²）
+#     64000190S01  高雄市 岡山區（岡山機場北側軍事用地，約 3.13 km²）
+# `base._read_shp_base()` 內 drop_nan_village_parts 會把「VILLNAME 為空且縣市
+# 不在 NAN_KEEP_COUNTIES」的圖斑當港區碎塊剔除（臺中市／高雄市皆不在保留名單）
+# → 村里版圖上這兩塊變成整圈被界線圍住的白色缺口。
+#
+# 識別方式**照抄 Township 版** `Draw_Taiwan_AtLarge_2012_Township.py
+# .reattach_unassigned_villages`：兩張地圖底圖不同（2008 用 2012 json、本屆用
+# 逐年官方 SHP），軍事用地在 SHP 裡沒有村名、按名字一定找不到 → 一律用
+# **VILLCODE** 當鍵（66000120S02／64000190S01 在三份 SHP 完全一致）。
+#
+# 處理＝「改當一般村里」：掛回實際所在的 清水區／岡山區（官方 SHP 本就編對
+# 鄉鎮，非 2008 版的飛地編錯 → 不動 EXCLAVE_TOWN_FIX），依 2008 版地圖的
+# 村里名命名以便三張圖稽核報告逐筆對照；比對不到得票資料（中選會對軍事
+# 用地從不開票）→ 留白，但界線回歸「與清水區各里之間 1px 村里界、與沙鹿／
+# 神岡之間 2px 鄉鎮界」的正常村里畫法。其餘未編定圖斑（港區、水域）照舊剔除。
+MILITARY_VILLAGE_REATTACH = {
+    "66000120S02": ("臺中市", "清水區", "清泉崗軍事基地"),
+    "64000190S01": ("高雄市", "岡山區", "軍事用地"),
+}
+
+
+def reattach_military_villages(gdf, year=None, path=None):
+    """把兩塊「未編定村里」軍事用地圖斑按 VILLCODE 併回底圖（改當一般村里）。
+
+    執行時機：`load_year_base()` 讀完 `base._read_shp_base()`（此時兩塊已被
+    drop_nan_village_parts 剔除）之後、`add_old_county` 之前 —— 併回的圖斑
+    會照常取得 OLD_COUNTY，並參與後續的跨縣市重疊仲裁／遠島清理／比對。
+    只新增 COUNTYNAME/TOWNNAME/VILLNAME 三個欄位值（同 2008 版教訓 #6），
+    幾何取自 SHP 原樣（buffer(0) 修自交），不改任何渲染邏輯。
+    """
+    if path is None:
+        path = YEAR_SHP.get(year)
+    raw, err = None, None
+    for enc in ("utf-8", "cp950"):           # 106 版 .dbf 為 Big5，同 base._read_shp_base
+        try:
+            raw = gpd.read_file(path, encoding=enc)
+            break
+        except UnicodeDecodeError as e:
+            err = e
+    if raw is None:
+        raise err
+    raw = raw[raw["VILLCODE"].isin(MILITARY_VILLAGE_REATTACH)].copy()
+    if raw.crs is None:
+        raw = raw.set_crs("EPSG:4326")
+    raw = raw.to_crs(base.TARGET_CRS)
+    raw["geometry"] = raw.geometry.buffer(0)
+    raw = raw[~raw.geometry.isna() & ~raw.geometry.is_empty]
+    if not len(raw):
+        print(f"  軍事用地併回（{year}）：SHP 中找不到 "
+              f"{sorted(MILITARY_VILLAGE_REATTACH)}，無需併回")
+        return gdf
+    raw["COUNTYNAME"] = raw["VILLCODE"].map(
+        lambda v: MILITARY_VILLAGE_REATTACH[v][0])
+    raw["TOWNNAME"] = raw["VILLCODE"].map(
+        lambda v: MILITARY_VILLAGE_REATTACH[v][1])
+    raw["VILLNAME"] = raw["VILLCODE"].map(
+        lambda v: MILITARY_VILLAGE_REATTACH[v][2])
+    print(f"  軍事用地併回（{year}）：{len(raw)} 塊「未編定村里」改當一般村里 → "
+          + "、".join(f"{r['COUNTYNAME']}{r['TOWNNAME']}{r['VILLNAME']}"
+                      f"（{r['VILLCODE']}，{r.geometry.area / 1e6:.2f} km²）"
+                      for _, r in raw.iterrows()))
+    cols = ["COUNTYNAME", "TOWNNAME", "VILLNAME", "geometry"]
+    out = pd.concat([gdf[cols], raw[cols]], ignore_index=True)
+    return gpd.GeoDataFrame(out, geometry="geometry", crs=gdf.crs)
+
+
 # ---------------------- 主流程（逐年；鏡像 base.main ①→⑤） ----------------------
 def load_year_base(year, test_only=False):
-    """② 底圖：讀逐年 SHP → 剝括號／正名 → add_old_county → 跨縣市重疊仲裁
-    → 逐部件遠島剔除（→ 測試模式只留澎湖金門連江）。
+    """② 底圖：讀逐年 SHP → 軍事用地併回 → 剝括號／正名 → add_old_county
+    → 跨縣市重疊仲裁 → 逐部件遠島剔除（→ 測試模式只留澎湖金門連江）。
 
     正式出圖（run_year）與飛地掃描（audit_exclave_villages）共用同一條鏈，
     確保診斷量到的幾何與正式出圖完全相同。
     """
     gdf = base._read_shp_base(YEAR_SHP[year])
+    # 軍事用地「改當一般村里」（2026-11-14）：清泉崗／岡山兩塊「未編定村里」
+    # 被 drop_nan_village_parts 剔除 → 按 VILLCODE 併回（識別方式同 Township 版）
+    gdf = reattach_military_villages(gdf, year, YEAR_SHP[year])
     # MOI 罕見字標記：剝除村名中的字面方括號（灰[瑤]里 → 灰瑤里），與資料側對位
     _br = gdf["VILLNAME"].astype(str).str.contains(_BRACKET_RE, regex=True)
     if int(_br.sum()):

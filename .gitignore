@@ -75,3 +75,8 @@ _tmp*.txt
 
 # 影片配樂（大體積，本機保留，不入庫）
 /Video/*.mp3
+
+# 立法院看板：除錯暫存輸出（_tmp*、_asset_*）不入庫
+/LegislationYuan/1992-2024/video/dist/_tmp
+/LegislationYuan/1992-2024/video/dist/_tmp*
+/LegislationYuan/1992-2024/video/dist/_asset_*
